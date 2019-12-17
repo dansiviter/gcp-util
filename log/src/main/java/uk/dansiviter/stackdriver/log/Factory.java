@@ -36,12 +36,35 @@ import com.google.cloud.logging.LoggingEnhancer;
 import com.google.cloud.logging.Payload.JsonPayload;
 import com.google.cloud.logging.Severity;
 
-
 /**
+ * XXX Investigate low GC thread-local builders. It appears the LogEntry.Builder has no ability to clear.
+ *
  * @author Daniel Siviter
  * @since v1.0 [6 Dec 2019]
  */
-public enum Util { ;
+public class Factory {
+
+	/**
+	 *
+	 * @param entry
+	 * @param decorators
+	 * @return
+	 */
+	@Nonnull public LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
+		final Map<String, Object> payload = payload(entry);
+
+		final LogEntry.Builder b = LogEntry.newBuilder(null)
+				.setTimestamp(entry.timestamp())
+				.setSeverity(entry.severity());
+		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
+		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
+		entry.mdc().forEach((k, v) -> b.addLabel(k, Objects.toString(v)));
+		decorators.forEach(d -> d.decorate(b, entry, payload));
+
+		b.setPayload(JsonPayload.of(payload));
+
+		return b.build();
+	}
 
 	/**
 	 * Converts comma separated list of {@link EntryDecorator} class names into instances.
@@ -77,28 +100,6 @@ public enum Util { ;
 	/**
 	 *
 	 * @param entry
-	 * @param decorators
-	 * @return
-	 */
-	@Nonnull public static LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
-		final Map<String, Object> payload = payload(entry);
-
-		final LogEntry.Builder b = LogEntry.newBuilder(null)
-				.setTimestamp(entry.timestamp())
-				.setSeverity(entry.severity());
-		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
-		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
-		entry.mdc().forEach((k, v) -> b.addLabel(k, Objects.toString(v)));
-		decorators.forEach(d -> d.decorate(b, entry, payload));
-
-		b.setPayload(JsonPayload.of(payload));
-
-		return b.build();
-	}
-
-	/**
-	 *
-	 * @param entry
 	 * @return
 	 */
 	@Nonnull private static Map<String, Object> payload(Entry entry) {
@@ -108,7 +109,6 @@ public enum Util { ;
 		// https://cloud.google.com/error-reporting/docs/formatting-error-messages
 		// https://cloud.google.com/error-reporting/reference/rest/v1beta1/ServiceContext
 		// https://cloud.google.com/error-reporting/reference/rest/v1beta1/ErrorContext
-
 		entry.message().ifPresent(m -> data.put("message", m));
 
 		final Map<String, Object> context = new HashMap<>();

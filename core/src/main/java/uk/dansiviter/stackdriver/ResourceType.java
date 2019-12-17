@@ -143,6 +143,9 @@ public enum ResourceType {
 		return Optional.of(resource.getLabels().get(key.name));
 	}
 
+
+	// --- Inner Classes ---
+
 	/**
 	 *
 	 */

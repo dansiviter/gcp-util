@@ -17,10 +17,9 @@ package uk.dansiviter.stackdriver.log.jul;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static uk.dansiviter.stackdriver.log.Util.decorators;
-import static uk.dansiviter.stackdriver.log.Util.enhancers;
-import static uk.dansiviter.stackdriver.log.Util.logEntry;
-import static uk.dansiviter.stackdriver.log.Util.newInstance;
+import static uk.dansiviter.stackdriver.log.Factory.decorators;
+import static uk.dansiviter.stackdriver.log.Factory.enhancers;
+import static uk.dansiviter.stackdriver.log.Factory.newInstance;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -49,7 +48,7 @@ import com.google.cloud.logging.Synchronicity;
 import uk.dansiviter.stackdriver.ResourceType;
 import uk.dansiviter.stackdriver.log.Entry;
 import uk.dansiviter.stackdriver.log.EntryDecorator;
-import uk.dansiviter.stackdriver.log.Util;
+import uk.dansiviter.stackdriver.log.Factory;
 
 /**
  * Inspired by {@link com.google.cloud.logging.LoggingHandler} but one major limitation is it's use of
@@ -74,7 +73,7 @@ import uk.dansiviter.stackdriver.log.Util;
  *   public MyConfig() {
  *     System.setProperty("java.util.logging.SimpleFormatter.format", "%3$s: %5$s%6$s");
  *
- *     final JulHandler handler = new ConsoleHandler();
+ *     final JulHandler handler = new JulHandler();
  *     handler.setLevel(Level.FINEST);
  *     handler.setFormatter(new SimpleFormatter());
  *     handler.setFilter(new MyFilter());
@@ -82,7 +81,7 @@ import uk.dansiviter.stackdriver.log.Util;
  *
  *     final Logger root = Logger.getLogger("");
  *     root.setLevel(Level.INFO);
- *     root.addHandler(consoleHandler);
+ *     root.addHandler(handler);
  *   }
  * }
  * </pre>
@@ -96,6 +95,7 @@ public class JulHandler extends Handler {
 	private final LoggingOptions loggingOptions;
 	private final WriteOption[] defaultWriteOptions;
 	private final List<EntryDecorator> decorators = new LinkedList<>();
+	private final Factory factory = new Factory();
 
 	private volatile Logging logging;
 
@@ -103,15 +103,7 @@ public class JulHandler extends Handler {
 	 *
 	 */
 	public JulHandler() {
-		this(Optional.empty());
-	}
-
-	/**
-	 *
-	 * @param logName
-	 */
-	public JulHandler(Optional<String> logName) {
-		this(logName, LoggingOptions.getDefaultInstance(), ResourceType.autoDetect().monitoredResource());
+		this(Optional.empty(), LoggingOptions.getDefaultInstance(), ResourceType.autoDetect().monitoredResource());
 	}
 
 	/**
@@ -120,7 +112,7 @@ public class JulHandler extends Handler {
 	 * @param loggingOptions
 	 * @param monitoredResource
 	 */
-	public JulHandler(
+	private JulHandler(
 		Optional<String> logName,
 		@Nonnull LoggingOptions loggingOptions,
 		@Nonnull MonitoredResource monitoredResource)
@@ -128,8 +120,8 @@ public class JulHandler extends Handler {
 		try {
 			this.logManager = LogManager.getLogManager();
 			this.loggingOptions = loggingOptions;
-			setFilter(getInstanceProperty(Filter.class, this.logManager, "filter", null));
-			setFormatter(getInstanceProperty(Formatter.class, this.logManager, "formatter", null));
+			getInstanceProperty(Filter.class, this.logManager, "filter", null).ifPresent(this::setFilter);
+			getInstanceProperty(Formatter.class, this.logManager, "formatter", BasicFormatter.class.getName()).ifPresent(this::setFormatter);
 			final Level level = Level.parse(getProperty(this.logManager, "level", "INFO"));
 			setLevel(level);
 
@@ -193,7 +185,7 @@ public class JulHandler extends Handler {
 
 		final LogEntry entry;
 		try {
-			entry = logEntry(new JavaUtilEntry(record), this.decorators);
+			entry = factory.logEntry(new JavaUtilEntry(record), this.decorators);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, ErrorManager.FORMAT_FAILURE);
 			return;
@@ -218,6 +210,7 @@ public class JulHandler extends Handler {
 
 	@Override
 	public void close() throws SecurityException {
+		flush();
 		if (this.logging != null) {
 			try {
 				this.logging.close();
@@ -229,6 +222,36 @@ public class JulHandler extends Handler {
 
 
 	// --- Static Methods ---
+
+	/**
+	 *
+	 * @param resource
+	 * @return
+	 */
+	public static JulHandler julHandler(@Nonnull MonitoredResource resource) {
+		return new JulHandler(Optional.empty(), LoggingOptions.getDefaultInstance(), resource);
+	}
+
+	/**
+	 *
+	 * @param loggingOptions
+	 * @param resource
+	 * @return
+	 */
+	public static JulHandler julHandler(@Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
+		return new JulHandler(Optional.empty(), loggingOptions, resource);
+	}
+
+	/**
+	 *
+	 * @param logName
+	 * @param loggingOptions
+	 * @param resource
+	 * @return
+	 */
+	public static JulHandler julHandler(@Nonnull String logName, @Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
+		return new JulHandler(Optional.of(logName), loggingOptions, resource);
+	}
 
 	/**
 	 *
@@ -251,12 +274,12 @@ public class JulHandler extends Handler {
 	 * @param defaultValue
 	 * @return
 	 */
-	private static <T> T getInstanceProperty(Class<T> type, LogManager logManager, String name, String defaultValue) {
+	private static <T> Optional<T> getInstanceProperty(Class<T> type, LogManager logManager, String name, String defaultValue) {
 		final String value = getProperty(logManager, name, defaultValue);
 		if (Objects.isNull(value)) {
-			return null;
+			return Optional.empty();
 		}
-		return newInstance(type, value);
+		return Optional.of(newInstance(type, value));
 	}
 
 	/**
@@ -327,7 +350,7 @@ public class JulHandler extends Handler {
 		@Override
 		public Optional<CharSequence> thrown(){
 			final Throwable t = this.delegate.getThrown();
-			return t == null ? Optional.empty() : Optional.of(Util.toCharSequence(t));
+			return t == null ? Optional.empty() : Optional.of(Factory.toCharSequence(t));
 		}
 
 		@Override
