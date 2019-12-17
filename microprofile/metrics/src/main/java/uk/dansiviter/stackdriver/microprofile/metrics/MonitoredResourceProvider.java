@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.microprofile.metrics;
+package uk.dansiviter.stackdriver.microprofile.metrics;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
