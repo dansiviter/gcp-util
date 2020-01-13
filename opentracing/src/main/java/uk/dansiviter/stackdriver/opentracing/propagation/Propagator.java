@@ -17,7 +17,6 @@ package uk.dansiviter.stackdriver.opentracing.propagation;
 
 import javax.annotation.Nonnull;
 
-import io.opentracing.propagation.Format;
 import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
 
 /**
@@ -27,7 +26,7 @@ import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
  */
 public interface Propagator<C> {
 
-	void inject(StackdriverSpanContext spanContext, @Nonnull Format<C> format, @Nonnull C carrier);
+	void inject(StackdriverSpanContext spanContext, @Nonnull C carrier);
 
-	StackdriverSpanContext extract(@Nonnull Format<C> format, @Nonnull C carrier);
+	StackdriverSpanContext extract(@Nonnull C carrier);
 }

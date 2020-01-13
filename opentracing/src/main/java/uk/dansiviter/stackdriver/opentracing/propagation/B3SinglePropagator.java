@@ -17,7 +17,6 @@ package uk.dansiviter.stackdriver.opentracing.propagation;
 
 import java.util.Map;
 
-import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMap;
 import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
 
@@ -37,7 +36,7 @@ public class B3SinglePropagator implements TextMapPropagator {
 	}
 
 	@Override
-	public void inject(StackdriverSpanContext spanContext, Format<TextMap> format, TextMap carrier) {
+	public void inject(StackdriverSpanContext spanContext, TextMap carrier) {
 		final StringBuilder buf = new StringBuilder(spanContext.traceId())
 			.append('-')
 			.append(spanContext.spanIdAsString())
@@ -47,11 +46,11 @@ public class B3SinglePropagator implements TextMapPropagator {
 	}
 
 	@Override
-	public StackdriverSpanContext extract(Format<TextMap> format, TextMap carrier) {
+	public StackdriverSpanContext extract(TextMap carrier) {
 		String value = null;
 
 		for (Map.Entry<String, String> e : carrier) {
-			if (header().equals(e.getKey())) {
+			if (header().equalsIgnoreCase(e.getKey())) {
 				value = e.getValue();
 				break;
 			}

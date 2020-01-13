@@ -153,7 +153,7 @@ public class StackdriverExporter {
 	 */
 	private void collect(MetricRegistry registry, Map<MetricID, Snapshot> snapshots, MetricID id, Metric metric) {
 		try {
-			Factory.snapshot(metric).ifPresent(s -> snapshots.put(id, s));
+			Factory.toSnapshot(metric).ifPresent(s -> snapshots.put(id, s));
 		} catch (RuntimeException e) {
 			this.log.log(Level.WARNING, "Unable to snapshot!", e);
 		}
@@ -195,7 +195,7 @@ public class StackdriverExporter {
 
 		// on first run create metric view data as we have no other way of knowing if it's a Double or Int64
 		final MetricDescriptor descriptor = this.descriptors.computeIfAbsent(id, k -> {
-			final MetricDescriptor created = this.factory.toDescriptor(registry, id, metric);
+			final MetricDescriptor created = this.factory.toDescriptor(registry, id, snapshot);
 			this.client.createMetricDescriptor(this.projectName, created);
 			return created;
 		});
