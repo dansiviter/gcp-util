@@ -17,7 +17,6 @@ package uk.dansiviter.stackdriver.opentracing.propagation;
 
 import java.util.Map;
 
-import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMap;
 import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
 
@@ -33,7 +32,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 	protected static final String FLAGS = "X-B3-Flags";
 
 	@Override
-	public void inject(StackdriverSpanContext spanContext, Format<TextMap> format, TextMap carrier) {
+	public void inject(StackdriverSpanContext spanContext, TextMap carrier) {
 		carrier.put(TRACE_ID, spanContext.traceId());
 		carrier.put(SPAN_ID, Long.toHexString(spanContext.spanId()).toLowerCase());
 		spanContext.parentSpanId().ifPresent(v -> carrier.put(PARENT_SPAN_ID, Long.toHexString(v).toLowerCase()));
@@ -42,7 +41,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 	}
 
 	@Override
-	public StackdriverSpanContext extract(Format<TextMap> format, TextMap carrier) {
+	public StackdriverSpanContext extract(TextMap carrier) {
 		String traceId = null;
 		String spanId = null;
 		String parentSpanId = null;
@@ -66,6 +65,11 @@ public class B3MultiPropagator implements TextMapPropagator {
 					break;
 			}
 		}
+
+		if (spanId == null || traceId == null) {
+			throw new IllegalArgumentException("spanId or traceId missing!");
+		}
+
 		final StackdriverSpanContext.Builder builder = StackdriverSpanContext.builder(traceId, spanId).sampled("1".equals(sampled));
 		if (parentSpanId != null) {
 			builder.parentSpanId(parentSpanId);

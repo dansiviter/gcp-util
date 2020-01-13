@@ -93,12 +93,12 @@ public class StackdriverTracer implements Tracer, Closeable {
 
 	@Override
 	public <C> void inject(@Nonnull SpanContext spanContext, @Nonnull Format<C> format, @Nonnull C carrier) {
-		propagator(format).inject((StackdriverSpanContext) spanContext, format, carrier);
+		propagator(format).inject((StackdriverSpanContext) spanContext, carrier);
 	}
 
 	@Override
 	public <C> StackdriverSpanContext extract(@Nonnull Format<C> format, @Nonnull C carrier) {
-		return propagator(format).extract(format, carrier);
+		return propagator(format).extract(carrier);
 	}
 
 	@Override

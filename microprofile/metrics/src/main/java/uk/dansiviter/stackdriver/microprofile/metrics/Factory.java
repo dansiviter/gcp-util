@@ -23,6 +23,7 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import com.google.api.Distribution;
 import com.google.api.LabelDescriptor;
 import com.google.api.MetricDescriptor;
 import com.google.api.MetricDescriptor.MetricKind;
@@ -32,6 +33,7 @@ import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
 import com.google.monitoring.v3.TypedValue;
+import com.google.monitoring.v3.TimeSeries.Builder;
 import com.google.protobuf.Timestamp;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -42,13 +44,15 @@ import org.eclipse.microprofile.metrics.Metadata;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.MetricType;
 import org.eclipse.microprofile.metrics.MetricUnits;
+import org.eclipse.microprofile.metrics.Timer;
 
 /**
-*
-* @author Daniel Siviter
-* @since v1.0 [13 Dec 2019]
-*/
+ *
+ * @author Daniel Siviter
+ * @since v1.0 [13 Dec 2019]
+ */
 @ApplicationScoped
 public class Factory {
 	private static final ThreadLocal<MetricDescriptor.Builder> METRIC_DESC_BUILDER =
@@ -63,6 +67,10 @@ public class Factory {
 			ThreadLocal.withInitial(TimeInterval::newBuilder);
 	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER =
 			ThreadLocal.withInitial(Timestamp::newBuilder);
+	private static final ThreadLocal<TypedValue.Builder> TYPED_VALUE_BUILDER =
+			ThreadLocal.withInitial(TypedValue::newBuilder);
+	private static final ThreadLocal<Distribution.Builder> DISTRIBUTION_BUILDER =
+			ThreadLocal.withInitial(Distribution::newBuilder);
 
 	@Inject
 	@ConfigProperty(name = "stackdriver.prefix", defaultValue = "custom.googleapis.com/microprofile/")
@@ -97,14 +105,15 @@ public class Factory {
 	 * @param metric
 	 * @return
 	 */
-	MetricDescriptor toDescriptor(MetricRegistry registry, MetricID id, Metric metric) {
-		final String metricType = prefix.concat(id.getName());
-		final Metadata metadata = registry.getMetadata().get(id.getName());
+	MetricDescriptor toDescriptor(MetricRegistry registry, MetricID id, Snapshot snapshot) {
+		final String name = id.getName();
+		final String metricType = prefix.concat(name);
+		final Metadata metadata = registry.getMetadata().get(name);
 		final MetricDescriptor.Builder descriptor = METRIC_DESC_BUILDER.get().clear().setType(metricType)
-				.setMetricKind(getMetricKind(metric))
-				.setValueType(getValueType(metric))
-				.setName(metadata.getName())
+				.setMetricKind(getMetricKind(metadata.getTypeRaw()))
+				.setName(name)
 				.setDisplayName(metadata.getDisplayName());
+		getValueType(snapshot).ifPresent(descriptor::setValueType);
 		metadata.getDescription().ifPresent(descriptor::setDescription);
 		metadata.getUnit().ifPresent(u -> descriptor.setUnit(convertUnit(u)));
 		id.getTagsAsList().forEach(t -> descriptor.addLabels(
@@ -118,36 +127,46 @@ public class Factory {
 	 * @param metric
 	 * @return
 	 */
-	private static ValueType getValueType(Metric metric) {
-		if (metric instanceof Gauge) {
-			final Gauge<?> gauge = (Gauge<?>) metric;
-			final Object value = gauge.getValue();
+	private static Optional<ValueType> getValueType(Snapshot snapshot) {
+		if (snapshot instanceof GaugeSnapshot) {
+			final GaugeSnapshot gaugeSnapshot = (GaugeSnapshot) snapshot;
+			final Object value = gaugeSnapshot.value();
 			if (value instanceof Double || value instanceof Float) {
-				return ValueType.DOUBLE;
+				return Optional.of(ValueType.DOUBLE);
 			}
 			if (value instanceof Short || value instanceof Integer || value instanceof Long) {
-				return ValueType.INT64;
+				return Optional.of(ValueType.INT64);
 			}
-		} else if (metric instanceof ConcurrentGauge) {
-			return ValueType.INT64;
-		} else if (metric instanceof Counter) {
-			return ValueType.INT64;
+		} else if (snapshot instanceof ConcurrentGaugeSnapshot) {
+			return Optional.of(ValueType.INT64);
+		} else if (snapshot instanceof CounterSnapshot) {
+			return Optional.of(ValueType.INT64);
+		} else if (snapshot instanceof TimerSnapshot) {
+			return Optional.of(ValueType.DISTRIBUTION);
 		}
-		throw new IllegalStateException("Unknown type! [" + metric + "]");
+		return Optional.empty();
 	}
 
 	/**
 	 *
-	 * @param metric
+	 * @param type
 	 * @return
 	 */
-	private static MetricKind getMetricKind(Metric metric) {
-		if (metric instanceof Gauge || metric instanceof ConcurrentGauge) {
-			return MetricKind.GAUGE;
-		} else if (metric instanceof Counter) {
-			return MetricKind.CUMULATIVE;
+	private static MetricKind getMetricKind(MetricType type) {
+		if (type == null) {
+			return MetricKind.METRIC_KIND_UNSPECIFIED;
 		}
-		throw new IllegalStateException("Unknown type! [" + metric + "]");
+		switch (type) {
+			case COUNTER:
+				return MetricKind.CUMULATIVE;
+			case GAUGE:
+			case CONCURRENT_GAUGE:
+				return MetricKind.GAUGE;
+			case TIMER:
+				return MetricKind.GAUGE;
+			default:
+				return MetricKind.UNRECOGNIZED;
+		}
 	}
 
 	/**
@@ -218,7 +237,7 @@ public class Factory {
 	 * @param metric
 	 * @return
 	 */
-	static Optional<Snapshot> snapshot(Metric metric) {
+	static Optional<Snapshot> toSnapshot(Metric metric) {
 		final Snapshot snapshot;
 		if (metric instanceof Gauge) {
 			snapshot = new GaugeSnapshot((Gauge<?>) metric);
@@ -226,7 +245,10 @@ public class Factory {
 			snapshot = new ConcurrentGaugeSnapshot((ConcurrentGauge) metric);
 		} else if (metric instanceof Counter) {
 			snapshot = new CounterSnapshot((Counter) metric);
-		} else {
+		} else if (metric instanceof Timer) {
+			snapshot = new TimerSnapshot((Timer) metric);
+		}
+		else {
 			snapshot = null;
 		}
 		return Optional.ofNullable(snapshot);
@@ -260,20 +282,24 @@ public class Factory {
 	  *
 	  */
 	static class GaugeSnapshot implements Snapshot {
-		final Object value;
+		private final Object value;
 
 		private GaugeSnapshot(Gauge<?> gauge) {
 			this.value = gauge.getValue();
 		}
 
+		Object value() {
+			return this.value;
+		}
+
 		private TypedValue value(MetricDescriptor descriptor) {
-			final TypedValue.Builder typedValue = TypedValue.newBuilder();
+			final TypedValue.Builder typedValue = TYPED_VALUE_BUILDER.get().clear();
 			switch (descriptor.getValueType()) {
 				case DOUBLE:
-					typedValue.setDoubleValue(((Number) this.value).doubleValue());
+					typedValue.setDoubleValue(((Number) value()).doubleValue());
 					break;
 				case INT64:
-					typedValue.setInt64Value(((Number) this.value).longValue());
+					typedValue.setInt64Value(((Number) value()).longValue());
 					break;
 				default:
 					throw new IllegalArgumentException("Unknown type! [" + descriptor.getValueType() + "]");
@@ -307,7 +333,7 @@ public class Factory {
 				TimeInterval interval) {
 			final Point point = POINT_BUILDER.get().clear()
 					.setInterval(INTERVAL_BUILDER.get().clear().setEndTime(interval.getEndTime()).build())
-					.setValue(TypedValue.newBuilder().setInt64Value(this.value).build()).build();
+					.setValue(TYPED_VALUE_BUILDER.get().clear().setInt64Value(this.value).build()).build();
 			return Snapshot.super.timeseries(id, descriptor, monitoredResource, interval)
 				.addPoints(point);
 		}
@@ -317,7 +343,8 @@ public class Factory {
 	 *
 	 */
 	static class CounterSnapshot implements Snapshot {
-		final long value;
+		private final long value;
+
 		private CounterSnapshot(Counter counter) {
 			this.value = counter.getCount();
 		}
@@ -327,9 +354,36 @@ public class Factory {
 				TimeInterval interval) {
 			final Point point = POINT_BUILDER.get().clear()
 					.setInterval(interval)
-					.setValue(TypedValue.newBuilder().setInt64Value(this.value).build()).build();
+					.setValue(TYPED_VALUE_BUILDER.get().clear().setInt64Value(this.value).build()).build();
 			return Snapshot.super.timeseries(id, descriptor, monitoredResource, interval).addPoints(point);
 		}
 	}
 
+	static class TimerSnapshot implements Snapshot {
+		private final double mean;
+		private final long count;
+		private final long[] values;
+
+		private TimerSnapshot(Timer timer) {
+			this.mean = timer.getMeanRate();
+			this.count = timer.getCount();
+			this.values = timer.getSnapshot().getValues();
+		}
+
+		@Override
+		public Builder timeseries(MetricID id, MetricDescriptor descriptor, MonitoredResource monitoredResource, TimeInterval interval) {
+			final Distribution.Builder distribution = DISTRIBUTION_BUILDER.get().clear()
+					.setMean(this.mean)
+					.setCount(this.count);
+			final TimeSeries.Builder builder = Snapshot.super.timeseries(id, descriptor, monitoredResource, interval);
+
+			for (long value : this.values) {
+				final Point point = POINT_BUILDER.get().clear()
+				.setInterval(interval)
+				.setValue(TYPED_VALUE_BUILDER.get().clear().setDistributionValue(distribution).setInt64Value(value).build()).build();
+				builder.addPoints(point);
+			}
+			return builder;
+		}
+	}
 }

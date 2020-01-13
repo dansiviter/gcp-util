@@ -12,5 +12,4 @@ Limitations:
 * Do we need to attempt extract an existing `MetricDescriptor` or is it idempotent to just re-persist?
 * Missing `org.eclipse.microprofile.metrics.Meter`,
 * Missing `org.eclipse.microprofile.metrics.Histogram`,
-* Missing `org.eclipse.microprofile.metrics.Timer`,
 * Performance testing.
