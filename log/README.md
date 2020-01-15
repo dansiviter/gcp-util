@@ -41,7 +41,7 @@ Example `java.util.logging.config.class` class config:
 
 ## Decorators ##
 
-### OpenTracing Decorator ###
+### OpenTracing Log Correlation ###
 
 To link traces to logs use `uk.dansiviter.stackdriver.log.opentracing.Decorator`.
 

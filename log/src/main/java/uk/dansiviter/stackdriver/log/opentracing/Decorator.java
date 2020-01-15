@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,12 @@
  */
 package uk.dansiviter.stackdriver.log.opentracing;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
@@ -38,46 +41,47 @@ import uk.dansiviter.stackdriver.log.EntryDecorator;
  */
 public class Decorator implements EntryDecorator {
 	protected static final String TRACE_ID_NAME = "X-B3-TraceId";
-  	protected static final String SPAN_ID_NAME = "X-B3-SpanId";
+	protected static final String SPAN_ID_NAME = "X-B3-SpanId";
 	protected static final String SAMPLED_NAME = "X-B3-Sampled";
 	protected static final String B3 = "B3";
 	protected static final String TRACEPARENT = "traceparent";
 
 	private final String prefix;
-	private final Tracer tracer;
+	private final Supplier<Tracer> tracer;
 
 	/**
-	 *
+	 * Creates a using {@link GlobalTracer#get()}
 	 */
 	public Decorator() {
-		this(GlobalTracer.get());
+		this(GlobalTracer::get);
 	}
 
 	/**
-	 * @param tracer
+	 * @param tracer the tracer supplier.
 	 */
-	public Decorator(@Nonnull Tracer tracer) {
+	public Decorator(@Nonnull Supplier<Tracer> tracer) {
 		this(tracer, Optional.of(ServiceOptions.getDefaultProjectId()));
 	}
 
 	/**
 	 *
-	 * @param tracer
-	 * @param projectId
+	 * @param tracer the tracer supplier.
+	 * @param projectId the project identifier.
 	 */
-	public Decorator(@Nonnull Tracer tracer, Optional<String> projectId) {
+	public Decorator(@Nonnull Supplier<Tracer> tracer, Optional<String> projectId) {
 		this.prefix = String.format("projects/%s/traces/", projectId.orElse(""));
-		this.tracer = tracer;
+		this.tracer = requireNonNull(tracer);
 	}
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
 		final Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-		final Span span = this.tracer.activeSpan();
+		final Tracer tracer = this.tracer.get();
+		final Span span = tracer.activeSpan();
 		if (span == null) {
 			return;
 		}
-		this.tracer.inject(span.context(), Format.Builtin.HTTP_HEADERS, new TextMapInjectAdapter(headers));
+		tracer.inject(span.context(), Format.Builtin.HTTP_HEADERS, new TextMapInjectAdapter(headers));
 
 		// try B3 Multi
 		headers.computeIfPresent(TRACE_ID_NAME, (k, v) -> {

@@ -9,7 +9,19 @@ This implementation attempts the following:
 
 Limitations:
 * Zero unit testing... sorry!
-* Do we need to attempt extract an existing `MetricDescriptor` or is it idempotent to just re-persist?
 * Missing `org.eclipse.microprofile.metrics.Meter`,
 * Missing `org.eclipse.microprofile.metrics.Histogram`,
 * Performance testing.
+
+
+## Usage ##
+
+It needs a `java.util.concurrent.ScheduledExecutorService` to be able to run which not often given by default, so ensure one is supplied. e.g.:
+
+	@ApplicationScoped
+	public static class ExecutorProvider {
+		@javax.enterprise.inject.Produces @ApplicationScoped
+		public ScheduledExecutorService scheduler() {
+			return Executors.newSingleThreadScheduledExecutor();
+		}
+	}

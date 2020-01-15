@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
@@ -50,14 +51,14 @@ public interface Entry {
 	/**
 	 * @return formatted log message.
 	 */
-	default Optional<CharSequence> message() {
+	default Optional<? super CharSequence> message() {
 		return Optional.empty();
 	}
 
 	/**
 	 * @return stacktrace as a string.
 	 */
-	default Optional<CharSequence> thrown(){
+	default Optional<Supplier<? super CharSequence>> thrown(){
 		return Optional.empty();
 	}
 

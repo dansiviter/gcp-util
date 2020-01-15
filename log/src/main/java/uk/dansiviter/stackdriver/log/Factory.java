@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  */
 package uk.dansiviter.stackdriver.log;
 
+import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -37,12 +38,13 @@ import com.google.cloud.logging.Payload.JsonPayload;
 import com.google.cloud.logging.Severity;
 
 /**
- * XXX Investigate low GC thread-local builders. It appears the LogEntry.Builder has no ability to clear.
+ * XXX Investigate low GC thread-local builders. It appears the LogEntry.Builder
+ * has no ability to clear.
  *
  * @author Daniel Siviter
  * @since v1.0 [6 Dec 2019]
  */
-public class Factory {
+public enum Factory { ;
 
 	/**
 	 *
@@ -50,11 +52,11 @@ public class Factory {
 	 * @param decorators
 	 * @return
 	 */
-	@Nonnull public LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
+	@Nonnull
+	public static LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
 		final Map<String, Object> payload = payload(entry);
 
-		final LogEntry.Builder b = LogEntry.newBuilder(null)
-				.setTimestamp(entry.timestamp())
+		final LogEntry.Builder b = LogEntry.newBuilder(null).setTimestamp(entry.timestamp())
 				.setSeverity(entry.severity());
 		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
 		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
@@ -67,12 +69,14 @@ public class Factory {
 	}
 
 	/**
-	 * Converts comma separated list of {@link EntryDecorator} class names into instances.
+	 * Converts comma separated list of {@link EntryDecorator} class names into
+	 * instances.
 	 *
 	 * @param decorators
 	 * @return
 	 */
-	@Nonnull public static List<EntryDecorator> decorators(@Nonnull String decorators) {
+	@Nonnull
+	public static List<EntryDecorator> decorators(@Nonnull String decorators) {
 		if (decorators.isBlank()) {
 			return emptyList();
 		}
@@ -82,13 +86,14 @@ public class Factory {
 	}
 
 	/**
-	 * Converts legacy {@link LoggingEnhancer} class names into decorators. This is useful for things like the
-	 * OpenCensus trace log correlaton enhancers.
+	 * Converts legacy {@link LoggingEnhancer} class names into decorators. This is
+	 * useful for things like the OpenCensus trace log correlaton enhancers.
 	 *
 	 * @param enhancers
 	 * @return
 	 */
-	@Nonnull public static List<EntryDecorator> enhancers(@Nonnull String enhancers) {
+	@Nonnull
+	public static List<EntryDecorator> enhancers(@Nonnull String enhancers) {
 		if (enhancers.isBlank()) {
 			return emptyList();
 		}
@@ -102,17 +107,14 @@ public class Factory {
 	 * @param entry
 	 * @return
 	 */
-	@Nonnull private static Map<String, Object> payload(Entry entry) {
+	@Nonnull
+	private static Map<String, Object> payload(Entry entry) {
 		final Map<String, Object> data = new HashMap<>();
 
-		// TODO Error Reporting 'serviceContext' & 'context':
-		// https://cloud.google.com/error-reporting/docs/formatting-error-messages
-		// https://cloud.google.com/error-reporting/reference/rest/v1beta1/ServiceContext
-		// https://cloud.google.com/error-reporting/reference/rest/v1beta1/ErrorContext
 		entry.message().ifPresent(m -> data.put("message", m));
 
 		final Map<String, Object> context = new HashMap<>();
-		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && !entry.thrown().isPresent()) {
+		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && entry.thrown().isPresent()) {
 			entry.source().ifPresent(s -> {
 				context.put("reportLocation", s.asMap());
 			});
@@ -130,7 +132,8 @@ public class Factory {
 	 * @param t
 	 * @return
 	 */
-	@Nonnull public static CharSequence toCharSequence(@Nonnull Throwable t) {
+	@Nonnull
+	public static CharSequence toCharSequence(@Nonnull Throwable t) {
 		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
 			t.printStackTrace(pw);
 			return sw.getBuffer();
@@ -150,9 +153,8 @@ public class Factory {
 		try {
 			final Class<?> concreteCls = ClassLoader.getSystemClassLoader().loadClass(name);
 			return type.cast(concreteCls.getDeclaredConstructor().newInstance());
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-				| InvocationTargetException | NoSuchMethodException e)
-		{
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException
+				| NoSuchMethodException e) {
 			throw new IllegalArgumentException("Unable to create! [name]", e);
 		}
 	}
@@ -167,12 +169,12 @@ public class Factory {
 	@SuppressWarnings("unchecked")
 	public @Nonnull static <T> T instance(@Nonnull String name) {
 		try {
-			final Class<?> concreteCls = ClassLoader.getSystemClassLoader().loadClass(name);
+			final Class<?> concreteCls = Class.forName(name);
 			return (T) concreteCls.getDeclaredConstructor().newInstance();
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
 				| InvocationTargetException | NoSuchMethodException e)
 		{
-			throw new IllegalArgumentException("Unable to create! [name]", e);
+			throw new IllegalArgumentException(format("Unable to create! [s]", name), e);
 		}
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import static java.util.Arrays.stream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
 import java.util.logging.Formatter;
@@ -86,7 +87,6 @@ public class JulHandler extends Handler {
 	private final LoggingOptions loggingOptions;
 	private final WriteOption[] defaultWriteOptions;
 	private final List<EntryDecorator> decorators = new LinkedList<>();
-	private final Factory factory = new Factory();
 
 	private volatile Logging logging;
 
@@ -137,6 +137,38 @@ public class JulHandler extends Handler {
 	}
 
 	/**
+	 * For JBoss LogManager
+	 */
+	public JulHandler setFlushSeverity(Severity flushSeverity) {
+		logging().setFlushSeverity(flushSeverity);
+		return this;
+	}
+
+	/**
+	 * For JBoss LogManager
+	 */
+	public JulHandler setSynchronicity(Synchronicity synchronicity) {
+		logging().setWriteSynchronicity(synchronicity);
+		return this;
+	}
+
+	/**
+	 * For JBoss LogManager
+	 */
+	public JulHandler setDecorators(String decorators) {
+		this.decorators.addAll(Factory.decorators(decorators));
+		return this;
+	}
+
+	/**
+	 * For JBoss LogManager
+	 */
+	public JulHandler setEnhancers(String enhancers) {
+		this.decorators.addAll(Factory.enhancers(enhancers));
+		return this;
+	}
+
+	/**
 	 *
 	 * @param decorators
 	 * @return
@@ -177,7 +209,7 @@ public class JulHandler extends Handler {
 
 		final LogEntry entry;
 		try {
-			entry = factory.logEntry(new JavaUtilEntry(record), this.decorators);
+			entry = Factory.logEntry(new JavaUtilEntry(record), this.decorators);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, ErrorManager.FORMAT_FAILURE);
 			return;
@@ -316,15 +348,18 @@ public class JulHandler extends Handler {
 		}
 
 		@Override
-		public Optional<CharSequence> message() {
+		public Optional<? super CharSequence> message() {
 			final String msg = getFormatter().format(this.delegate);
 			return msg.isEmpty() ? Optional.empty() : Optional.of(msg);
 		}
 
 		@Override
-		public Optional<CharSequence> thrown(){
+		public Optional<Supplier<? super CharSequence>> thrown() {
 			final Throwable t = this.delegate.getThrown();
-			return t == null ? Optional.empty() : Optional.of(Factory.toCharSequence(t));
+			if (t == null) {
+				return Optional.empty();
+			}
+			return Optional.of(() -> Factory.toCharSequence(t));
 		}
 
 		@Override
