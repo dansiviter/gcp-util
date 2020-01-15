@@ -25,16 +25,20 @@ import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
  * @since v1.0 [15 Dec 2019]
  */
 public class B3MultiPropagator implements TextMapPropagator {
-	protected static final String TRACE_ID = "X-B3-TraceId";
-	protected static final String SPAN_ID = "X-B3-SpanId";
-	protected static final String PARENT_SPAN_ID = "X-B3-ParentSpanId";
-	protected static final String SAMPLED = "X-B3-Sampled";
-	protected static final String FLAGS = "X-B3-Flags";
+	protected static final String TRACE_ID = "x-b3-traceid";
+	protected static final String SPAN_ID = "x-b3-spanid";
+	protected static final String PARENT_SPAN_ID = "x-b3-parentSpanid";
+	protected static final String SAMPLED = "x-b3-sampled";
+	protected static final String FLAGS = "x-b3-flags";
 
 	@Override
 	public void inject(StackdriverSpanContext spanContext, TextMap carrier) {
+		if (spanContext == null) {
+			return;
+		}
+
 		carrier.put(TRACE_ID, spanContext.traceId());
-		carrier.put(SPAN_ID, Long.toHexString(spanContext.spanId()).toLowerCase());
+		carrier.put(SPAN_ID, spanContext.spanIdAsString());
 		spanContext.parentSpanId().ifPresent(v -> carrier.put(PARENT_SPAN_ID, Long.toHexString(v).toLowerCase()));
 		carrier.put(SAMPLED, spanContext.sampled() ? "1" : "0");
 		// carrier.put(FLAGS, spanContext.flags());
@@ -48,7 +52,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 		String sampled = null;
 
 		for (Map.Entry<String, String> e : carrier) {
-			switch (e.getKey()) {
+			switch (e.getKey().toLowerCase()) {
 				case TRACE_ID:
 					traceId = e.getValue();
 					break;
@@ -67,7 +71,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 		}
 
 		if (spanId == null || traceId == null) {
-			throw new IllegalArgumentException("spanId or traceId missing!");
+			return null;
 		}
 
 		final StackdriverSpanContext.Builder builder = StackdriverSpanContext.builder(traceId, spanId).sampled("1".equals(sampled));

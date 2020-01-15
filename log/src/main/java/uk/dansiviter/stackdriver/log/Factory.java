@@ -77,7 +77,7 @@ public class Factory {
 			return emptyList();
 		}
 		return stream(decorators.split(",")).map(d -> {
-			return newInstance(EntryDecorator.class, d);
+			return instance(EntryDecorator.class, d);
 		}).collect(toList());
 	}
 
@@ -93,7 +93,7 @@ public class Factory {
 			return emptyList();
 		}
 		return stream(enhancers.split(",")).map(d -> {
-			return newInstance(LoggingEnhancer.class, d);
+			return instance(LoggingEnhancer.class, d);
 		}).map(EntryDecorator::decorator).collect(toList());
 	}
 
@@ -146,14 +146,33 @@ public class Factory {
 	 * @param name
 	 * @return
 	 */
-	public @Nonnull static <T> T newInstance(@Nonnull Class<T> type, String name) {
+	public @Nonnull static <T> T instance(@Nonnull Class<T> type, String name) {
 		try {
 			final Class<?> concreteCls = ClassLoader.getSystemClassLoader().loadClass(name);
 			return type.cast(concreteCls.getDeclaredConstructor().newInstance());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
 				| InvocationTargetException | NoSuchMethodException e)
 		{
-			throw new IllegalArgumentException("Unable to create! [" + type + "]", e);
+			throw new IllegalArgumentException("Unable to create! [name]", e);
+		}
+	}
+
+	/**
+	 *
+	 * @param <T>
+	 * @param type
+	 * @param name
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public @Nonnull static <T> T instance(@Nonnull String name) {
+		try {
+			final Class<?> concreteCls = ClassLoader.getSystemClassLoader().loadClass(name);
+			return (T) concreteCls.getDeclaredConstructor().newInstance();
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+				| InvocationTargetException | NoSuchMethodException e)
+		{
+			throw new IllegalArgumentException("Unable to create! [name]", e);
 		}
 	}
 }
