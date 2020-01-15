@@ -17,13 +17,9 @@ package uk.dansiviter.stackdriver.log.jul;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static uk.dansiviter.stackdriver.log.Factory.decorators;
-import static uk.dansiviter.stackdriver.log.Factory.enhancers;
-import static uk.dansiviter.stackdriver.log.Factory.newInstance;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
@@ -60,10 +56,9 @@ import uk.dansiviter.stackdriver.log.Factory;
  * handlers=uk.dansiviter.stackdriver.log.JulHandler
  *
  * uk.dansiviter.stackdriver.log.JulHandler.level=FINEST
- * uk.dansiviter.stackdriver.log.JulHandler.formatter=java.util.logging.SimpleFormatter
  * uk.dansiviter.stackdriver.log.JulHandler.filter=foo.MyFilter
  * uk.dansiviter.stackdriver.log.JulHandler.decorators=foo.MyDecorator
- * uk.dansiviter.stackdriver.log.JulHandler.legacyEnhancers=io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
+ * uk.dansiviter.stackdriver.log.JulHandler.enhancers=io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
  *
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>
@@ -71,13 +66,9 @@ import uk.dansiviter.stackdriver.log.Factory;
  * <pre>
  * public class MyConfig {
  *   public MyConfig() {
- *     System.setProperty("java.util.logging.SimpleFormatter.format", "%3$s: %5$s%6$s");
- *
  *     final JulHandler handler = new JulHandler();
- *     handler.setLevel(Level.FINEST);
- *     handler.setFormatter(new SimpleFormatter());
  *     handler.setFilter(new MyFilter());
- *     handler.add(new MyDecorator()).add(new OpenCensusLoggingEnhancer());
+ *     handler.add(new MyDecorator()).add(new OpenCensusTraceLoggingEnhancer());
  *
  *     final Logger root = Logger.getLogger("");
  *     root.setLevel(Level.INFO);
@@ -120,9 +111,11 @@ public class JulHandler extends Handler {
 		try {
 			this.logManager = LogManager.getLogManager();
 			this.loggingOptions = loggingOptions;
-			getInstanceProperty(Filter.class, this.logManager, "filter", null).ifPresent(this::setFilter);
-			getInstanceProperty(Formatter.class, this.logManager, "formatter", BasicFormatter.class.getName()).ifPresent(this::setFormatter);
-			final Level level = Level.parse(getProperty(this.logManager, "level", "INFO"));
+
+			property("filter").map(Factory::<Filter>instance).ifPresent(this::setFilter);
+			final Formatter formatter = property("filter").map(Factory::<Formatter>instance).orElseGet(() -> new BasicFormatter());
+			setFormatter(formatter);
+			final Level level = property("level").map(Level::parse).orElse(Level.INFO);
 			setLevel(level);
 
 			this.defaultWriteOptions = new WriteOption[] {
@@ -130,14 +123,13 @@ public class JulHandler extends Handler {
 				WriteOption.resource(monitoredResource)
 			};
 
-			logging().setFlushSeverity(Severity.valueOf(getProperty(this.logManager, "flushLevel", "WARNING")));
-			logging().setWriteSynchronicity(Synchronicity.valueOf(getProperty(this.logManager, "synchronicity", "ASYNC")));
+			final Severity flushSeverity = property("flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
+			logging().setFlushSeverity(flushSeverity);
+			final Synchronicity synchronicity = property("synchronicity").map(Synchronicity::valueOf).orElse(Synchronicity.ASYNC);
+			logging().setWriteSynchronicity(synchronicity);
 
-			final String decorators = getProperty(this.logManager, "decorators", "");
-			this.decorators.addAll(decorators(decorators));
-
-			final String enhancers = getProperty(this.logManager, "legacyEnhancers", "");
-			this.decorators.addAll(enhancers(enhancers));
+			property("decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
+			property("enhancers").map(Factory::enhancers).ifPresent(this.decorators::addAll);
 		} catch (RuntimeException e) {
 			reportError(null, e, ErrorManager.OPEN_FAILURE);
 			throw e;
@@ -220,6 +212,17 @@ public class JulHandler extends Handler {
 		}
 	}
 
+	/**
+	 *
+	 * @param <T>
+	 * @param logManager
+	 * @param name
+	 * @return
+	 */
+	private Optional<String> property(@Nonnull String name) {
+		return Optional.ofNullable(this.logManager.getProperty(JulHandler.class.getName() + "." + name));
+	}
+
 
 	// --- Static Methods ---
 
@@ -251,35 +254,6 @@ public class JulHandler extends Handler {
 	 */
 	public static JulHandler julHandler(@Nonnull String logName, @Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
 		return new JulHandler(Optional.of(logName), loggingOptions, resource);
-	}
-
-	/**
-	 *
-	 * @param logManager
-	 * @param name
-	 * @param defaultValue
-	 * @return
-	 */
-	private static String getProperty(LogManager logManager, String name, String defaultValue) {
-		final String value = logManager.getProperty(JulHandler.class.getName() + "." + name);
-		return Objects.isNull(value) ? defaultValue : value;
-	}
-
-	/**
-	 *
-	 * @param <T>
-	 * @param type
-	 * @param logManager
-	 * @param name
-	 * @param defaultValue
-	 * @return
-	 */
-	private static <T> Optional<T> getInstanceProperty(Class<T> type, LogManager logManager, String name, String defaultValue) {
-		final String value = getProperty(logManager, name, defaultValue);
-		if (Objects.isNull(value)) {
-			return Optional.empty();
-		}
-		return Optional.of(newInstance(type, value));
 	}
 
 	/**

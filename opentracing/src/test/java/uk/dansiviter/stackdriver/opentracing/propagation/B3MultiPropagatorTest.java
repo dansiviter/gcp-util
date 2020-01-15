@@ -16,8 +16,11 @@
 package uk.dansiviter.stackdriver.opentracing.propagation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -46,24 +49,48 @@ public class B3MultiPropagatorTest {
 	public void inject(@Mock StackdriverSpanContext spanContext) {
 		when(spanContext.traceId()).thenReturn("abc");
 		when(spanContext.spanIdAsString()).thenReturn("123");
+		when(spanContext.sampled()).thenReturn(true);
 
 		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 		TextMap carrier = new TextMapInjectAdapter(map);
 
 		this.propagator.inject(spanContext, carrier);
 
-		assertEquals("abc-123-0", map.get("b3"));
+		assertEquals("abc", map.get("x-b3-traceid"));
+		assertEquals("123", map.get("x-b3-spanid"));
+		assertEquals("1", map.get("x-b3-sampled"));
+	}
+
+	@Test
+	public void inject_null() {
+		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+		TextMap carrier = new TextMapInjectAdapter(map);
+
+		this.propagator.inject(null, carrier);
+
+		assertTrue(map.isEmpty());
 	}
 
 	@Test
 	public void extract() {
 		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-		map.put("b3", "123-abc-0");
+		map.put("x-b3-traceid", "abc");
+		map.put("x-b3-spanid", "123");
+		map.put("x-b3-sampled", "1");
+
 		TextMap carrier = new TextMapExtractAdapter(map);
 		StackdriverSpanContext actual = this.propagator.extract(carrier);
 
-		assertEquals("0000000000000123", actual.traceId());
-		assertEquals("abc", actual.spanIdAsString());
+		assertEquals("0000000000000abc", actual.traceId());
+		assertEquals("123", actual.spanIdAsString());
+		assertEquals(true, actual.sampled());
 	}
 
+	@Test
+	public void extract_null() {
+		TextMap carrier = new TextMapExtractAdapter(Collections.emptyMap());
+		StackdriverSpanContext actual = this.propagator.extract(carrier);
+
+		assertNull(actual);
+	}
 }

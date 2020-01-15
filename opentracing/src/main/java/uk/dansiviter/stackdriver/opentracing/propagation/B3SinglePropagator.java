@@ -37,6 +37,9 @@ public class B3SinglePropagator implements TextMapPropagator {
 
 	@Override
 	public void inject(StackdriverSpanContext spanContext, TextMap carrier) {
+		if (spanContext == null) {
+			return;
+		}
 		final StringBuilder buf = new StringBuilder(spanContext.traceId())
 			.append('-')
 			.append(spanContext.spanIdAsString())
@@ -55,14 +58,16 @@ public class B3SinglePropagator implements TextMapPropagator {
 				break;
 			}
 		}
-		if (value != null) {
-			final String[] tokens = value.split("-");
-			final StackdriverSpanContext.Builder builder = StackdriverSpanContext.builder(tokens[0], tokens[1]);
-			if (tokens.length == 3) {
-				builder.sampled("1".equals(tokens[2]));
-			}
-			return builder.build();
+
+		if (value == null) {
+			return null;
 		}
-		return StackdriverSpanContext.builder().build();
+
+		final String[] tokens = value.split("-");
+		final StackdriverSpanContext.Builder builder = StackdriverSpanContext.builder(tokens[0], tokens[1]);
+		if (tokens.length == 3) {
+			builder.sampled("1".equals(tokens[2]));
+		}
+		return builder.build();
 	}
 }

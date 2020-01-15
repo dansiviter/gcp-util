@@ -18,13 +18,14 @@ package uk.dansiviter.stackdriver.log.jul;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
 /**
  * @author Daniel Siviter
  * @since v1.0 [6 Dec 2019]
  */
-public class BasicFormatter extends java.util.logging.Formatter {
+public class BasicFormatter extends Formatter {
 	@Override
 	public String format(LogRecord record) {
 		final String message = formatMessage(record);
