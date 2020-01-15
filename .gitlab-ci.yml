@@ -46,7 +46,7 @@ deploy:
     - /^release/.*$/
     - /^master$/
   script:
-    - mvn $MAVEN_CLI_OPTS deploy -s ci_settings.xml -Pdeploy -DskipTests -DskipITs
+    - mvn $MAVEN_CLI_OPTS deploy -DskipTests -DskipITs
 
 manual deploy:
   extends: deploy
