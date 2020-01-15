@@ -1,30 +1,37 @@
-# Microprofile Metrics Stackdriver Bridge
+# Stackdriver Utils. - OpenTracing #
 
-Bridges the gap between Microprofile Metrics and Stackdriver. It will potentially be redundant post [OpenTelemetry](https://opentelemetry.io) implemetation, but useful for the time being.
-
-This implementation attempts the following:
-1. Snapshots the data as fast as possible,
-2. If not created already does it's best to create a `com.google.api.MetricDescriptor` for the `Metric` and persists to Stackdriver,
-3. Iterates around the snapshot data persisting it to Stackdriver.
+An implementation of `io.opentracing.Tracer` that sends it's data to Stackdriver.
 
 Limitations:
-* Zero unit testing... sorry!
-* Do we need to attempt extract an existing `MetricDescriptor` or is it idempotent to just re-persist?
-* Missing `org.eclipse.microprofile.metrics.Meter`,
-* Missing `org.eclipse.microprofile.metrics.Histogram`,
-* Missing `org.eclipse.microprofile.metrics.Timer`,
 * Performance testing.
-
 
 ## Usage ##
 
-### Microprofile ###
+Some helpers to get you started.
 
-For Helidon flavour of microprofile, you need to set a `GlobalTracer` and things magically just work:
+### Helidon ###
 
-	@ApplicationScoped
-	public static class TracerCreator {
-		public void init(@Observes @Initialized(ApplicationScoped.class) Object ignored) throws IOException {
-			GlobalTracer.register(StackdriverTracer.create(RESOURCE));
+Implement `io.helidon.tracing.spi.TracerProvider` and a matching `ServiceLoader` file:
+
+	public class StackdriverTracerProvider implements TracerProvider {
+
+		@Override
+		public TracerBuilder<?> createBuilder() {
+			return new Builder();
+		}
+
+		private static class Builder implements TracerBuilder<Builder> {
+			... implement other methods as no-op.
+
+			@Override
+			public Tracer build() {
+				final Tracer tracer = StackdriverTracer.builder().sampler(Sampler.always()).build();
+				GlobalTracer.register(tracer);  // it doesn't do this :(
+				return tracer;
+			}
 		}
 	}
+
+### Thorntail ###
+
+Thorntail uses (Tracer Resolver)[https://github.com/opentracing-contrib/java-tracerresolver/blob/master/opentracing-tracerresolver] to simplify this somewhat.

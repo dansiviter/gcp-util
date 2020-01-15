@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,7 +81,7 @@ public class StackdriverSpan implements Span {
 				break;
 			}
 		}
-		return Optional.of(parent.ctx);
+		return Optional.ofNullable(parent).map(Ref::ctx);
 	}
 
 	@Override
@@ -337,6 +337,10 @@ public class StackdriverSpan implements Span {
 		Ref(String type, StackdriverSpanContext ctx) {
 			this.type = type;
 			this.ctx = ctx;
+		}
+
+		StackdriverSpanContext ctx() {
+			return this.ctx;
 		}
 	}
 

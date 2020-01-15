@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.dansiviter.stackdriver.ResourceType;
 import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Snapshot;
 
@@ -109,6 +110,7 @@ public class StackdriverExporter {
 	/**
 	 *
 	 */
+	@SuppressFBWarnings(value = "CRLF_INJECTION_LOGS", justification = "Injecton parameters known")
 	private void run() {
 		final ZonedDateTime dateTime = ZonedDateTime.now(UTC);
 		this.log.log(Level.INFO, "Starting metrics collection... [start={0},end={0}]",

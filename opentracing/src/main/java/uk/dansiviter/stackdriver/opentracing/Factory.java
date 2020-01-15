@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package uk.dansiviter.stackdriver.opentracing;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 import java.util.HashMap;
@@ -42,26 +43,29 @@ import uk.dansiviter.stackdriver.opentracing.StackdriverSpan.Log;
  * @since v1.0 [13 Dec 2019]
  */
 public class Factory {
-	private static final ThreadLocal<SpanName.Builder> SPAN_NAME_BUILDER =
-			ThreadLocal.withInitial(SpanName::newBuilder);
-	private static final ThreadLocal<com.google.devtools.cloudtrace.v2.Span.Builder> SPAN_BUILDER =
-			ThreadLocal.withInitial(com.google.devtools.cloudtrace.v2.Span::newBuilder);
-	private static final ThreadLocal<TruncatableString.Builder> STRING_BUILDER =
-			ThreadLocal.withInitial(TruncatableString::newBuilder);
-	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER =
-			ThreadLocal.withInitial(Timestamp::newBuilder);
-	private static final ThreadLocal<Attributes.Builder> ATTRS_BUILDER =
-			ThreadLocal.withInitial(Attributes::newBuilder);
-	private static final ThreadLocal<AttributeValue.Builder> ATTR_VALUE_BUILDER =
-			ThreadLocal.withInitial(AttributeValue::newBuilder);
-	private static final ThreadLocal<TimeEvent.Builder> TIME_EVENT_BUILDER =
-			ThreadLocal.withInitial(TimeEvent::newBuilder);
-	private static final ThreadLocal<TimeEvent.Annotation.Builder> TIME_EVENT_ANNO_BUILDER =
-			ThreadLocal.withInitial(TimeEvent.Annotation::newBuilder);
+	private static final ThreadLocal<SpanName.Builder> SPAN_NAME_BUILDER = ThreadLocal
+			.withInitial(SpanName::newBuilder);
+	private static final ThreadLocal<com.google.devtools.cloudtrace.v2.Span.Builder> SPAN_BUILDER = ThreadLocal
+			.withInitial(com.google.devtools.cloudtrace.v2.Span::newBuilder);
+	private static final ThreadLocal<TruncatableString.Builder> STRING_BUILDER = ThreadLocal
+			.withInitial(TruncatableString::newBuilder);
+	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER = ThreadLocal
+			.withInitial(Timestamp::newBuilder);
+	private static final ThreadLocal<Attributes.Builder> ATTRS_BUILDER = ThreadLocal
+			.withInitial(Attributes::newBuilder);
+	private static final ThreadLocal<AttributeValue.Builder> ATTR_VALUE_BUILDER = ThreadLocal
+			.withInitial(AttributeValue::newBuilder);
+	private static final ThreadLocal<TimeEvent.Builder> TIME_EVENT_BUILDER = ThreadLocal
+			.withInitial(TimeEvent::newBuilder);
+	private static final ThreadLocal<TimeEvent.Annotation.Builder> TIME_EVENT_ANNO_BUILDER = ThreadLocal
+			.withInitial(TimeEvent.Annotation::newBuilder);
 
 	private static final String AGENT_LABEL_KEY = "/agent";
-	private static final String AGENT_LABEL_VALUE_STRING = "uk.dansiviter ["
-			+ Factory.class.getPackage().getImplementationVersion() + "]";
+	private static final String AGENT_LABEL_VALUE_STRING = format(
+		"%s:%s [%s]",
+		Factory.class.getPackage().getImplementationVendor(),
+		Factory.class.getPackage().getImplementationTitle(),
+		Factory.class.getPackage().getImplementationVersion());
 	private static final AttributeValue AGENT_LABEL_VALUE = AttributeValue.newBuilder()
 			.setStringValue(toTruncatableString(AGENT_LABEL_VALUE_STRING)).build();
 	private static final Map<String, String> HTTP_ATTRIBUTE_MAPPING = Map.of(

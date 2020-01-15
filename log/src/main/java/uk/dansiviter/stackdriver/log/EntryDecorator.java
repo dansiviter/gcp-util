@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Daniel Siviter
+ * Copyright 2019-2020 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 package uk.dansiviter.stackdriver.log;
 
 import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 import com.google.cloud.logging.LogEntry.Builder;
 import com.google.cloud.logging.LoggingEnhancer;
@@ -41,5 +43,29 @@ public interface EntryDecorator {
 	 */
 	public static EntryDecorator decorator(LoggingEnhancer enhancer) {
 		return (b, e, p) -> enhancer.enhanceLogEntry(b);
+	}
+
+	/**
+	 * Append the {@code serviceContext} element using {@link Package}.
+	 *
+	 * @param pkg the package to use.
+	 * @return a new decorator.
+	 */
+	public static EntryDecorator serviceContext(@Nonnull Package pkg) {
+		return serviceContext(pkg.getImplementationTitle(), pkg.getImplementationVersion());
+	}
+
+	/**
+	 * Append the {@code serviceContext} using given values.
+	 *
+	 * @param service the service.
+	 * @param version the version of the service.
+	 * @return a new decorator.
+	 */
+	public static EntryDecorator serviceContext(String service, String version) {
+		final Map<String, Object> serviceContext = Map.of(
+						"service", service,
+						"version", version);
+		return (b, e, p) -> p.put("serviceContext", serviceContext);
 	}
 }
