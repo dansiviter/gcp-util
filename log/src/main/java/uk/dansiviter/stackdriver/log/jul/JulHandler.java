@@ -117,19 +117,17 @@ public class JulHandler extends Handler {
 			setFormatter(formatter);
 			final Level level = property("level").map(Level::parse).orElse(Level.INFO);
 			setLevel(level);
+			final Severity flushSeverity = property("flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
+			setFlushSeverity(flushSeverity);
+			final Synchronicity synchronicity = property("synchronicity").map(Synchronicity::valueOf).orElse(Synchronicity.ASYNC);
+			setSynchronicity(synchronicity);
+			property("decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
+			property("enhancers").map(Factory::enhancers).ifPresent(this.decorators::addAll);
 
 			this.defaultWriteOptions = new WriteOption[] {
 				WriteOption.logName(logName.orElse("java.log")),
 				WriteOption.resource(monitoredResource)
 			};
-
-			final Severity flushSeverity = property("flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
-			logging().setFlushSeverity(flushSeverity);
-			final Synchronicity synchronicity = property("synchronicity").map(Synchronicity::valueOf).orElse(Synchronicity.ASYNC);
-			logging().setWriteSynchronicity(synchronicity);
-
-			property("decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
-			property("enhancers").map(Factory::enhancers).ifPresent(this.decorators::addAll);
 		} catch (RuntimeException e) {
 			reportError(null, e, ErrorManager.OPEN_FAILURE);
 			throw e;
