@@ -46,6 +46,16 @@ public interface EntryDecorator {
 	}
 
 	/**
+	 * Append the {@code serviceContext} element using {@link Class}.
+	 *
+	 * @param cls the class to use.
+	 * @return a new decorator.
+	 */
+	public static EntryDecorator serviceContext(@Nonnull Class<?> cls) {
+		return serviceContext(cls.getPackage());
+	}
+
+	/**
 	 * Append the {@code serviceContext} element using {@link Package}.
 	 *
 	 * @param pkg the package to use.
