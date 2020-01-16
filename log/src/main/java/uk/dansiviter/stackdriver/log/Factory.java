@@ -118,6 +118,7 @@ public enum Factory { ;
 			entry.source().ifPresent(s -> {
 				context.put("reportLocation", s.asMap());
 			});
+			data.put("@type", "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent");
 		}
 
 		if (!context.isEmpty()) {
