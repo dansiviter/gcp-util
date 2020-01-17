@@ -89,6 +89,9 @@ public class StackdriverTracerProvider implements TracerProvider {
 
 		@Override
 		public Tracer build() {
+			if (GlobalTracer.isRegistered()) {
+				return GlobalTracer.get();
+			}
 			final Tracer tracer = StackdriverTracer.builder()
 					.resource(KitchenSinkIT.RESOURCE)
 					.sampler(Sampler.always()).build();

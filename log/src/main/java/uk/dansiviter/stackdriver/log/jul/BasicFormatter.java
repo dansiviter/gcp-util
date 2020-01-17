@@ -15,9 +15,6 @@
  */
 package uk.dansiviter.stackdriver.log.jul;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
@@ -28,19 +25,6 @@ import java.util.logging.LogRecord;
 public class BasicFormatter extends Formatter {
 	@Override
 	public String format(LogRecord record) {
-		final String message = formatMessage(record);
-
-		if (record.getThrown() == null) {
-			return message;
-		}
-
-		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
-			pw.write(message);
-			pw.println();
-			record.getThrown().printStackTrace(pw);
-			return sw.toString();
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		}
+		return formatMessage(record);
 	}
 }

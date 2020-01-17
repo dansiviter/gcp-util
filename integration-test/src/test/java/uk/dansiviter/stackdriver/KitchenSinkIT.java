@@ -52,6 +52,7 @@ import org.junit.jupiter.api.Test;
 import io.helidon.microprofile.server.Server;
 import uk.dansiviter.stackdriver.log.jul.JulHandler;
 import uk.dansiviter.stackdriver.log.opentracing.Decorator;
+import uk.dansiviter.stackdriver.log.EntryDecorator;
 import uk.dansiviter.stackdriver.microprofile.metrics.MonitoredResourceProvider;
 
 /**
@@ -74,12 +75,22 @@ public class KitchenSinkIT {
 	}
 
 	@Test
-	public void test() {
+	public void get() {
 		final WebTarget target = target().path("test");
 
 		final Invocation.Builder builder = target.request();
 		try (Response res = builder.get()) {
 			assertEquals(200, res.getStatusInfo().getStatusCode());
+		}
+	}
+
+	@Test
+	public void error() {
+		final WebTarget target = target().path("test/error");
+
+		final Invocation.Builder builder = target.request();
+		try (Response res = builder.get()) {
+			assertEquals(500, res.getStatusInfo().getStatusCode());
 		}
 	}
 
@@ -144,13 +155,22 @@ public class KitchenSinkIT {
 			LOG.info("hello!");
 			return "hello";
 		}
+
+		@GET
+		@Path("error")
+		@Produces(MediaType.TEXT_PLAIN)
+		public String error() {
+			LOG.severe("Nightmare!");
+			LOG.log(Level.SEVERE, "Geeze!", new IllegalStateException("Doh!"));
+			throw new IllegalStateException("Oh no!");
+		}
 	}
 
 	@BeforeAll
 	public static void beforeClass() {
 		final JulHandler handler = JulHandler.julHandler(RESOURCE);
 		handler.setLevel(Level.FINEST);
-		handler.add(new Decorator());
+		handler.add(new Decorator(), EntryDecorator.serviceContext(KitchenSinkIT.class));
 
 		final Logger root = Logger.getLogger("");
 		root.setLevel(Level.INFO);

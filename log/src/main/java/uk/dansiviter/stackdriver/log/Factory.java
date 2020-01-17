@@ -24,6 +24,7 @@ import static java.util.stream.Collectors.toList;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +46,7 @@ import com.google.cloud.logging.Severity;
  * @since v1.0 [6 Dec 2019]
  */
 public enum Factory { ;
-
+	private static final String TYPE = "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent";
 	/**
 	 *
 	 * @param entry
@@ -80,9 +81,7 @@ public enum Factory { ;
 		if (decorators.isBlank()) {
 			return emptyList();
 		}
-		return stream(decorators.split(",")).map(d -> {
-			return instance(EntryDecorator.class, d);
-		}).collect(toList());
+		return stream(decorators.split(",")).map(Factory::<EntryDecorator>instance).collect(toList());
 	}
 
 	/**
@@ -97,9 +96,10 @@ public enum Factory { ;
 		if (enhancers.isBlank()) {
 			return emptyList();
 		}
-		return stream(enhancers.split(",")).map(d -> {
-			return instance(LoggingEnhancer.class, d);
-		}).map(EntryDecorator::decorator).collect(toList());
+		return stream(enhancers.split(","))
+				.map(Factory::<LoggingEnhancer>instance)
+				.map(EntryDecorator::decorator)
+				.collect(toList());
 	}
 
 	/**
@@ -114,12 +114,16 @@ public enum Factory { ;
 		entry.message().ifPresent(m -> data.put("message", m));
 
 		final Map<String, Object> context = new HashMap<>();
-		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && entry.thrown().isPresent()) {
+		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && !entry.thrown().isPresent()) {
 			entry.source().ifPresent(s -> {
 				context.put("reportLocation", s.asMap());
+				if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {
+					// force Error Reporting to show this as it's an error, but without an exception
+					data.put("@type", TYPE);
+				}
 			});
-			data.put("@type", "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent");
 		}
+		entry.thrown().ifPresent(t -> data.put("stack_trace", t.get().toString()));
 
 		if (!context.isEmpty()) {
 			data.put("context", context);
@@ -135,28 +139,11 @@ public enum Factory { ;
 	 */
 	@Nonnull
 	public static CharSequence toCharSequence(@Nonnull Throwable t) {
-		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+		try (StringWriter sw = new StringWriter(); PrintWriter pw = new UnixPrintWriter(sw)) {
 			t.printStackTrace(pw);
 			return sw.getBuffer();
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
-		}
-	}
-
-	/**
-	 *
-	 * @param <T>
-	 * @param type
-	 * @param name
-	 * @return
-	 */
-	public @Nonnull static <T> T instance(@Nonnull Class<T> type, String name) {
-		try {
-			final Class<?> concreteCls = ClassLoader.getSystemClassLoader().loadClass(name);
-			return type.cast(concreteCls.getDeclaredConstructor().newInstance());
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException
-				| NoSuchMethodException e) {
-			throw new IllegalArgumentException("Unable to create! [name]", e);
 		}
 	}
 
@@ -176,6 +163,17 @@ public enum Factory { ;
 				| InvocationTargetException | NoSuchMethodException e)
 		{
 			throw new IllegalArgumentException(format("Unable to create! [s]", name), e);
+		}
+	}
+
+	private static class UnixPrintWriter extends PrintWriter {
+		UnixPrintWriter(Writer writer) {
+			super(writer);
+		}
+
+		@Override
+		public void println() {
+			write('\n');
 		}
 	}
 }

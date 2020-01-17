@@ -20,6 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
+import static org.hamcrest.MatcherAssert.*;
+
+import static org.hamcrest.Matchers.*;
 
 import java.util.Map;
 import java.util.Optional;
@@ -59,7 +62,7 @@ public class FactoryTest {
 	@SuppressWarnings("unchecked")
 	public void logEntry_context_reportLocation(@Mock Entry entry, @Mock Source source) {
 		when(entry.severity()).thenReturn(Severity.WARNING);
-		when(entry.thrown()).thenReturn(Optional.of(() -> "thrown"));
+		when(entry.thrown()).thenReturn(Optional.empty());
 		when(entry.source()).thenReturn(Optional.of(source));
 		when(source.className()).thenReturn("fooClass");
 		when(source.method()).thenReturn("fooMethod");
@@ -75,5 +78,12 @@ public class FactoryTest {
 		assertEquals("fooClass", reportLocation.get("filePath"));
 		assertEquals("fooMethod", reportLocation.get("functionName"));
 		assertEquals(3d, reportLocation.get("lineNumber"));
+	}
+
+	@Test
+	public void toCharSequence_throwable() {
+		String actual = Factory.toCharSequence(new Throwable("Oh no!")).toString();
+		assertThat(actual, startsWith("java.lang.Throwable: Oh no!\n" +
+				"\tat uk.dansiviter.stackdriver.log.FactoryTest.toCharSequence_throwable(FactoryTest.java:"));
 	}
 }
