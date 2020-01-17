@@ -114,13 +114,12 @@ public enum Factory { ;
 		entry.message().ifPresent(m -> data.put("message", m));
 
 		final Map<String, Object> context = new HashMap<>();
+		if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {
+			data.put("@type", TYPE);  // an Error may not have a stacktrace, force it in regardless
+		}
 		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && !entry.thrown().isPresent()) {
 			entry.source().ifPresent(s -> {
 				context.put("reportLocation", s.asMap());
-				if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {
-					// force Error Reporting to show this as it's an error, but without an exception
-					data.put("@type", TYPE);
-				}
 			});
 		}
 		entry.thrown().ifPresent(t -> data.put("stack_trace", t.get().toString()));
