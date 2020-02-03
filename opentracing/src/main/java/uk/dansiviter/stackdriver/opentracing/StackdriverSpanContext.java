@@ -54,6 +54,16 @@ public class StackdriverSpanContext implements SpanContext {
 		this.flags = builder.flags;
 	}
 
+	@Override
+	public String toSpanId() {
+		return Long.toHexString(spanId()).toLowerCase();
+	}
+
+	@Override
+	public String toTraceId() {
+		return HexUtil.toHex(this.traceIdHigh, this.traceIdLow);
+	}
+
 	public OptionalLong traceIdHigh() {
 		return this.traceIdHigh;
 	}
@@ -62,16 +72,8 @@ public class StackdriverSpanContext implements SpanContext {
 		return this.traceIdLow;
 	}
 
-	public String traceId() {
-		return HexUtil.toHex(this.traceIdHigh, this.traceIdLow);
-	}
-
 	public long spanId() {
 		return this.spanId;
-	}
-
-	public String spanIdAsString() {
-		return Long.toHexString(spanId()).toLowerCase();
 	}
 
 	public OptionalLong parentSpanId() {

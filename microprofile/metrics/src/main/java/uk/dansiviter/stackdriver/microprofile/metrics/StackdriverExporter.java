@@ -18,6 +18,9 @@ package uk.dansiviter.stackdriver.microprofile.metrics;
 import static java.time.ZoneOffset.UTC;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.BASE;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.VENDOR;
 import static uk.dansiviter.stackdriver.ResourceType.Label.PROJECT_ID;
 
 import java.io.IOException;
@@ -35,11 +38,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import com.google.api.MetricDescriptor;
@@ -50,13 +52,16 @@ import com.google.monitoring.v3.CreateTimeSeriesRequest;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
+import com.google.protobuf.Timestamp;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import uk.dansiviter.stackdriver.GaxUtil;
 import uk.dansiviter.stackdriver.ResourceType;
 import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Snapshot;
 
@@ -78,14 +83,21 @@ public class StackdriverExporter {
 	private Duration pollDuration;
 	@Inject
 	private ScheduledExecutorService executor;
-	@Inject @Any
-	private Instance<MetricRegistry> registries;
+	// Annoyingly you can't get the type directly from the registry
+	@Inject @RegistryType(type = BASE)
+	private MetricRegistry baseRegistry;
+	@Inject @RegistryType(type = VENDOR)
+	private MetricRegistry vendorRegistry;
+	@Inject @RegistryType(type = APPLICATION)
+	private MetricRegistry applicationRegistry;
 	@Inject
 	private MonitoredResource monitoredResource;
 	@Inject
-	private Factory factory;
+	private Config config;
 
-	private ZonedDateTime startDateTime = ZonedDateTime.now(UTC);
+	private ZonedDateTime startDateTime;
+	private ZonedDateTime previousIntervalEndTime;
+
 	private ProjectName projectName;
 	private MetricServiceClient client;
 	private ScheduledFuture<?> future;
@@ -100,11 +112,11 @@ public class StackdriverExporter {
 	 * @throws IOException
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) throws IOException {
+		this.startDateTime = ZonedDateTime.now(UTC);
 		this.projectName = ProjectName.of(ResourceType.get(this.monitoredResource, PROJECT_ID).get());
 		final MetricServiceSettings.Builder builder = MetricServiceSettings.newBuilder();
 		this.client = MetricServiceClient.create(builder.build());
-
-		this.future = executor.scheduleAtFixedRate(this::run, 0, pollDuration.getSeconds(), SECONDS);
+		this.future = this.executor.scheduleAtFixedRate(this::run, 0, pollDuration.getSeconds(), SECONDS);
 	}
 
 	/**
@@ -112,23 +124,29 @@ public class StackdriverExporter {
 	 */
 	@SuppressFBWarnings(value = "CRLF_INJECTION_LOGS", justification = "Injecton parameters known")
 	private void run() {
-		final ZonedDateTime dateTime = ZonedDateTime.now(UTC);
+		final ZonedDateTime intervalStartTime = this.previousIntervalEndTime == null ? this.startDateTime : this.previousIntervalEndTime;
+		final ZonedDateTime intervalEndTime = ZonedDateTime.now(UTC);
 		this.log.log(Level.INFO, "Starting metrics collection... [start={0},end={0}]",
-				new Object[] { startDateTime, dateTime });
+				new Object[] { intervalStartTime, intervalEndTime });
 		try {
-			final TimeInterval interval = this.factory.toInterval(startDateTime, dateTime);
+			final Timestamp startTimestamp = Factory.toTimestamp(this.startDateTime);
+			final TimeInterval interval = Factory.toInterval(intervalEndTime, intervalEndTime);
 
 			// collect as fast as possible. storage can take a little longer
 			final Map<MetricID, Snapshot> snapshots = new ConcurrentHashMap<>();
-			this.registries.forEach(r -> {
-				r.getMetrics().forEach((k, v) -> collect(r, snapshots, k, v));
-			});
+			this.baseRegistry.getMetrics().forEach((k, v) -> collect(this.baseRegistry, snapshots, k, v));
+			this.vendorRegistry.getMetrics().forEach((k, v) -> collect(this.vendorRegistry, snapshots, k, v));
+			this.applicationRegistry.getMetrics().forEach((k, v) -> collect(this.vendorRegistry, snapshots, k, v));
 
 			final List<TimeSeries> timeSeries = new ArrayList<>();
-			this.registries.forEach(r -> {
-				r.getMetrics().forEach((k, v) -> {
-					timeSeries(r, snapshots, interval, k, v).ifPresent(timeSeries::add);
-				});
+			this.baseRegistry.getMetrics().forEach((k, v) -> {
+				timeSeries(this.baseRegistry, BASE, snapshots, startTimestamp, interval, k, v).ifPresent(ts -> add(timeSeries, ts));
+			});
+			this.vendorRegistry.getMetrics().forEach((k, v) -> {
+				timeSeries(this.vendorRegistry, VENDOR, snapshots, startTimestamp, interval, k, v).ifPresent(ts -> add(timeSeries, ts));
+			});
+			this.applicationRegistry.getMetrics().forEach((k, v) -> {
+				timeSeries(this.applicationRegistry, APPLICATION, snapshots, startTimestamp, interval, k, v).ifPresent(ts -> add(timeSeries, ts));
 			});
 
 			// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
@@ -140,10 +158,17 @@ public class StackdriverExporter {
 						.build();
 				this.client.createTimeSeries(request);
 			}
-			this.startDateTime = dateTime;
+			this.previousIntervalEndTime = intervalEndTime;
 		} catch (RuntimeException e) {
 			this.log.log(Level.WARNING, "Unable to collect metrics!", e);
 		}
+	}
+
+	private static void add(List<TimeSeries> timeSeries, TimeSeries ts) {
+		if (ts.getPointsCount() != 1) {
+			throw new IllegalStateException("Naugty! " + ts);
+		}
+		timeSeries.add(ts);
 	}
 
 	/**
@@ -161,16 +186,12 @@ public class StackdriverExporter {
 		}
 	}
 
-	/**
-	 *
-	 */
+	@PreDestroy
 	public void destroy() {
 		if (this.future != null) {
 			this.future.cancel(false);
 		}
-		if (this.client != null) {
-			this.client.close();
-		}
+		GaxUtil.close(this.client);
 	}
 
 
@@ -179,16 +200,22 @@ public class StackdriverExporter {
 	/**
 	 *
 	 * @param registry
+	 * @param type
 	 * @param snapshots
+	 * @param startTime
 	 * @param interval
 	 * @param id
 	 * @param metric
 	 * @return
 	 */
 	private Optional<TimeSeries> timeSeries(
-		MetricRegistry registry,
-		Map<MetricID, Snapshot> snapshots,
-		TimeInterval interval, MetricID id, Metric metric)
+			MetricRegistry registry,
+			MetricRegistry.Type type,
+			Map<MetricID, Snapshot> snapshots,
+			Timestamp startTime,
+			TimeInterval interval,
+			MetricID id,
+			Metric metric)
 	{
 		final Snapshot snapshot = snapshots.get(id);
 		if (snapshot == null) {
@@ -197,12 +224,12 @@ public class StackdriverExporter {
 
 		// on first run create metric view data as we have no other way of knowing if it's a Double or Int64
 		final MetricDescriptor descriptor = this.descriptors.computeIfAbsent(id, k -> {
-			final MetricDescriptor created = this.factory.toDescriptor(registry, id, snapshot);
+			final MetricDescriptor created = Factory.toDescriptor(this.config, registry, type, id, snapshot);
 			this.client.createMetricDescriptor(this.projectName, created);
 			return created;
 		});
 
-		return Optional.of(snapshot.timeseries(id, descriptor, monitoredResource, interval).build());
+		return Optional.of(snapshot.timeseries(this.config, id, descriptor, monitoredResource, startTime, interval).build());
 	}
 
 	/**

@@ -36,7 +36,7 @@ public class StackdriverSpanContextTest {
 		assertEquals(OptionalLong.of(5060571933882717101L), ctx.traceIdHigh());
 		assertEquals(5208512171318403364L, ctx.traceIdLow());
 		assertEquals(424372568660523920L, ctx.spanId());
-		assertEquals("463ac35c9f6413ad48485a3953bb6124", ctx.traceId());
+		assertEquals("463ac35c9f6413ad48485a3953bb6124", ctx.toTraceId());
 	}
 
 	@Test
@@ -48,6 +48,6 @@ public class StackdriverSpanContextTest {
 		assertEquals(OptionalLong.of(123L), ctx.traceIdHigh());
 		assertEquals(321L, ctx.traceIdLow());
 		assertEquals(987L, ctx.spanId());
-		assertEquals("000000000000007b0000000000000141", ctx.traceId());
+		assertEquals("000000000000007b0000000000000141", ctx.toTraceId());
 	}
 }

@@ -15,63 +15,55 @@
  */
 package uk.dansiviter.stackdriver;
 
+import static com.google.cloud.logging.Logging.EntryListOption.filter;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Specializes;
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.google.cloud.MonitoredResource;
+import com.google.cloud.logging.LogEntry;
+import com.google.cloud.logging.Logging;
+import com.google.cloud.logging.LoggingOptions;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.helidon.microprofile.server.Server;
-import uk.dansiviter.stackdriver.log.jul.JulHandler;
-import uk.dansiviter.stackdriver.log.opentracing.Decorator;
-import uk.dansiviter.stackdriver.log.EntryDecorator;
-import uk.dansiviter.stackdriver.microprofile.metrics.MonitoredResourceProvider;
 
 /**
  *
  */
 public class KitchenSinkIT {
-	private static final String TEST_ID = RandomStringUtils.randomAlphanumeric(6);
-	static final MonitoredResource RESOURCE = resource();
+	private static final String TEST_ID = RandomStringUtils.randomAlphanumeric(6).toUpperCase();
 
-	private Server server;
+	private static Server SERVER;
+	private static URI BASE_URI;
 
-	@BeforeEach
-	public void before() {
+	@BeforeAll
+	public static void beforeClass() throws URISyntaxException {
+		File file = new File(KitchenSinkIT.class.getResource("/logging.properties").toURI());
+		System.setProperty("java.util.logging.config.file", file.getAbsolutePath());
 		System.out.println("Using test id: " + TEST_ID);
-		this.server = Server.builder()
-				.port(availablePort())
-				.addApplication(TestApplication.class)
-				.build();
-        this.server.start();
+
+		SERVER = Server.builder().port(availablePort()).addApplication(TestApplication.class).build();
+		SERVER.start();
+		BASE_URI = URI.create("http://localhost:" + SERVER.port());
+		System.out.println("Using: " + BASE_URI);
 	}
 
 	@Test
@@ -85,26 +77,39 @@ public class KitchenSinkIT {
 	}
 
 	@Test
-	public void error() {
-		final WebTarget target = target().path("test/error");
+	public void clientError() {
+		final WebTarget target = target().path("test/client-error");
+
+		final Invocation.Builder builder = target.request();
+		try (Response res = builder.get()) {
+			assertEquals(400, res.getStatusInfo().getStatusCode());
+		}
+	}
+
+	@Test
+	public void serverError() {
+		final WebTarget target = target().path("test/server-error");
 
 		final Invocation.Builder builder = target.request();
 		try (Response res = builder.get()) {
 			assertEquals(500, res.getStatusInfo().getStatusCode());
 		}
+
+		List<LogEntry> logs = await().atLeast(1, TimeUnit.MINUTES).until(
+			() -> getLogs("hello!"),
+			l -> !l.isEmpty());
+		System.out.println(logs);
 	}
 
-	@AfterEach
-	public void after() {
-		if (this.server != null) {
-			this.server.stop();
+	@AfterAll
+	public static void after() throws InterruptedException {
+		if (SERVER != null) {
+			SERVER.stop();
 		}
 	}
 
 	private WebTarget target() {
-		final String baseUri = "http://localhost:" + server.port();
-		System.out.println("Using: " + baseUri);
-		return ClientBuilder.newClient().target(baseUri);
+		return ClientBuilder.newClient().target(BASE_URI);
 	}
 
 	private static int availablePort() {
@@ -115,83 +120,13 @@ public class KitchenSinkIT {
 		}
 	}
 
-	@ApplicationPath("/")
-	@ApplicationScoped
-	public static class TestApplication extends Application {
-		@Override
-		public Set<Class<?>> getClasses() {
-			return Set.of(TestResource.class);
-		}
-	}
-
-	@ApplicationScoped
-	public static class MyResourceProvider extends MonitoredResourceProvider {
-		@Override @javax.enterprise.inject.Produces @Specializes
-		public MonitoredResource monitoredResource() {
-			return RESOURCE;
-		}
-	}
-
-	@ApplicationScoped
-	public static class ExecutorProvider {
-		@javax.enterprise.inject.Produces @ApplicationScoped
-		public ScheduledExecutorService scheduler() {
-			return Executors.newSingleThreadScheduledExecutor();
-		}
-
-		public static void dispose(@Disposes ScheduledExecutorService scheduler) {
-			scheduler.shutdown();
-		}
-	}
-
-	@Path("test")
-	@RequestScoped
-	public static class TestResource {
-		private static final Logger LOG = Logger.getLogger(TestResource.class.getName());
-
-		@GET
-		@Produces(MediaType.TEXT_PLAIN)
-		public String get() {
-			LOG.info("hello!");
-			return "hello";
-		}
-
-		@GET
-		@Path("error")
-		@Produces(MediaType.TEXT_PLAIN)
-		public String error() {
-			LOG.severe("Nightmare!");
-			LOG.log(Level.SEVERE, "Geeze!", new IllegalStateException("Doh!"));
-			throw new IllegalStateException("Oh no!");
-		}
-	}
-
-	@BeforeAll
-	public static void beforeClass() {
-		final JulHandler handler = JulHandler.julHandler(RESOURCE);
-		handler.setLevel(Level.FINEST);
-		handler.add(new Decorator(), EntryDecorator.serviceContext(KitchenSinkIT.class));
-
-		final Logger root = Logger.getLogger("");
-		root.setLevel(Level.INFO);
-		root.addHandler(handler);
-	}
-
-	/**
-	 *
-	 * @return
-	 */
-	private static MonitoredResource resource() {
-		// annoyingly, metrics require complete set but trace and logging don't!
-		return ResourceType.GCE_INSTANCE.monitoredResource(k -> {
-			switch (k) {
-				case "instance_id":
-				return Optional.of(TEST_ID);
-				case "zone":
-				return Optional.of("europe-west2");
-			default:
-				return Optional.empty();
-			}
-		});
+	public List<LogEntry> getLogs(String msg) {
+		Logging logging = LoggingOptions.getDefaultInstance().getService();
+		String filter = "resource.labels.instance_id=\"" + TEST_ID + "\""; //" AND jsonPayload.message=\"" + msg + '"';
+		return StreamSupport
+				.stream(logging.listLogEntries(filter(filter))
+						.iterateAll()
+						.spliterator(), false)
+				.collect(Collectors.toList());
 	}
 }

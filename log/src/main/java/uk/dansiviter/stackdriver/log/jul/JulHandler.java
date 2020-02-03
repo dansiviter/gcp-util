@@ -54,12 +54,12 @@ import uk.dansiviter.stackdriver.log.Factory;
  * Example file {@code java.util.logging.config.file} config:
  * <pre>
  * .level=INFO
- * handlers=uk.dansiviter.stackdriver.log.JulHandler
+ * handlers=uk.dansiviter.stackdriver.log.jul.JulHandler
  *
- * uk.dansiviter.stackdriver.log.JulHandler.level=FINEST
- * uk.dansiviter.stackdriver.log.JulHandler.filter=foo.MyFilter
- * uk.dansiviter.stackdriver.log.JulHandler.decorators=foo.MyDecorator
- * uk.dansiviter.stackdriver.log.JulHandler.enhancers=io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
+ * uk.dansiviter.stackdriver.log.jul.JulHandler.level=FINEST
+ * uk.dansiviter.stackdriver.log.jul.JulHandler.filter=foo.MyFilter
+ * uk.dansiviter.stackdriver.log.jul.JulHandler.decorators=foo.MyDecorator
+ * uk.dansiviter.stackdriver.log.jul.JulHandler.enhancers=io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
  *
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>
@@ -232,7 +232,6 @@ public class JulHandler extends Handler {
 
 	@Override
 	public void close() throws SecurityException {
-		flush();
 		if (this.logging != null) {
 			try {
 				this.logging.close();

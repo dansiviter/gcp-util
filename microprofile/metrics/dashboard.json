@@ -1,0 +1,43 @@
+{
+	"displayName": "Microprofile",
+	"rowLayout": {
+		"rows": [
+			{
+				"weight": 1,
+				"widgets": [
+					{
+						"title": "Service Availability",
+						"scorecard": {
+							"timeSeriesQuery": {
+								"timeSeriesFilter": {
+									"filter": "metric.type=\"custom.googleapis.com/microprofile/application/response.count\" metric.label.\"code\"=monitoring.regex.full_match(\"5\\\\d\\\\d\")",
+									"aggregation": {
+										"perSeriesAligner": "ALIGN_RATE",
+										"crossSeriesReducer": "REDUCE_SUM"
+									}
+								},
+								"unitOverride": "1"
+							},
+							"sparkChartView": {
+								"sparkChartType": "SPARK_LINE"
+							},
+							"thresholds": [
+								{
+									"value": 70,
+									"direction": "BELOW",
+									"color": "RED"
+								}
+							]
+						}
+					},
+					{
+						"text": {
+							"content": "Latency",
+							"format": "MARKDOWN"
+						}
+					}
+				]
+			}
+		]
+	}
+}

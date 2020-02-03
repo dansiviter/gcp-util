@@ -31,8 +31,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.opentracing.propagation.TextMap;
-import io.opentracing.propagation.TextMapExtractAdapter;
-import io.opentracing.propagation.TextMapInjectAdapter;
+import io.opentracing.propagation.TextMapAdapter;
 import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
 
 /**
@@ -47,12 +46,12 @@ public class B3SinglePropagatorTest {
 
 	@Test
 	public void inject(@Mock StackdriverSpanContext spanContext) {
-		when(spanContext.traceId()).thenReturn("abc");
-		when(spanContext.spanIdAsString()).thenReturn("123");
+		when(spanContext.toTraceId()).thenReturn("abc");
+		when(spanContext.toSpanId()).thenReturn("123");
 		when(spanContext.sampled()).thenReturn(true);
 
 		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-		TextMap carrier = new TextMapInjectAdapter(map);
+		TextMap carrier = new TextMapAdapter(map);
 
 		this.propagator.inject(spanContext, carrier);
 
@@ -62,7 +61,7 @@ public class B3SinglePropagatorTest {
 	@Test
 	public void inject_null() {
 		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-		TextMap carrier = new TextMapInjectAdapter(map);
+		TextMap carrier = new TextMapAdapter(map);
 
 		this.propagator.inject(null, carrier);
 
@@ -73,17 +72,17 @@ public class B3SinglePropagatorTest {
 	public void extract() {
 		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 		map.put("b3", "123-abc-1");
-		TextMap carrier = new TextMapExtractAdapter(map);
+		TextMap carrier = new TextMapAdapter(map);
 		StackdriverSpanContext actual = this.propagator.extract(carrier);
 
-		assertEquals("0000000000000123", actual.traceId());
-		assertEquals("abc", actual.spanIdAsString());
+		assertEquals("0000000000000123", actual.toTraceId());
+		assertEquals("abc", actual.toSpanId());
 		assertEquals(true, actual.sampled());
 	}
 
 	@Test
 	public void extract_null() {
-		TextMap carrier = new TextMapExtractAdapter(Collections.emptyMap());
+		TextMap carrier = new TextMapAdapter(Collections.emptyMap());
 		StackdriverSpanContext actual = this.propagator.extract(carrier);
 
 		assertNull(actual);

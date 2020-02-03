@@ -40,9 +40,9 @@ public class B3SinglePropagator implements TextMapPropagator {
 		if (spanContext == null) {
 			return;
 		}
-		final StringBuilder buf = new StringBuilder(spanContext.traceId())
+		final StringBuilder buf = new StringBuilder(spanContext.toTraceId())
 			.append('-')
-			.append(spanContext.spanIdAsString())
+			.append(spanContext.toSpanId())
 			.append('-')
 			.append(spanContext.sampled() ? "1" : "0");
 		carrier.put(header(), buf.toString());

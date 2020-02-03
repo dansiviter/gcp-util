@@ -7,6 +7,7 @@ A collection of utilities and experiments for integrating into stackdriver:
 * [`microprofile/metrics`](/microprofile/metrics) - Extracts and sends Microprofile Metrics to Stackdriver,
 * [`opentracing`](/opentracing) - Sends trace information to Stackdriver. Also useful for Microprofile Trace.
 
+> :warning: These utilities are not suitable for production environments. They are simply experiments.
 
 ## Running Locally ##
 
