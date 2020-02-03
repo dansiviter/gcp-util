@@ -40,6 +40,7 @@ import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.Tracer.SpanBuilder;
+import io.opentracing.tag.Tag;
 
 /**
  *
@@ -104,6 +105,12 @@ public class StackdriverSpan implements Span {
 	@Override
 	public Span setTag(String key, Number value) {
 		this.tags.put(key, value);
+		return this;
+	}
+
+	@Override
+	public <T> Span setTag(Tag<T> tag, T value) {
+		this.tags.put(tag.getKey(), value);
 		return this;
 	}
 
@@ -299,6 +306,12 @@ public class StackdriverSpan implements Span {
 		}
 
 		@Override
+		public <T> SpanBuilder withTag(Tag<T> tag, T value) {
+			this.tags.put(tag.getKey(), value);
+			return this;
+		}
+
+		@Override
 		public SpanBuilder withStartTimestamp(long microseconds) {
 			this.startUs = microseconds;
 			return this;
@@ -307,8 +320,8 @@ public class StackdriverSpan implements Span {
 		@Override
 		public Span start() {
 			final ScopeManager scopeManager = this.tracer.scopeManager();
-			if (this.references.isEmpty() && !ignoreActiveSpan && !isNull(scopeManager.active())) {
-				asChildOf(scopeManager.active().span());
+			if (this.references.isEmpty() && !ignoreActiveSpan && !isNull(scopeManager.activeSpan())) {
+				asChildOf(scopeManager.activeSpan());
 			}
 
 			if (this.startUs == 0) {
@@ -321,7 +334,7 @@ public class StackdriverSpan implements Span {
 		@Override
 		public Scope startActive(boolean finishSpanOnClose) {
 			final ScopeManager scopeManager = this.tracer.scopeManager();
-			return scopeManager.activate(start(), finishSpanOnClose);
+			return scopeManager.activate(start());
 		}
 
 		@Override

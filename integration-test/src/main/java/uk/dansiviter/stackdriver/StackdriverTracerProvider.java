@@ -92,10 +92,8 @@ public class StackdriverTracerProvider implements TracerProvider {
 			if (GlobalTracer.isRegistered()) {
 				return GlobalTracer.get();
 			}
-			final Tracer tracer = StackdriverTracer.builder()
-					.resource(KitchenSinkIT.RESOURCE)
-					.sampler(Sampler.always()).build();
-			GlobalTracer.register(tracer);
+			final Tracer tracer = StackdriverTracer.builder().sampler(Sampler.alwaysSample()).build();
+			GlobalTracer.registerIfAbsent(tracer);
 			return tracer;
 		}
 	}

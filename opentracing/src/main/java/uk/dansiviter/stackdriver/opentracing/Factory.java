@@ -95,7 +95,7 @@ public class Factory {
 		final String spanId = Long.toHexString(span.context().spanId()).toLowerCase();
 		final SpanName spanName = SPAN_NAME_BUILDER.get()   // no clear method, but should override all fields anyway
             .setProject(ResourceType.get(this.resource, Label.PROJECT_ID).get())
-            .setTrace(span.context().traceId())
+            .setTrace(span.context().toTraceId())
             .setSpan(spanId)
 			.build();
 

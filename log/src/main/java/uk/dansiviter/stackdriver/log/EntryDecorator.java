@@ -62,6 +62,9 @@ public interface EntryDecorator {
 	 * @return a new decorator.
 	 */
 	public static EntryDecorator serviceContext(@Nonnull Package pkg) {
+		if (pkg.getImplementationTitle() == null || pkg.getImplementationVersion() == null) {
+			return (b, e, p) -> { };
+		}
 		return serviceContext(pkg.getImplementationTitle(), pkg.getImplementationVersion());
 	}
 

@@ -30,7 +30,7 @@ import com.google.cloud.logging.LogEntry.Builder;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
-import io.opentracing.propagation.TextMapInjectAdapter;
+import io.opentracing.propagation.TextMapAdapter;
 import io.opentracing.util.GlobalTracer;
 import uk.dansiviter.stackdriver.log.Entry;
 import uk.dansiviter.stackdriver.log.EntryDecorator;
@@ -81,7 +81,7 @@ public class Decorator implements EntryDecorator {
 		if (span == null) {
 			return;
 		}
-		tracer.inject(span.context(), Format.Builtin.HTTP_HEADERS, new TextMapInjectAdapter(headers));
+		tracer.inject(span.context(), Format.Builtin.HTTP_HEADERS, new TextMapAdapter(headers));
 
 		// try B3 Multi
 		headers.computeIfPresent(TRACE_ID_NAME, (k, v) -> {

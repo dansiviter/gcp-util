@@ -13,17 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.stackdriver.opentracing;
+package uk.dansiviter.stackdriver;
 
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.util.ThreadLocalScopeManager;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
-public class StackdriverScopeManager extends ThreadLocalScopeManager {
-	/**
-	 * @see https://github.com/opentracing/opentracing-java/issues/291
-	 */
-	public Scope activate(Span span) {
-		return activate(span, false);
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Disposes;
+import javax.enterprise.inject.Produces;
+
+/**
+ *
+ */
+@ApplicationScoped
+public class ExecutorProvider {
+	@Produces
+	@ApplicationScoped
+	public static ScheduledExecutorService scheduler() {
+		return Executors.newSingleThreadScheduledExecutor();
+	}
+
+	public static void dispose(@Disposes ScheduledExecutorService scheduler) {
+		scheduler.shutdown();
 	}
 }

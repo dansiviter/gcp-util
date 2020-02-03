@@ -37,8 +37,8 @@ public class B3MultiPropagator implements TextMapPropagator {
 			return;
 		}
 
-		carrier.put(TRACE_ID, spanContext.traceId());
-		carrier.put(SPAN_ID, spanContext.spanIdAsString());
+		carrier.put(TRACE_ID, spanContext.toTraceId());
+		carrier.put(SPAN_ID, spanContext.toSpanId());
 		spanContext.parentSpanId().ifPresent(v -> carrier.put(PARENT_SPAN_ID, Long.toHexString(v).toLowerCase()));
 		carrier.put(SAMPLED, spanContext.sampled() ? "1" : "0");
 		// carrier.put(FLAGS, spanContext.flags());

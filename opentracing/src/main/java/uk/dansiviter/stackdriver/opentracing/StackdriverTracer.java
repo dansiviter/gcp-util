@@ -17,6 +17,7 @@ package uk.dansiviter.stackdriver.opentracing;
 
 import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.stackdriver.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.stackdriver.opentracing.sampling.Sampler.defaultSampler;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -38,10 +39,13 @@ import com.google.cloud.trace.v2.TraceServiceClient;
 import com.google.devtools.cloudtrace.v2.ProjectName;
 
 import io.opentracing.Scope;
+import io.opentracing.ScopeManager;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
+import io.opentracing.util.ThreadLocalScopeManager;
+import uk.dansiviter.stackdriver.GaxUtil;
 import uk.dansiviter.stackdriver.ResourceType;
 import uk.dansiviter.stackdriver.opentracing.propagation.B3MultiPropagator;
 import uk.dansiviter.stackdriver.opentracing.propagation.Propagator;
@@ -53,7 +57,7 @@ import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
  * @since v1.0 [13 Dec 2019]
  */
 public class StackdriverTracer implements Tracer, Closeable {
-	private final StackdriverScopeManager scopeManager = new StackdriverScopeManager();
+	private final ThreadLocalScopeManager scopeManager = new ThreadLocalScopeManager();
 	private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
 	private final BlockingQueue<StackdriverSpan> spans = new LinkedBlockingQueue<>();
@@ -70,20 +74,24 @@ public class StackdriverTracer implements Tracer, Closeable {
 		this.projectName = ProjectName.of(builder.projectId.orElse(ResourceType.get(this.resource, PROJECT_ID).get()));
 		this.client = builder.client.orElse(defaultTraceServiceClient());
 		this.propagators.putAll(builder.propegators);
-		this.sampler = builder.sampler.orElse(Sampler.parentOverriding(Sampler.never()));
+		this.sampler = builder.sampler.orElse(defaultSampler());
 		this.factory = new Factory(this.resource);
 		this.executor.scheduleAtFixedRate(this::flush, 10, 10, TimeUnit.SECONDS);
 	}
 
 	@Override
-	public StackdriverScopeManager scopeManager() {
+	public ScopeManager scopeManager() {
 		return this.scopeManager;
 	}
 
 	@Override
 	public Span activeSpan() {
-		final Scope scope = this.scopeManager.active();
-    	return scope == null ? null : scope.span();
+		return this.scopeManager.activeSpan();
+	}
+
+	@Override
+	public Scope activateSpan(Span span) {
+		return this.scopeManager.activate(span);
 	}
 
 	@Override
@@ -105,13 +113,14 @@ public class StackdriverTracer implements Tracer, Closeable {
 	public void close() {
 		this.executor.shutdown();
 		try {
-			this.executor.awaitTermination(10, TimeUnit.SECONDS);
+			if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
+				this.executor.shutdownNow();
+			}
 		} catch (final InterruptedException e) {
-			// FIXME log
 			this.executor.shutdownNow();
 		}
 		flush();
-		this.client.close();
+		GaxUtil.close(this.client);
 	}
 
 	private <C> Propagator<C> propagator(final Format<C> format) {
@@ -142,6 +151,9 @@ public class StackdriverTracer implements Tracer, Closeable {
 	 * @param span
 	 */
 	public void persist(final StackdriverSpan span) {
+		if (!span.context().sampled()) {
+			return;
+		}
 		this.spans.add(span);
 	}
 

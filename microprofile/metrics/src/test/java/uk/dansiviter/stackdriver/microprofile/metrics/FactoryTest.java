@@ -23,27 +23,31 @@ import static org.mockito.Mockito.when;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
-import javax.inject.Inject;
-
+import com.google.api.Distribution;
+import com.google.api.Distribution.BucketOptions;
+import com.google.api.Distribution.BucketOptions.Explicit;
+import com.google.api.Distribution.BucketOptions.Exponential;
+import com.google.api.Distribution.BucketOptions.Linear;
 import com.google.api.MetricDescriptor;
 import com.google.api.MetricDescriptor.ValueType;
+import com.google.cloud.MonitoredResource;
+import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.TimeInterval;
+import com.google.monitoring.v3.TimeSeries;
+import com.google.monitoring.v3.TypedValue.ValueCase;
+import com.google.protobuf.Timestamp;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.Gauge;
 import org.eclipse.microprofile.metrics.Metadata;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
-import org.jboss.weld.junit5.WeldInitiator;
-import org.jboss.weld.junit5.WeldJunit5Extension;
-import org.jboss.weld.junit5.WeldSetup;
+import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -57,41 +61,29 @@ import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Snapshot;
  * @author Daniel Siviter
  * @since v1.0 [18 Dec 2019]
  */
-@ExtendWith({ WeldJunit5Extension.class, MockitoExtension.class })
+@ExtendWith(MockitoExtension.class)
 public class FactoryTest {
-	@WeldSetup
-    public WeldInitiator weld = WeldInitiator.of(Factory.class, FactoryTest.class);
-
-	@Inject
-	private Factory factory;
-
-	@Produces
-    @ConfigProperty
-    public String configProperty(InjectionPoint ip) {
-		final ConfigProperty cp = ip.getAnnotated().getAnnotation(ConfigProperty.class);
-		assertEquals("stackdriver.prefix", cp.name());
-		return "foo";
-	}
+	private static final long[] VALUES = new long[] { 0, 1, 3, 9, 15, 5_000, 50_000 };
 
 	@Test
-	public void toDescriptor(@Mock MetricRegistry registry, @Mock MetricID id, @Mock GaugeSnapshot snapshot, @Mock Metadata metadata) {
+	public void toDescriptor(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock GaugeSnapshot snapshot, @Mock Metadata metadata) {
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
 		when(snapshot.value()).thenReturn(123L);
 		when(metadata.getDisplayName()).thenReturn("displayName");
 
-		MetricDescriptor actual = this.factory.toDescriptor(registry, id, snapshot);
+		MetricDescriptor actual = Factory.toDescriptor(config, registry, Type.APPLICATION, id, snapshot);
 		assertEquals(actual.getDisplayName(), "displayName");
 		assertEquals(ValueType.INT64, actual.getValueType());
 	}
 
 	@Test
-	public void toDescriptor_unknownType(@Mock MetricRegistry registry, @Mock MetricID id, @Mock Snapshot snapshot, @Mock Metadata metadata) {
+	public void toDescriptor_unknownType(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock Snapshot snapshot, @Mock Metadata metadata) {
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
 		when(metadata.getDisplayName()).thenReturn("displayName");
 
-		MetricDescriptor actual = this.factory.toDescriptor(registry, id, snapshot);
+		MetricDescriptor actual = Factory.toDescriptor(config, registry, Type.APPLICATION, id, snapshot);
 		assertEquals(actual.getDisplayName(), "displayName");
 		assertEquals(ValueType.VALUE_TYPE_UNSPECIFIED, actual.getValueType());
 	}
@@ -101,7 +93,7 @@ public class FactoryTest {
 		final ZonedDateTime start = ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 6, ZoneOffset.UTC);
 		final ZonedDateTime end = ZonedDateTime.of(1970, 3, 4, 5, 6, 7, 8, ZoneOffset.UTC);
 
-		final TimeInterval actual = this.factory.toInterval(start, end);
+		final TimeInterval actual = Factory.toInterval(start, end);
 		assertEquals(97445L, actual.getStartTime().getSeconds());
 		assertEquals(6, actual.getStartTime().getNanos());
 		assertEquals(5375167L, actual.getEndTime().getSeconds());
@@ -129,5 +121,90 @@ public class FactoryTest {
 
 		assertFalse(snapshot.isEmpty());
 		verify(metric).getCount();
+	}
+
+	@Test
+	public void guageSnapshot_timeseries(
+			@Mock Gauge<Long> gauge,
+			@Mock Config config,
+			@Mock MetricID id)
+	{
+		MetricDescriptor descriptor = MetricDescriptor.newBuilder().setValueType(ValueType.INT64).build();
+		MonitoredResource monitoredResource = MonitoredResource.newBuilder("global").build();
+		TimeInterval interval = TimeInterval.newBuilder().build();
+
+		when(gauge.getValue()).thenReturn(123L);
+		GaugeSnapshot gaugeSnapshot = new GaugeSnapshot(gauge);
+
+		TimeSeries.Builder builder = gaugeSnapshot.timeseries(config, id, descriptor, monitoredResource, Timestamp.getDefaultInstance(), interval);
+		TimeSeries timeSeries = builder.build();
+		assertEquals(1, timeSeries.getPointsCount());
+
+		Point point = timeSeries.getPoints(0);
+		assertEquals(Timestamp.getDefaultInstance(), point.getInterval().getStartTime());
+		assertEquals(interval.getEndTime(), point.getInterval().getEndTime());
+		assertEquals(ValueCase.INT64_VALUE, point.getValue().getValueCase());
+		assertEquals(123L, point.getValue().getInt64Value());
+	}
+
+	@Test
+	public void buckets_exponential(
+			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
+	{
+		Distribution.Builder builder = Distribution.newBuilder();
+		Exponential exponential = Exponential.newBuilder()
+				.setNumFiniteBuckets(5)
+				.setScale(1)
+				.setGrowthFactor(2)
+				.build();
+		BucketOptions options = BucketOptions.newBuilder().setExponentialBuckets(exponential).build();
+		when(snapshot.getValues()).thenReturn(new long[] { 0, 1, 3, 9, 15, 5_000, 50_000 });
+
+		Factory.buckets(options, snapshot, l -> l, builder);
+
+		Distribution distribution = builder.build();
+		assertEquals(7, distribution.getBucketCountsCount());
+		assertEquals(List.of(1L, 1L, 1L, 0L, 2L, 0L, 2L), distribution.getBucketCountsList());
+	}
+
+	@Test
+	public void buckets_linear(
+			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
+	{
+		Distribution.Builder builder = Distribution.newBuilder();
+		Linear linear = Linear.newBuilder()
+				.setNumFiniteBuckets(5)
+				.setOffset(3)
+				.setWidth(4)
+				.build();
+		BucketOptions options = BucketOptions.newBuilder().setLinearBuckets(linear).build();
+		when(snapshot.getValues()).thenReturn(new long[] { 0, 1, 3, 9, 15, 5_000, 50_000 });
+
+		Factory.buckets(options, snapshot, l -> l, builder);
+
+		Distribution distribution = builder.build();
+		assertEquals(7, distribution.getBucketCountsCount());
+		assertEquals(List.of(2L, 1L, 1L, 0L, 1L, 0L, 2L), distribution.getBucketCountsList());
+	}
+
+	@Test
+	public void buckets_explicit(
+			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
+	{
+		Distribution.Builder builder = Distribution.newBuilder();
+		Explicit explicit = Explicit.newBuilder()
+				.addBounds(2)
+				.addBounds(5)
+				.addBounds(20)
+				.addBounds(1000)
+				.build();
+		BucketOptions options = BucketOptions.newBuilder().setExplicitBuckets(explicit).build();
+		when(snapshot.getValues()).thenReturn(VALUES);
+
+		Factory.buckets(options, snapshot, l -> l, builder);
+
+		Distribution distribution = builder.build();
+		assertEquals(5, distribution.getBucketCountsCount());
+		assertEquals(List.of(2L, 1L, 2L, 0L, 2L), distribution.getBucketCountsList());
 	}
 }
