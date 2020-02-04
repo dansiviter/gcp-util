@@ -443,7 +443,7 @@ public enum Factory { ;
 	}
 
 	@SuppressWarnings("all")
-	private static class RegistryTypeLiteral extends AnnotationLiteral implements RegistryType {
+	private static class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> implements RegistryType {
 		private final Type type;
 
 		RegistryTypeLiteral(Type type) {
@@ -454,7 +454,6 @@ public enum Factory { ;
 		public Type type() {
 			return this.type;
 		}
-
 	}
 
 	/**
