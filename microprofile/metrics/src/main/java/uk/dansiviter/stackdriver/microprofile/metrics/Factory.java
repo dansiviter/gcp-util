@@ -33,6 +33,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import javax.enterprise.util.AnnotationLiteral;
+
 import com.google.api.Distribution;
 import com.google.api.Distribution.BucketOptions;
 import com.google.api.Distribution.BucketOptions.Explicit;
@@ -63,14 +65,15 @@ import org.eclipse.microprofile.metrics.MetricType;
 import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.Sampling;
 import org.eclipse.microprofile.metrics.Tag;
+import org.eclipse.microprofile.metrics.MetricRegistry.Type;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 /**
  *
  * @author Daniel Siviter
  * @since v1.0 [13 Dec 2019]
  */
-public enum Factory {
-	;
+public enum Factory { ;
 	private static final ThreadLocal<MetricDescriptor.Builder> METRIC_DESC_BUILDER =
 			threadLocal(MetricDescriptor::newBuilder, MetricDescriptor.Builder::clear);
 	private static final ThreadLocal<LabelDescriptor.Builder> LABEL_BUILDER =
@@ -87,6 +90,10 @@ public enum Factory {
 			threadLocal(TypedValue::newBuilder, TypedValue.Builder::clear);
 	private static final ThreadLocal<Distribution.Builder> DISTRIBUTION_BUILDER =
 			threadLocal(Distribution::newBuilder, Distribution.Builder::clear);
+
+	private static final RegistryTypeLiteral BASE_TYPE = new RegistryTypeLiteral(Type.BASE);
+	private static final RegistryTypeLiteral VENDOR_TYPE = new RegistryTypeLiteral(Type.VENDOR);
+	private static final RegistryTypeLiteral APPLICATION_TYPE = new RegistryTypeLiteral(Type.APPLICATION);
 
 	/**
 	 *
@@ -403,7 +410,52 @@ public enum Factory {
 		};
 	}
 
+	static RegistryType registryType(Type type) {
+		switch (type) {
+		case BASE:
+			return BASE_TYPE;
+		case VENDOR:
+			return VENDOR_TYPE;
+		case APPLICATION:
+			return APPLICATION_TYPE;
+		default:
+			throw new IllegalArgumentException("Unknown type! [" + type + "]");
+		}
+	}
+
 	// --- Inner Classes ---
+
+	/**
+	 *
+	 */
+	static class Context {
+		final Config config;
+		final com.google.api.MonitoredResource monitoredResource;
+		final Timestamp startTime;
+		final TimeInterval interval;
+
+		Context(Config config, MonitoredResource monitoredResource, Timestamp startTime, TimeInterval interval) {
+			this.config = config;
+			this.monitoredResource = monitoredResource.toPb();
+			this.startTime = startTime;
+			this.interval = interval;
+		}
+	}
+
+	@SuppressWarnings("all")
+	private static class RegistryTypeLiteral extends AnnotationLiteral implements RegistryType {
+		private final Type type;
+
+		RegistryTypeLiteral(Type type) {
+			this.type = type;
+		}
+
+		@Override
+		public Type type() {
+			return this.type;
+		}
+
+	}
 
 	/**
 	 *
@@ -411,28 +463,22 @@ public enum Factory {
 	interface Snapshot {
 		/**
 		 *
-		 * @param config
+		 * @param context
 		 * @param id
 		 * @param descriptor
-		 * @param monitoredResource
-		 * @param startTime
-		 * @param interval
 		 * @return
 		 */
 		default TimeSeries.Builder timeseries(
-				Config config,
+				Context ctx,
 				MetricID id,
-				MetricDescriptor descriptor,
-				MonitoredResource monitoredResource,
-				Timestamp startTime,
-				TimeInterval interval)
+				MetricDescriptor descriptor)
 		{
 			final Map<String, String> metricLabels = new HashMap<>();
 			id.getTags().forEach(metricLabels::put);
 			return TIMESERIES_BUILDER.get()
 					.setMetric(com.google.api.Metric.newBuilder().setType(descriptor.getType())
 							.putAllLabels(metricLabels).build())
-					.setResource(monitoredResource.toPb()).setMetricKind(descriptor.getMetricKind())
+					.setResource(ctx.monitoredResource).setMetricKind(descriptor.getMetricKind())
 					.setValueType(descriptor.getValueType());
 		}
 	}
@@ -468,17 +514,14 @@ public enum Factory {
 
 		@Override
 		public TimeSeries.Builder timeseries(
-				Config config,
+				Context ctx,
 				MetricID id,
-				MetricDescriptor descriptor,
-				MonitoredResource monitoredResource,
-				Timestamp startTime,
-				TimeInterval interval)
+				MetricDescriptor descriptor)
 		{
 			final Point point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().setEndTime(interval.getEndTime()).build())
+					.setInterval(INTERVAL_BUILDER.get().setEndTime(ctx.interval.getEndTime()).build())
 					.setValue(value(descriptor)).build();
-			return Snapshot.super.timeseries(config, id, descriptor, monitoredResource, startTime, interval).addPoints(point);
+			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}
 
@@ -494,17 +537,14 @@ public enum Factory {
 
 		@Override
 		public TimeSeries.Builder timeseries(
-				Config config,
+				Context ctx,
 				MetricID id,
-				MetricDescriptor descriptor,
-				MonitoredResource monitoredResource,
-				Timestamp startTime,
-				TimeInterval interval)
+				MetricDescriptor descriptor)
 		{
 			final Point point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().setEndTime(interval.getEndTime()).build())
+					.setInterval(INTERVAL_BUILDER.get().setEndTime(ctx.interval.getEndTime()).build())
 					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
-			return Snapshot.super.timeseries(config, id, descriptor, monitoredResource, startTime, interval).addPoints(point);
+			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}
 
@@ -520,17 +560,14 @@ public enum Factory {
 
 		@Override
 		public TimeSeries.Builder timeseries(
-				Config config,
+				Context ctx,
 				MetricID id,
-				MetricDescriptor descriptor,
-				MonitoredResource monitoredResource,
-				Timestamp startTime,
-				TimeInterval interval)
+				MetricDescriptor descriptor)
 		{
 			final Point point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().setStartTime(startTime).setEndTime(interval.getEndTime()).build())
+					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).setStartTime(ctx.startTime).build())
 					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
-			return Snapshot.super.timeseries(config, id, descriptor, monitoredResource, startTime, interval).addPoints(point);
+			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}
 
@@ -543,14 +580,11 @@ public enum Factory {
 
 		@Override
 		public Builder timeseries(
-				Config config,
+				Context ctx,
 				MetricID id,
-				MetricDescriptor descriptor,
-				MonitoredResource monitoredResource,
-				Timestamp startTime,
-				TimeInterval interval)
+				MetricDescriptor descriptor)
 		{
-			BucketOptions options = config.bucketOptions(TIMER, descriptor.getUnit());
+			BucketOptions options = ctx.config.bucketOptions(TIMER, descriptor.getUnit());
 			final Distribution.Builder distribution = DISTRIBUTION_BUILDER.get()
 					.setMean(this.snapshot.getMean()).setCount(this.snapshot.size())
 					.setSumOfSquaredDeviation(pow(this.snapshot.getStdDev(), 2)).setBucketOptions(options);
@@ -559,10 +593,10 @@ public enum Factory {
 			final Optional<TimeUnit> timeUnit = timeUnit(descriptor.getUnit());
 			buckets(options, snapshot, l -> timeUnit.map(tu -> tu.convert(l, NANOSECONDS)).orElse(l), distribution);
 
-			final TimeSeries.Builder builder = Snapshot.super.timeseries(config, id, descriptor, monitoredResource, startTime, interval);
+			final TimeSeries.Builder builder = Snapshot.super.timeseries(ctx, id, descriptor);
 
 			final Point point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().mergeFrom(interval).clearStartTime().build())
+					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).clearStartTime().build())
 					.setValue(TYPED_VALUE_BUILDER.get().setDistributionValue(distribution).build()).build();
 			return builder.addPoints(point);
 		}
@@ -577,17 +611,14 @@ public enum Factory {
 
 		@Override
 		public TimeSeries.Builder timeseries(
-				Config config,
+				Context ctx,
 				MetricID id,
-				MetricDescriptor descriptor,
-				MonitoredResource monitoredResource,
-				Timestamp startTime,
-				TimeInterval interval)
+				MetricDescriptor descriptor)
 		{
 			final Point point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().setEndTime(interval.getEndTime()).build())
+					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).clearStartTime().build())
 					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.count).build()).build();
-			return Snapshot.super.timeseries(config, id, descriptor, monitoredResource, startTime, interval).addPoints(point);
+			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}
 

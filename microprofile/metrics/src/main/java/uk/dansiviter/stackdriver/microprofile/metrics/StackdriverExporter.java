@@ -18,9 +18,6 @@ package uk.dansiviter.stackdriver.microprofile.metrics;
 import static java.time.ZoneOffset.UTC;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
-import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
-import static org.eclipse.microprofile.metrics.MetricRegistry.Type.BASE;
-import static org.eclipse.microprofile.metrics.MetricRegistry.Type.VENDOR;
 import static uk.dansiviter.stackdriver.ResourceType.Label.PROJECT_ID;
 
 import java.io.IOException;
@@ -42,6 +39,8 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import com.google.api.MetricDescriptor;
@@ -58,11 +57,11 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
-import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.dansiviter.stackdriver.GaxUtil;
 import uk.dansiviter.stackdriver.ResourceType;
+import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Context;
 import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Snapshot;
 
 /**
@@ -84,12 +83,8 @@ public class StackdriverExporter {
 	@Inject
 	private ScheduledExecutorService executor;
 	// Annoyingly you can't get the type directly from the registry
-	@Inject @RegistryType(type = BASE)
-	private MetricRegistry baseRegistry;
-	@Inject @RegistryType(type = VENDOR)
-	private MetricRegistry vendorRegistry;
-	@Inject @RegistryType(type = APPLICATION)
-	private MetricRegistry applicationRegistry;
+	@Inject @Any
+	private Instance<MetricRegistry> registries;
 	@Inject
 	private MonitoredResource monitoredResource;
 	@Inject
@@ -134,20 +129,19 @@ public class StackdriverExporter {
 
 			// collect as fast as possible. storage can take a little longer
 			final Map<MetricID, Snapshot> snapshots = new ConcurrentHashMap<>();
-			this.baseRegistry.getMetrics().forEach((k, v) -> collect(this.baseRegistry, snapshots, k, v));
-			this.vendorRegistry.getMetrics().forEach((k, v) -> collect(this.vendorRegistry, snapshots, k, v));
-			this.applicationRegistry.getMetrics().forEach((k, v) -> collect(this.vendorRegistry, snapshots, k, v));
-
+			for (MetricRegistry.Type type : MetricRegistry.Type.values()) {
+				final MetricRegistry registry = this.registries.select(Factory.registryType(type)).get();
+				registry.getMetrics().forEach((k, v) -> collect(registry, snapshots, k, v));
+			}
+			final Context ctx = new Context(this.config, monitoredResource, startTimestamp, interval);
 			final List<TimeSeries> timeSeries = new ArrayList<>();
-			this.baseRegistry.getMetrics().forEach((k, v) -> {
-				timeSeries(this.baseRegistry, BASE, snapshots, startTimestamp, interval, k, v).ifPresent(ts -> add(timeSeries, ts));
-			});
-			this.vendorRegistry.getMetrics().forEach((k, v) -> {
-				timeSeries(this.vendorRegistry, VENDOR, snapshots, startTimestamp, interval, k, v).ifPresent(ts -> add(timeSeries, ts));
-			});
-			this.applicationRegistry.getMetrics().forEach((k, v) -> {
-				timeSeries(this.applicationRegistry, APPLICATION, snapshots, startTimestamp, interval, k, v).ifPresent(ts -> add(timeSeries, ts));
-			});
+
+			for (MetricRegistry.Type type : MetricRegistry.Type.values()) {
+				final MetricRegistry registry = this.registries.select(Factory.registryType(type)).get();
+				registry.getMetrics().forEach((k, v) -> {
+					timeSeries(ctx, registry, type, snapshots, k, v).ifPresent(ts -> add(timeSeries, ts));
+				});
+			}
 
 			// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
 			for (List<TimeSeries> chunk : partition(timeSeries, 200)) {
@@ -209,11 +203,10 @@ public class StackdriverExporter {
 	 * @return
 	 */
 	private Optional<TimeSeries> timeSeries(
+			Context ctx,
 			MetricRegistry registry,
 			MetricRegistry.Type type,
 			Map<MetricID, Snapshot> snapshots,
-			Timestamp startTime,
-			TimeInterval interval,
 			MetricID id,
 			Metric metric)
 	{
@@ -229,7 +222,7 @@ public class StackdriverExporter {
 			return created;
 		});
 
-		return Optional.of(snapshot.timeseries(this.config, id, descriptor, monitoredResource, startTime, interval).build());
+		return Optional.of(snapshot.timeseries(ctx, id, descriptor).build());
 	}
 
 	/**

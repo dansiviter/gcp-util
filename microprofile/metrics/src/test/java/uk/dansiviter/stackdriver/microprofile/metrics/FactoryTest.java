@@ -53,6 +53,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Context;
 import uk.dansiviter.stackdriver.microprofile.metrics.Factory.GaugeSnapshot;
 import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Snapshot;
 
@@ -135,8 +136,8 @@ public class FactoryTest {
 
 		when(gauge.getValue()).thenReturn(123L);
 		GaugeSnapshot gaugeSnapshot = new GaugeSnapshot(gauge);
-
-		TimeSeries.Builder builder = gaugeSnapshot.timeseries(config, id, descriptor, monitoredResource, Timestamp.getDefaultInstance(), interval);
+		Context ctx = new Context(config, monitoredResource, Timestamp.getDefaultInstance(), interval);
+		TimeSeries.Builder builder = gaugeSnapshot.timeseries(ctx, id, descriptor);
 		TimeSeries timeSeries = builder.build();
 		assertEquals(1, timeSeries.getPointsCount());
 
