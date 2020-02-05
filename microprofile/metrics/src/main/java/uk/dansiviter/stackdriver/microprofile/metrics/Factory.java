@@ -17,10 +17,12 @@ package uk.dansiviter.stackdriver.microprofile.metrics;
 
 import static java.lang.Math.pow;
 import static java.lang.Math.round;
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.eclipse.microprofile.metrics.MetricType.TIMER;
+import static uk.dansiviter.stackdriver.Util.threadLocal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -31,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import javax.enterprise.util.AnnotationLiteral;
 
@@ -45,7 +46,6 @@ import com.google.api.MetricDescriptor;
 import com.google.api.MetricDescriptor.MetricKind;
 import com.google.api.MetricDescriptor.ValueType;
 import com.google.cloud.MonitoredResource;
-import com.google.common.base.Function;
 import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
@@ -61,11 +61,11 @@ import org.eclipse.microprofile.metrics.Metered;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.eclipse.microprofile.metrics.MetricType;
 import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.Sampling;
 import org.eclipse.microprofile.metrics.Tag;
-import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 /**
@@ -73,23 +73,24 @@ import org.eclipse.microprofile.metrics.annotation.RegistryType;
  * @author Daniel Siviter
  * @since v1.0 [13 Dec 2019]
  */
-public enum Factory { ;
-	private static final ThreadLocal<MetricDescriptor.Builder> METRIC_DESC_BUILDER =
-			threadLocal(MetricDescriptor::newBuilder, MetricDescriptor.Builder::clear);
-	private static final ThreadLocal<LabelDescriptor.Builder> LABEL_BUILDER =
-			threadLocal(LabelDescriptor::newBuilder, LabelDescriptor.Builder::clear);
-	private static final ThreadLocal<TimeSeries.Builder> TIMESERIES_BUILDER =
-			threadLocal(TimeSeries::newBuilder, TimeSeries.Builder::clear);
-	private static final ThreadLocal<Point.Builder> POINT_BUILDER =
-			threadLocal(Point::newBuilder, Point.Builder::clear);
-	private static final ThreadLocal<TimeInterval.Builder> INTERVAL_BUILDER =
-			threadLocal(TimeInterval::newBuilder, TimeInterval.Builder::clear);
-	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER =
-			threadLocal(Timestamp::newBuilder, Timestamp.Builder::clear);
-	private static final ThreadLocal<TypedValue.Builder> TYPED_VALUE_BUILDER =
-			threadLocal(TypedValue::newBuilder, TypedValue.Builder::clear);
-	private static final ThreadLocal<Distribution.Builder> DISTRIBUTION_BUILDER =
-			threadLocal(Distribution::newBuilder, Distribution.Builder::clear);
+public enum Factory {
+	;
+	private static final ThreadLocal<MetricDescriptor.Builder> METRIC_DESC_BUILDER = threadLocal(
+			MetricDescriptor::newBuilder, MetricDescriptor.Builder::clear);
+	private static final ThreadLocal<LabelDescriptor.Builder> LABEL_BUILDER = threadLocal(LabelDescriptor::newBuilder,
+			LabelDescriptor.Builder::clear);
+	private static final ThreadLocal<TimeSeries.Builder> TIMESERIES_BUILDER = threadLocal(TimeSeries::newBuilder,
+			TimeSeries.Builder::clear);
+	private static final ThreadLocal<Point.Builder> POINT_BUILDER = threadLocal(Point::newBuilder,
+			Point.Builder::clear);
+	private static final ThreadLocal<TimeInterval.Builder> INTERVAL_BUILDER = threadLocal(TimeInterval::newBuilder,
+			TimeInterval.Builder::clear);
+	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER = threadLocal(Timestamp::newBuilder,
+			Timestamp.Builder::clear);
+	private static final ThreadLocal<TypedValue.Builder> TYPED_VALUE_BUILDER = threadLocal(TypedValue::newBuilder,
+			TypedValue.Builder::clear);
+	private static final ThreadLocal<Distribution.Builder> DISTRIBUTION_BUILDER = threadLocal(Distribution::newBuilder,
+			Distribution.Builder::clear);
 
 	private static final RegistryTypeLiteral BASE_TYPE = new RegistryTypeLiteral(Type.BASE);
 	private static final RegistryTypeLiteral VENDOR_TYPE = new RegistryTypeLiteral(Type.VENDOR);
@@ -124,22 +125,21 @@ public enum Factory { ;
 	 * @param metric
 	 * @return
 	 */
-	public static MetricDescriptor toDescriptor(Config config, MetricRegistry registry, MetricRegistry.Type registryType, MetricID id,
-			Snapshot snapshot) {
+	public static MetricDescriptor toDescriptor(
+			Config config, MetricRegistry registry,
+			Type type, MetricID id, Snapshot snapshot)
+	{
 		final String name = id.getName();
-		final String metricType = String.format("custom.googleapis.com/microprofile/%s/%s", registryType.getName(),
-				name);
+		final String metricType = format("custom.googleapis.com/microprofile/%s/%s", type.getName(), name);
 		final Metadata metadata = registry.getMetadata().get(name);
 		final MetricDescriptor.Builder descriptor = METRIC_DESC_BUILDER.get().setType(metricType)
 				.setMetricKind(getMetricKind(metadata.getTypeRaw())).setName(name)
 				.setDisplayName(metadata.getDisplayName());
 		getValueType(snapshot).ifPresent(descriptor::setValueType);
 		metadata.getDescription().ifPresent(descriptor::setDescription);
-		metadata.getUnit().ifPresentOrElse(u -> descriptor.setUnit(convertUnit(u)), () -> {
-			if (metadata.getTypeRaw() == MetricType.COUNTER) {
-				descriptor.setUnit("1");
-			}
-		});
+		metadata.getUnit().ifPresentOrElse(
+				u -> descriptor.setUnit(convertUnit(u)),
+				() -> descriptor.setUnit("1"));
 		id.getTags().forEach((k, v) -> descriptor.addLabels(labelDescriptor(config, k, v)));
 		return descriptor.build();
 	}
@@ -236,7 +236,9 @@ public enum Factory { ;
 		// Prefixes: l, M, G, T, P, E, Z, Y, m, u, n, p, f, a, z, y, Ki, Mi, Gi, Ti
 		in = in.toLowerCase();
 
-		if (in.endsWith(MetricUnits.BITS)) {
+		if (MetricUnits.NONE.equals(in)) {
+			return "1";
+		} else if (in.endsWith(MetricUnits.BITS)) {
 			return convertPrefix(in, MetricUnits.BITS, "bit");
 		} else if (in.endsWith(MetricUnits.BYTES)) {
 			return convertPrefix(in, MetricUnits.BYTES, "By");
@@ -394,20 +396,6 @@ public enum Factory { ;
 		default:
 		return Optional.empty();
 		}
-	}
-
-	private static <T> ThreadLocal<T> threadLocal(Supplier<T> initial, Function<T, T> reset) {
-		return new ThreadLocal<T>() {
-			@Override
-			protected T initialValue() {
-				return initial.get();
-			}
-
-			@Override
-			public T get() {
-				return reset.apply(super.get());
-			}
-		};
 	}
 
 	static RegistryType registryType(Type type) {

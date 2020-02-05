@@ -218,8 +218,7 @@ public class StackdriverExporter {
 		// on first run create metric view data as we have no other way of knowing if it's a Double or Int64
 		final MetricDescriptor descriptor = this.descriptors.computeIfAbsent(id, k -> {
 			final MetricDescriptor created = Factory.toDescriptor(this.config, registry, type, id, snapshot);
-			this.client.createMetricDescriptor(this.projectName, created);
-			return created;
+			return this.client.createMetricDescriptor(this.projectName, created);
 		});
 
 		return Optional.of(snapshot.timeseries(ctx, id, descriptor).build());

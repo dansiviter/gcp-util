@@ -47,6 +47,7 @@ import com.google.cloud.logging.Severity;
  */
 public enum Factory { ;
 	private static final String TYPE = "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent";
+
 	/**
 	 *
 	 * @param entry
