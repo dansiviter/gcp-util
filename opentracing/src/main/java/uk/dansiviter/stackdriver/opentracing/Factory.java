@@ -97,7 +97,7 @@ public class Factory {
 	 * @return
 	 */
 	com.google.devtools.cloudtrace.v2.Span toSpan(StackdriverSpan span) {
-		final String spanId = Long.toHexString(span.context().spanId()).toLowerCase();
+		final String spanId = span.context().toSpanId();
 		final SpanName spanName = SPAN_NAME_BUILDER.get()   // no clear method, but should override all fields anyway
             .setProject(ResourceType.get(this.resource, Label.PROJECT_ID).get())
             .setTrace(span.context().toTraceId())

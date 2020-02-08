@@ -147,7 +147,7 @@ public class StackdriverTracer implements Tracer, Closeable {
 		}
 		final List<com.google.devtools.cloudtrace.v2.Span> converted =
 				spans.stream().map(factory::toSpan).collect(toList());
-		LOG.log(Level.INFO, "Flushing spans... [size={0}]", converted.size());
+		LOG.log(Level.FINE, "Flushing spans... [size={0}]", converted.size());
 		try {
 			this.client.batchWriteSpans(projectName, converted);
 		} catch (ApiException e) {

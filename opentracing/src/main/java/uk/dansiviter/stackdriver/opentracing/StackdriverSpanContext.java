@@ -15,6 +15,8 @@
  */
 package uk.dansiviter.stackdriver.opentracing;
 
+import static uk.dansiviter.stackdriver.opentracing.HexUtil.toHex;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -56,12 +58,12 @@ public class StackdriverSpanContext implements SpanContext {
 
 	@Override
 	public String toSpanId() {
-		return Long.toHexString(spanId()).toLowerCase();
+		return toHex(spanId());
 	}
 
 	@Override
 	public String toTraceId() {
-		return HexUtil.toHex(this.traceIdHigh, this.traceIdLow);
+		return toHex(this.traceIdHigh, this.traceIdLow);
 	}
 
 	public OptionalLong traceIdHigh() {
@@ -83,7 +85,7 @@ public class StackdriverSpanContext implements SpanContext {
 	public Optional<String> toParentSpanId() {
 		final OptionalLong parentSpanId = parentSpanId();
 		if (parentSpanId.isPresent()) {
-			return Optional.of(HexUtil.toHex(parentSpanId.getAsLong()).toLowerCase());
+			return Optional.of(toHex(parentSpanId.getAsLong()).toLowerCase());
 		}
 		return Optional.empty();
 	}

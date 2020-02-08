@@ -121,7 +121,7 @@ public class StackdriverExporter {
 	private void run() {
 		final ZonedDateTime intervalStartTime = this.previousIntervalEndTime == null ? this.startDateTime : this.previousIntervalEndTime;
 		final ZonedDateTime intervalEndTime = ZonedDateTime.now(UTC);
-		this.log.log(Level.INFO, "Starting metrics collection... [start={0},end={0}]",
+		this.log.log(Level.FINE, "Starting metrics collection... [start={0},end={0}]",
 				new Object[] { intervalStartTime, intervalEndTime });
 		try {
 			final Timestamp startTimestamp = Factory.toTimestamp(this.startDateTime);

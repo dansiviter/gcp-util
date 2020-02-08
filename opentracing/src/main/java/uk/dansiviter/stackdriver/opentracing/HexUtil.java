@@ -33,8 +33,7 @@ public enum HexUtil { ;
 	 * @return
 	 */
 	public static String randomHex(boolean incHigh) {
-		final ThreadLocalRandom rand = ThreadLocalRandom.current();
-		return toHex(incHigh ? OptionalLong.of(rand.nextLong()) : OptionalLong.empty(), rand.nextLong());
+		return toHex(incHigh ? OptionalLong.of(randLong()) : OptionalLong.empty(), randLong());
 	}
 
 	/**
@@ -58,6 +57,11 @@ public enum HexUtil { ;
 	 */
 	public static String toHex(long v) {
 		return toHex(OptionalLong.empty(), v);
+	}
+
+	private static long randLong() {
+		final ThreadLocalRandom rand = ThreadLocalRandom.current();
+		return rand.nextLong(Long.MAX_VALUE);
 	}
 
 	/**
