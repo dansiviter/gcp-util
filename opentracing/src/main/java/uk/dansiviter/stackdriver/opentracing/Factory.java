@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 
@@ -104,7 +105,7 @@ public class Factory {
 			.setName(spanName.toString())
             .setSpanId(spanId)
 			.setDisplayName(toTruncatableString(span.operationName()))
-		    .setAttributes(toAttrs(span.tags(), this.resourceAttr))
+			.setAttributes(toAttrs(span.tags(), this.resourceAttr))
 			.setTimeEvents(toTimeEvents(span.logs()));
 
 		span.context().parentSpanIdAsString().ifPresent(spanBuilder::setParentSpanId);
@@ -173,9 +174,10 @@ public class Factory {
 	private static Attributes.Builder toAttrsBuilder(@Nonnull Map<String, ?> tags) {
 		final Attributes.Builder attributesBuilder = ATTRS_BUILDER.get().clear();
 		tags.forEach((k, v) -> {
-			final AttributeValue value = toAttrValue(v);
+			final String key = mapKey(k);
+			final AttributeValue value = toAttrValue(key, v);
 			if (value != null) {
-				attributesBuilder.putAttributeMap(mapKey(k), value);
+				attributesBuilder.putAttributeMap(key, value);
 			}
 		});
 		return attributesBuilder;
@@ -187,14 +189,20 @@ public class Factory {
 	 * @return
 	 */
 	@javax.annotation.Nullable
-	private static AttributeValue toAttrValue(@Nonnull Object value) {
+	private static AttributeValue toAttrValue(@Nonnull String key, @Nonnull Object value) {
 		final AttributeValue.Builder builder = ATTR_VALUE_BUILDER.get().clear();
 		if (value instanceof CharSequence) {
 			builder.setStringValue(toTruncatableString((CharSequence) value));
 		} else if (value instanceof Boolean) {
 			builder.setBoolValue((Boolean) value);
 		} else if (value instanceof Short || value instanceof Integer || value instanceof Long) {
-			builder.setIntValue(((Number) value).longValue());
+			// FIXME stackdriver doesn't like status code as an integer!
+			// https://issuetracker.google.com/149088139
+			if ("/http/status_code".equals(key)) {
+				builder.setStringValue(toTruncatableString(Objects.toString(value)));
+			} else {
+				builder.setIntValue(((Number) value).longValue());
+			}
 		} else {
 			return null;
 		}
@@ -231,7 +239,7 @@ public class Factory {
 	 */
 	private static Map<String, AttributeValue> toAttrs(MonitoredResource resource) {
 		final Map<String, AttributeValue> map = new HashMap<>();
-		resource.getLabels().forEach((k, v) -> map.put(k, toAttrValue(v)));
+		resource.getLabels().forEach((k, v) -> map.put(k, toAttrValue(k, v)));
 		return map;
 	}
 }
