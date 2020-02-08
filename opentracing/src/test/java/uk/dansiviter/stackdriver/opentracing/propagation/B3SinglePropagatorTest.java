@@ -18,16 +18,15 @@ package uk.dansiviter.stackdriver.opentracing.propagation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.TreeMap;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.opentracing.propagation.TextMap;
@@ -45,17 +44,33 @@ public class B3SinglePropagatorTest {
 	private B3SinglePropagator propagator;
 
 	@Test
-	public void inject(@Mock StackdriverSpanContext spanContext) {
-		when(spanContext.toTraceId()).thenReturn("abc");
-		when(spanContext.toSpanId()).thenReturn("123");
-		when(spanContext.sampled()).thenReturn(true);
+	public void inject() {
+		StackdriverSpanContext spanContext = StackdriverSpanContext
+				.builder(OptionalLong.of(0), 2748, 291)
+				.sampled(true)
+				.build();
 
 		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 		TextMap carrier = new TextMapAdapter(map);
 
 		this.propagator.inject(spanContext, carrier);
 
-		assertEquals("abc-123-1", map.get("b3"));
+		assertEquals("00000000000000000000000000000abc-0000000000000123-1", map.get("b3"));
+	}
+
+	@Test
+	public void inject_shortTraceId() {
+		StackdriverSpanContext spanContext = StackdriverSpanContext
+				.builder(OptionalLong.empty(), 2748, 291)
+				.sampled(true)
+				.build();
+
+		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+		TextMap carrier = new TextMapAdapter(map);
+
+		this.propagator.inject(spanContext, carrier);
+
+		assertEquals("0000000000000abc-0000000000000123-1", map.get("b3"));
 	}
 
 	@Test
@@ -71,12 +86,39 @@ public class B3SinglePropagatorTest {
 	@Test
 	public void extract() {
 		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-		map.put("b3", "123-abc-1");
+		map.put("b3", "00000000000000000000000000000abc-0000000000000123-1");
+
 		TextMap carrier = new TextMapAdapter(map);
 		StackdriverSpanContext actual = this.propagator.extract(carrier);
 
-		assertEquals("0000000000000123", actual.toTraceId());
-		assertEquals("abc", actual.toSpanId());
+		assertEquals("00000000000000000000000000000abc", actual.toTraceId());
+		assertEquals("0000000000000123", actual.toSpanId());
+		assertEquals(true, actual.sampled());
+	}
+
+	@Test
+	public void extract_shortTraceId() {
+		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+		map.put("b3", "0000000000000abc-0000000000000123-1");
+
+		TextMap carrier = new TextMapAdapter(map);
+		StackdriverSpanContext actual = this.propagator.extract(carrier);
+
+		assertEquals("0000000000000abc", actual.toTraceId());
+		assertEquals("0000000000000123", actual.toSpanId());
+		assertEquals(true, actual.sampled());
+	}
+
+	@Test
+	public void extract_poorFormat() {
+		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+		map.put("b3", "abc-123-1");
+
+		TextMap carrier = new TextMapAdapter(map);
+		StackdriverSpanContext actual = this.propagator.extract(carrier);
+
+		assertEquals("0000000000000abc", actual.toTraceId());
+		assertEquals("0000000000000123", actual.toSpanId());
 		assertEquals(true, actual.sampled());
 	}
 
@@ -86,5 +128,18 @@ public class B3SinglePropagatorTest {
 		StackdriverSpanContext actual = this.propagator.extract(carrier);
 
 		assertNull(actual);
+	}
+
+	@Test
+	public void extract_deny() {
+		Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+		map.put("b3", "0");
+
+		TextMap carrier = new TextMapAdapter(map);
+		StackdriverSpanContext actual = this.propagator.extract(carrier);
+
+		assertEquals("0000000000000000", actual.toTraceId());
+		assertEquals("0000000000000000", actual.toSpanId());
+		assertEquals(false, actual.sampled());
 	}
 }

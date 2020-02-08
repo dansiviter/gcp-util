@@ -16,6 +16,7 @@
 package uk.dansiviter.stackdriver.opentracing.propagation;
 
 import java.util.Map;
+import java.util.OptionalLong;
 
 import io.opentracing.propagation.TextMap;
 import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
@@ -64,6 +65,9 @@ public class B3SinglePropagator implements TextMapPropagator {
 		}
 
 		final String[] tokens = value.split("-");
+		if (tokens.length == 1 && "0".equals(tokens[0])) {
+			return StackdriverSpanContext.builder(OptionalLong.empty(), 0, 0).build();
+		}
 		final StackdriverSpanContext.Builder builder = StackdriverSpanContext.builder(tokens[0], tokens[1]);
 		if (tokens.length == 3) {
 			builder.sampled("1".equals(tokens[2]));
