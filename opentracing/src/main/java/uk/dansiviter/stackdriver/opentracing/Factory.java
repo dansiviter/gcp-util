@@ -66,13 +66,8 @@ public class Factory {
 			threadLocal(TimeEvent.Annotation::newBuilder, TimeEvent.Annotation.Builder::clear);
 
 	private static final String AGENT_LABEL_KEY = "/agent";
-	private static final String AGENT_LABEL_VALUE_STRING = format(
-		"%s:%s [%s]",
-		Factory.class.getPackage().getImplementationVendor(),
-		Factory.class.getPackage().getImplementationTitle(),
-		Factory.class.getPackage().getImplementationVersion());
 	private static final AttributeValue AGENT_LABEL_VALUE = AttributeValue.newBuilder()
-			.setStringValue(toTruncatableString(AGENT_LABEL_VALUE_STRING)).build();
+			.setStringValue(toTruncatableString(agent())).build();
 	private static final Map<String, String> HTTP_ATTRIBUTE_MAPPING = Map.of(
 		"http.host",		"/http/host",
 		"http.method",		"/http/method",
@@ -243,5 +238,18 @@ public class Factory {
 		final Map<String, AttributeValue> map = new HashMap<>();
 		resource.getLabels().forEach((k, v) -> map.put(k, toAttrValue(k, v)));
 		return map;
+	}
+
+	private static String agent() {
+		final Package pkg = Factory.class.getPackage();
+
+		if (pkg.getImplementationVersion() == null) {
+			return "stackdriver-util [development]";
+		}
+		return format(
+			"%s:%s [%s]",
+			pkg.getImplementationVendor(),
+			pkg.getImplementationTitle(),
+			pkg.getImplementationVersion());
 	}
 }
