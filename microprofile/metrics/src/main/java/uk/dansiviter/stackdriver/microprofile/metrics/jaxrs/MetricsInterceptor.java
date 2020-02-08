@@ -27,7 +27,6 @@ import java.time.Instant;
 
 import javax.annotation.Priority;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.ext.Provider;
 import javax.ws.rs.ext.WriterInterceptor;
 import javax.ws.rs.ext.WriterInterceptorContext;
 
@@ -39,9 +38,8 @@ import org.eclipse.microprofile.metrics.Timer;
  * @since v1.0 [3 Feb 2020]
  * @see Filter
  */
-@Provider
 @Priority(USER + 1_000)
-public class MetricsInterceptor implements WriterInterceptor {
+class MetricsInterceptor implements WriterInterceptor {
 	@Override
 	public void aroundWriteTo(WriterInterceptorContext context) throws IOException, WebApplicationException {
 		try {

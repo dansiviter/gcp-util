@@ -80,7 +80,7 @@ public class StackdriverSpanContext implements SpanContext {
 		return this.parentSpanId;
 	}
 
-	public Optional<String> parentSpanIdAsString() {
+	public Optional<String> toParentSpanId() {
 		final OptionalLong parentSpanId = parentSpanId();
 		if (parentSpanId.isPresent()) {
 			return Optional.of(HexUtil.toHex(parentSpanId.getAsLong()).toLowerCase());

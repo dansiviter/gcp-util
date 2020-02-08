@@ -28,8 +28,7 @@ import javax.ws.rs.core.Response.Status.Family;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.MetricsFilter;
-import uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.MetricsInterceptor;
+import uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ContainerMetricsFeature;
 
 /**
  *
@@ -39,7 +38,7 @@ import uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.MetricsInterceptor;
 public class TestApplication extends Application {
 	@Override
 	public Set<Class<?>> getClasses() {
-		return Set.of(TestResource.class, MetricsFilter.class, MetricsInterceptor.class, ErrorHandler.class);
+		return Set.of(TestResource.class, ContainerMetricsFeature.class, ErrorHandler.class);
 	}
 
 	@Provider

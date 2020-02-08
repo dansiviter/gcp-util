@@ -17,6 +17,7 @@ package uk.dansiviter.stackdriver.opentracing;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static uk.dansiviter.stackdriver.Util.threadLocal;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ import com.google.devtools.cloudtrace.v2.AttributeValue;
 import com.google.devtools.cloudtrace.v2.Span;
 import com.google.devtools.cloudtrace.v2.Span.Attributes;
 import com.google.devtools.cloudtrace.v2.Span.TimeEvent;
+import com.google.devtools.cloudtrace.v2.Span.TimeEvents;
 import com.google.devtools.cloudtrace.v2.SpanName;
 import com.google.devtools.cloudtrace.v2.TruncatableString;
 import com.google.protobuf.Timestamp;
@@ -44,22 +46,24 @@ import uk.dansiviter.stackdriver.opentracing.StackdriverSpan.Log;
  * @since v1.0 [13 Dec 2019]
  */
 public class Factory {
-	private static final ThreadLocal<SpanName.Builder> SPAN_NAME_BUILDER = ThreadLocal
-			.withInitial(SpanName::newBuilder);
-	private static final ThreadLocal<com.google.devtools.cloudtrace.v2.Span.Builder> SPAN_BUILDER = ThreadLocal
-			.withInitial(com.google.devtools.cloudtrace.v2.Span::newBuilder);
-	private static final ThreadLocal<TruncatableString.Builder> STRING_BUILDER = ThreadLocal
-			.withInitial(TruncatableString::newBuilder);
-	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER = ThreadLocal
-			.withInitial(Timestamp::newBuilder);
-	private static final ThreadLocal<Attributes.Builder> ATTRS_BUILDER = ThreadLocal
-			.withInitial(Attributes::newBuilder);
-	private static final ThreadLocal<AttributeValue.Builder> ATTR_VALUE_BUILDER = ThreadLocal
-			.withInitial(AttributeValue::newBuilder);
-	private static final ThreadLocal<TimeEvent.Builder> TIME_EVENT_BUILDER = ThreadLocal
-			.withInitial(TimeEvent::newBuilder);
-	private static final ThreadLocal<TimeEvent.Annotation.Builder> TIME_EVENT_ANNO_BUILDER = ThreadLocal
-			.withInitial(TimeEvent.Annotation::newBuilder);
+	private static final ThreadLocal<SpanName.Builder> SPAN_NAME_BUILDER =
+			threadLocal(SpanName::newBuilder, b -> b);
+	private static final ThreadLocal<Span.Builder> SPAN_BUILDER =
+			threadLocal(Span::newBuilder, Span.Builder::clear);
+	private static final ThreadLocal<TruncatableString.Builder> STRING_BUILDER =
+			threadLocal(TruncatableString::newBuilder, TruncatableString.Builder::clear);
+	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER =
+			threadLocal(Timestamp::newBuilder, Timestamp.Builder::clear);
+	private static final ThreadLocal<Attributes.Builder> ATTRS_BUILDER =
+			threadLocal(Attributes::newBuilder, Attributes.Builder::clear);
+	private static final ThreadLocal<AttributeValue.Builder> ATTR_VALUE_BUILDER =
+			threadLocal(AttributeValue::newBuilder, AttributeValue.Builder::clear);
+	private static final ThreadLocal<TimeEvents.Builder> TIME_EVENTS_BUILDER =
+			threadLocal(TimeEvents::newBuilder, TimeEvents.Builder::clear);
+	private static final ThreadLocal<TimeEvent.Builder> TIME_EVENT_BUILDER =
+			threadLocal(TimeEvent::newBuilder, TimeEvent.Builder::clear);
+	private static final ThreadLocal<TimeEvent.Annotation.Builder> TIME_EVENT_ANNO_BUILDER =
+			threadLocal(TimeEvent.Annotation::newBuilder, TimeEvent.Annotation.Builder::clear);
 
 	private static final String AGENT_LABEL_KEY = "/agent";
 	private static final String AGENT_LABEL_VALUE_STRING = format(
@@ -100,15 +104,13 @@ public class Factory {
             .setSpan(spanId)
 			.build();
 
-		final com.google.devtools.cloudtrace.v2.Span.Builder spanBuilder =
-			SPAN_BUILDER.get().clear()
-			.setName(spanName.toString())
-            .setSpanId(spanId)
-			.setDisplayName(toTruncatableString(span.operationName()))
-			.setAttributes(toAttrs(span.tags(), this.resourceAttr))
-			.setTimeEvents(toTimeEvents(span.logs()));
-
-		span.context().parentSpanIdAsString().ifPresent(spanBuilder::setParentSpanId);
+		final Span.Builder spanBuilder = SPAN_BUILDER.get()
+				.setName(spanName.toString())
+				.setSpanId(spanId)
+				.setDisplayName(toTruncatableString(span.operationName()))
+				.setAttributes(toAttrs(span.tags(), this.resourceAttr))
+				.setTimeEvents(toTimeEvents(span.logs()));
+		span.context().toParentSpanId().ifPresent(spanBuilder::setParentSpanId);
 
 		if (span.startUs() > 0) {
 			spanBuilder.setStartTime(toTimestamp(span.startUs()));
@@ -126,7 +128,7 @@ public class Factory {
 	 * @return
 	 */
 	private static TruncatableString toTruncatableString(@Nonnull CharSequence charSeq) {
-		return STRING_BUILDER.get().clear().setValue(charSeq.toString()).build();
+		return STRING_BUILDER.get().setValue(charSeq.toString()).build();
 	}
 
 	/**
@@ -136,7 +138,7 @@ public class Factory {
 	 */
 	private static Timestamp toTimestamp(long microseconds) {
 		final long remainder = microseconds % 1_000_000;
-		return TIMESTAMP_BUILDER.get().clear()
+		return TIMESTAMP_BUILDER.get()
 				.setSeconds(MICROSECONDS.toSeconds(microseconds))
 				.setNanos((int) MICROSECONDS.toNanos(remainder))
 				.build();
@@ -161,7 +163,7 @@ public class Factory {
 	 * @return
 	 */
 	private static Span.TimeEvents toTimeEvents(@Nonnull List<Log> logs) {
-		final Span.TimeEvents.Builder timeEventsBuilder = Span.TimeEvents.newBuilder();
+		final Span.TimeEvents.Builder timeEventsBuilder = TIME_EVENTS_BUILDER.get();
 		logs.forEach(l -> timeEventsBuilder.addTimeEvent(toTimeMessageEvent(l)));
 		return timeEventsBuilder.build();
 	}
@@ -172,7 +174,7 @@ public class Factory {
 	 * @return
 	 */
 	private static Attributes.Builder toAttrsBuilder(@Nonnull Map<String, ?> tags) {
-		final Attributes.Builder attributesBuilder = ATTRS_BUILDER.get().clear();
+		final Attributes.Builder attributesBuilder = ATTRS_BUILDER.get();
 		tags.forEach((k, v) -> {
 			final String key = mapKey(k);
 			final AttributeValue value = toAttrValue(key, v);
@@ -190,7 +192,7 @@ public class Factory {
 	 */
 	@javax.annotation.Nullable
 	private static AttributeValue toAttrValue(@Nonnull String key, @Nonnull Object value) {
-		final AttributeValue.Builder builder = ATTR_VALUE_BUILDER.get().clear();
+		final AttributeValue.Builder builder = ATTR_VALUE_BUILDER.get();
 		if (value instanceof CharSequence) {
 			builder.setStringValue(toTruncatableString((CharSequence) value));
 		} else if (value instanceof Boolean) {
@@ -215,9 +217,9 @@ public class Factory {
 	 * @return
 	 */
 	private static TimeEvent toTimeMessageEvent(Log log) {
-		final TimeEvent.Builder timeEventBuilder = TIME_EVENT_BUILDER.get().clear().setTime(toTimestamp(log.timeUs));
+		final TimeEvent.Builder timeEventBuilder = TIME_EVENT_BUILDER.get().setTime(toTimestamp(log.timeUs));
 		final TimeEvent.Annotation.Builder annotationBuilder =
-				TIME_EVENT_ANNO_BUILDER.get().clear().setAttributes(toAttrsBuilder(log.fields));
+				TIME_EVENT_ANNO_BUILDER.get().setAttributes(toAttrsBuilder(log.fields));
 		log.event.ifPresent(e -> annotationBuilder.setDescription(toTruncatableString(e)));
 		timeEventBuilder.setAnnotation(annotationBuilder.build());
 		return timeEventBuilder.build();

@@ -31,9 +31,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.Nonnull;
 
+import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.trace.v2.TraceServiceClient;
 import com.google.devtools.cloudtrace.v2.ProjectName;
@@ -57,9 +60,10 @@ import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
  * @since v1.0 [13 Dec 2019]
  */
 public class StackdriverTracer implements Tracer, Closeable {
+	private static final Logger LOG = Logger.getLogger(StackdriverTracer.class.getName());
+
 	private final ThreadLocalScopeManager scopeManager = new ThreadLocalScopeManager();
 	private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-
 	private final BlockingQueue<StackdriverSpan> spans = new LinkedBlockingQueue<>();
 	private final Map<Format<?>, Propagator<?>> propagators = new HashMap<>();
 
@@ -143,7 +147,12 @@ public class StackdriverTracer implements Tracer, Closeable {
 		}
 		final List<com.google.devtools.cloudtrace.v2.Span> converted =
 				spans.stream().map(factory::toSpan).collect(toList());
-		this.client.batchWriteSpans(this.projectName, converted);
+		LOG.log(Level.INFO, "Flushing spans... [size={0}]", converted.size());
+		try {
+			this.client.batchWriteSpans(projectName, converted);
+		} catch (ApiException e) {
+			LOG.log(Level.WARNING, "Unable to persist span!", e);
+		}
 	}
 
 	/**

@@ -36,7 +36,7 @@ public class TestResource {
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
 	public String get() throws InterruptedException {
-		Thread.sleep((long) (Math.random() * 250));
+		// Thread.sleep((long) (Math.random() * 250));
 		LOG.info("hello!");
 		return "hello";
 	}

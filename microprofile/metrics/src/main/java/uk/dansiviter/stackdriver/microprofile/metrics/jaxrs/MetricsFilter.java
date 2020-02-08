@@ -30,7 +30,6 @@ import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.ext.Provider;
 
 import org.eclipse.microprofile.metrics.Metadata;
 import org.eclipse.microprofile.metrics.MetricRegistry;
@@ -43,11 +42,10 @@ import org.eclipse.microprofile.metrics.Timer;
  * @author Daniel Siviter
  * @since v1.0 [20 Jan 2020]
  */
-@Provider
 @PreMatching
 @ApplicationScoped
 @Priority(1)
-public class MetricsFilter implements ContainerRequestFilter, ContainerResponseFilter {
+class MetricsFilter implements ContainerRequestFilter, ContainerResponseFilter {
 	static final Metadata REQUEST_COUNT = Metadata.builder()
 			.withName("request.count")
 			.withDisplayName("Request Count")
