@@ -43,6 +43,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.helidon.microprofile.server.Server;
 
 /**
@@ -112,6 +113,7 @@ public class KitchenSinkIT {
 		return ClientBuilder.newClient().target(BASE_URI);
 	}
 
+	@SuppressFBWarnings("UNENCRYPTED_SERVER_SOCKET")
 	private static int availablePort() {
 		try (ServerSocket s = new ServerSocket(0)) {
 			return s.getLocalPort();
