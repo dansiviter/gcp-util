@@ -15,15 +15,15 @@
  */
 package uk.dansiviter.stackdriver.opentracing;
 
+import static java.lang.Math.abs;
 import static uk.dansiviter.stackdriver.opentracing.HexUtil.toHex;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.concurrent.ThreadLocalRandom;
-
 import javax.annotation.Nonnull;
 
 import io.opentracing.SpanContext;
@@ -36,6 +36,7 @@ import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
  */
 public class StackdriverSpanContext implements SpanContext {
 	private static final byte SAMPLED = 0x1;
+	private static final SecureRandom RAND = new SecureRandom();
 
 	private final long traceIdLow, spanId;
 	private final OptionalLong traceIdHigh;
@@ -114,7 +115,7 @@ public class StackdriverSpanContext implements SpanContext {
 	 * @return
 	 */
 	private static long randomId() {
-		return ThreadLocalRandom.current().nextLong();
+		return abs(RAND.nextLong());
 	}
 
 	/**

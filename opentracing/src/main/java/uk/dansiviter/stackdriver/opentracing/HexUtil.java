@@ -17,7 +17,6 @@ package uk.dansiviter.stackdriver.opentracing;
 
 import java.nio.CharBuffer;
 import java.util.OptionalLong;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  *
@@ -26,15 +25,6 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public enum HexUtil { ;
 	private static final char[] HEX_DIGITS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-	/**
-	 *
-	 * @param incHigh
-	 * @return
-	 */
-	public static String randomHex(boolean incHigh) {
-		return toHex(incHigh ? OptionalLong.of(randLong()) : OptionalLong.empty(), randLong());
-	}
 
 	/**
 	 *
@@ -57,11 +47,6 @@ public enum HexUtil { ;
 	 */
 	public static String toHex(long v) {
 		return toHex(OptionalLong.empty(), v);
-	}
-
-	private static long randLong() {
-		final ThreadLocalRandom rand = ThreadLocalRandom.current();
-		return rand.nextLong(Long.MAX_VALUE);
 	}
 
 	/**
