@@ -15,26 +15,20 @@
  */
 package uk.dansiviter.stackdriver;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.eclipse.microprofile.rest.client.spi.RestClientBuilderListener;
+import org.glassfish.jersey.jsonb.JsonBindingFeature;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
+import uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ClientMetricsFeature;
 
 /**
  * @author Daniel Siviter
- * @since v1.0 [3 Feb 2020]
+ * @since v1.0 [11 Feb 2020]
  */
-@ApplicationScoped
-public class ExecutorProvider {
-	@Produces
-	@ApplicationScoped
-	public static ScheduledExecutorService scheduler() {
-		return Executors.newSingleThreadScheduledExecutor();
-	}
-
-	public static void dispose(@Disposes ScheduledExecutorService scheduler) {
-		scheduler.shutdown();
+public class RestClientBuilderHandler implements RestClientBuilderListener {
+	@Override
+	public void onNewBuilder(RestClientBuilder builder) {
+		builder.register(JsonBindingFeature.class);
+		builder.register(ClientMetricsFeature.class);
 	}
 }

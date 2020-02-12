@@ -18,37 +18,37 @@ package uk.dansiviter.stackdriver.microprofile.metrics.jaxrs;
 import static java.time.Duration.between;
 import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static javax.ws.rs.Priorities.USER;
-import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.MetricsFilter.RESPONSE_LATENCY;
-import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.MetricsFilter.START;
+import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ClientMetricsFilter.START;
+import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.Metrics.RESPONSE_LATENCY;
 
 import java.io.IOException;
 import java.time.Instant;
 
-import javax.annotation.Priority;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.ext.WriterInterceptor;
-import javax.ws.rs.ext.WriterInterceptorContext;
+import javax.ws.rs.ext.Provider;
+import javax.ws.rs.ext.ReaderInterceptor;
+import javax.ws.rs.ext.ReaderInterceptorContext;
 
 import org.eclipse.microprofile.metrics.Timer;
 
 /**
- *
  * @author Daniel Siviter
- * @since v1.0 [3 Feb 2020]
- * @see Filter
+ * @since v1.0 [11 Feb 2020]
  */
-@Priority(USER + 1_000)
-class MetricsInterceptor implements WriterInterceptor {
+@Provider
+public class ClientMetricsReaderInterceptor implements ReaderInterceptor {
+
 	@Override
-	public void aroundWriteTo(WriterInterceptorContext context) throws IOException, WebApplicationException {
+	public Object aroundReadFrom(ReaderInterceptorContext context) throws IOException, WebApplicationException {
 		try {
-			context.proceed();
+			return context.proceed();
 		} finally {
-			final Instant stop = now();
-			final Instant start = (Instant) context.getProperty(START);
 			final Timer timer = (Timer) context.getProperty(RESPONSE_LATENCY.getName());
-			timer.update(between(start, stop).toNanos(), NANOSECONDS);
+			if (timer != null) {
+				final Instant stop = now();
+				final Instant start = (Instant) context.getProperty(START);
+				timer.update(between(start, stop).toNanos(), NANOSECONDS);
+			}
 		}
 	}
 }

@@ -31,7 +31,8 @@ import javax.ws.rs.ext.Provider;
 import uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ContainerMetricsFeature;
 
 /**
- *
+ * @author Daniel Siviter
+ * @since v1.0 [3 Feb 2020]
  */
 @ApplicationScoped
 @ApplicationPath("/")

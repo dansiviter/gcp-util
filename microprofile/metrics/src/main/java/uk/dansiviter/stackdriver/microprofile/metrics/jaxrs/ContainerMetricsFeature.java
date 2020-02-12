@@ -27,7 +27,8 @@ import javax.ws.rs.ext.Provider;
 public class ContainerMetricsFeature implements Feature {
 	@Override
 	public boolean configure(FeatureContext context) {
-		context.register(MetricsFilter.class, MetricsInterceptor.class);
+		context.register(ContainerMetricsFilter.class);
+		context.register(ContainerMetricsWriterInterceptor.class);
 		return true;
 	}
 }

@@ -25,6 +25,11 @@
 			<groupId>io.helidon.microprofile.bundles</groupId>
 			<artifactId>helidon-microprofile</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.media</groupId>
+			<artifactId>jersey-media-json-binding</artifactId>
+			<version>2.29.1</version>
+		</dependency>
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>

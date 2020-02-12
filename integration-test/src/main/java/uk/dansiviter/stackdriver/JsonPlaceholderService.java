@@ -15,26 +15,28 @@
  */
 package uk.dansiviter.stackdriver;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+import uk.dansiviter.stackdriver.api.Post;
 
 /**
+ * Simple Rest Client to demonstrate functionality.
+ *
  * @author Daniel Siviter
- * @since v1.0 [3 Feb 2020]
+ * @since v1.0 [11 Feb 2020]
  */
-@ApplicationScoped
-public class ExecutorProvider {
-	@Produces
-	@ApplicationScoped
-	public static ScheduledExecutorService scheduler() {
-		return Executors.newSingleThreadScheduledExecutor();
-	}
-
-	public static void dispose(@Disposes ScheduledExecutorService scheduler) {
-		scheduler.shutdown();
-	}
+@Produces(MediaType.APPLICATION_JSON)
+@RegisterRestClient(baseUri="https://jsonplaceholder.typicode.com")
+public interface JsonPlaceholderService {
+	@GET
+	@Path("posts")
+	CompletionStage<List<Post>> posts();
 }

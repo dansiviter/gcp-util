@@ -15,23 +15,36 @@
  */
 package uk.dansiviter.stackdriver;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+import uk.dansiviter.stackdriver.api.Post;
+
 /**
- *
+ * @author Daniel Siviter
+ * @since v1.0 [3 Feb 2020]
  */
 @Path("test")
 @RequestScoped
 public class TestResource {
 	private static final Logger LOG = Logger.getLogger(TestResource.class.getName());
+
+	@Inject
+    @RestClient
+    private JsonPlaceholderService service;
 
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
@@ -53,5 +66,19 @@ public class TestResource {
 		LOG.severe("Nightmare!");
 		LOG.log(Level.SEVERE, "Geeze!", new IllegalStateException("Doh!"));
 		throw new IllegalStateException("Oh no!");
+	}
+
+	@GET
+	@Path("downstream")
+	public void downstream(@Suspended AsyncResponse res) {
+		this.service.posts().whenComplete((r, t) -> complete(res, r, t));
+	}
+
+	private void complete(AsyncResponse res, List<Post> posts, Throwable t) {
+		if (t != null) {
+			res.resume(t);
+			return;
+		}
+		res.resume(posts);
 	}
 }

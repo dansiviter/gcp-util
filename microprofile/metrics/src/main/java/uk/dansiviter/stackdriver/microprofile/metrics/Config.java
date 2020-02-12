@@ -76,6 +76,7 @@ public class Config {
 		final Map<String, String> map = new HashMap<>();
 		map.put("response_code", "The HTTP response (status) code.");
 		map.put("path", "The HTTP request path.");
+		map.put("target_host", "The name of the target host.");
 		return map;
 	}
 

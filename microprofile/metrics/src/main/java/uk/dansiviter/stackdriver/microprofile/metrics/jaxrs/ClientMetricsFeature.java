@@ -13,28 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.stackdriver;
+package uk.dansiviter.stackdriver.microprofile.metrics.jaxrs;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
+import javax.ws.rs.core.Feature;
+import javax.ws.rs.core.FeatureContext;
+import javax.ws.rs.ext.Provider;
 
 /**
  * @author Daniel Siviter
- * @since v1.0 [3 Feb 2020]
+ * @since v1.0 [11 Feb 2020]
  */
-@ApplicationScoped
-public class ExecutorProvider {
-	@Produces
-	@ApplicationScoped
-	public static ScheduledExecutorService scheduler() {
-		return Executors.newSingleThreadScheduledExecutor();
-	}
-
-	public static void dispose(@Disposes ScheduledExecutorService scheduler) {
-		scheduler.shutdown();
+@Provider
+public class ClientMetricsFeature implements Feature {
+	@Override
+	public boolean configure(FeatureContext context) {
+		context.register(ClientMetricsReaderInterceptor.class);
+		context.register(ClientMetricsFilter.class);
+		return true;
 	}
 }

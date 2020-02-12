@@ -394,11 +394,11 @@ public enum Factory {
 		case "ns":
 			return Optional.of(NANOSECONDS);
 		default:
-		return Optional.empty();
+			return Optional.empty();
 		}
 	}
 
-	static RegistryType registryType(Type type) {
+	public static RegistryType registryType(Type type) {
 		switch (type) {
 		case BASE:
 			return BASE_TYPE;

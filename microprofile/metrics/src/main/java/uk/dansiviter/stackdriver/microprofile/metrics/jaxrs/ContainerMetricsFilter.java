@@ -16,10 +16,13 @@
 package uk.dansiviter.stackdriver.microprofile.metrics.jaxrs;
 
 import static java.time.Instant.now;
-import static org.eclipse.microprofile.metrics.MetricType.COUNTER;
-import static org.eclipse.microprofile.metrics.MetricType.TIMER;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
 import static uk.dansiviter.stackdriver.microprofile.metrics.Factory.tag;
+import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.Metrics.REQUEST_COUNT;
+import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.Metrics.RESPONSE_COUNT;
+import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.Metrics.RESPONSE_LATENCY;
+import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.Metrics.path;
+import static uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.Metrics.status;
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
@@ -29,12 +32,11 @@ import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.container.PreMatching;
-import javax.ws.rs.core.UriInfo;
 
-import org.eclipse.microprofile.metrics.Metadata;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.Tag;
 import org.eclipse.microprofile.metrics.Timer;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 /**
  * Simple JAX-RS filter performing stats collection of requests/responses.
@@ -45,50 +47,25 @@ import org.eclipse.microprofile.metrics.Timer;
 @PreMatching
 @ApplicationScoped
 @Priority(1)
-class MetricsFilter implements ContainerRequestFilter, ContainerResponseFilter {
-	static final Metadata REQUEST_COUNT = Metadata.builder()
-			.withName("request.count")
-			.withDisplayName("Request Count")
-			.withDescription("The number of requests receieved by JAX-RS.")
-			.withType(COUNTER)
-			.build();
-	static final Metadata RESPONSE_COUNT = Metadata.builder()
-			.withName("response.count")
-			.withDisplayName("Response Count")
-			.withDescription("The number of requests receieved by JAX-RS.")
-			.withType(COUNTER)
-			.build();
-	static final Metadata RESPONSE_LATENCY = Metadata.builder()
-			.withName("request.latency")
-			.withDisplayName("Request Latency")
-			.withDescription("The time it took for the application code to process the request and respond.")
-			.withUnit(MILLISECONDS)
-			.withType(TIMER)
-			.build();
-	static final String START = MetricsFilter.class.getName() + "-start";
+class ContainerMetricsFilter implements ContainerRequestFilter, ContainerResponseFilter {
+	static final String START = ContainerMetricsFilter.class.getName() + "-start";
+	static final Tag KIND = tag("kind", "server");
 
 	@Inject
+	@RegistryType(type = APPLICATION)
 	private MetricRegistry registry;
 
 	@Override
 	public void filter(ContainerRequestContext req) {
-		this.registry.counter(REQUEST_COUNT, path(req.getUriInfo())).inc();
+		this.registry.counter(REQUEST_COUNT, KIND, path(req.getUriInfo().getRequestUri())).inc();
 		req.setProperty(START, now());
 	}
 
 	@Override
 	public void filter(ContainerRequestContext req, ContainerResponseContext res) {
-		final Tag[] tags = { path(req.getUriInfo()), status(res) };
+		final Tag[] tags = { KIND, path(req.getUriInfo().getRequestUri()), status(res.getStatus()) };
 		final Timer timer = this.registry.timer(RESPONSE_LATENCY, tags);
 		req.setProperty(RESPONSE_LATENCY.getName(), timer);
-		this.registry.counter(RESPONSE_COUNT, path(req.getUriInfo()), status(res)).inc();
-	}
-
-	private static Tag path(UriInfo uri) {
-		return tag("path", uri.getPath());
-	}
-
-	private static Tag status(ContainerResponseContext res) {
-		return tag("response_code", Integer.toString(res.getStatus()));
+		this.registry.counter(RESPONSE_COUNT, tags).inc();
 	}
 }

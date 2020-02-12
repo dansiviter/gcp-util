@@ -23,6 +23,10 @@ import io.opentracing.util.GlobalTracer;
 import uk.dansiviter.stackdriver.opentracing.StackdriverTracer;
 import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
 
+/**
+ * @author Daniel Siviter
+ * @since v1.0 [3 Feb 2020]
+ */
 public class StackdriverTracerProvider implements TracerProvider {
 
 	@Override
