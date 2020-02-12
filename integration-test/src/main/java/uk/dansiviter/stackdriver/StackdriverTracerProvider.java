@@ -96,7 +96,11 @@ public class StackdriverTracerProvider implements TracerProvider {
 			if (GlobalTracer.isRegistered()) {
 				return GlobalTracer.get();
 			}
-			final Tracer tracer = StackdriverTracer.builder().sampler(Sampler.alwaysSample()).build();
+			final Tracer tracer = StackdriverTracer
+					.builder()
+					.sampler(Sampler.alwaysSample())
+					.scopeManager(new HelidonScopeManager())
+					.build();
 			GlobalTracer.registerIfAbsent(tracer);
 			return tracer;
 		}

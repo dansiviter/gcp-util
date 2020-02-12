@@ -62,7 +62,6 @@ import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
 public class StackdriverTracer implements Tracer, Closeable {
 	private static final Logger LOG = Logger.getLogger(StackdriverTracer.class.getName());
 
-	private final ThreadLocalScopeManager scopeManager = new ThreadLocalScopeManager();
 	private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 	private final BlockingQueue<StackdriverSpan> spans = new LinkedBlockingQueue<>();
 	private final Map<Format<?>, Propagator<?>> propagators = new HashMap<>();
@@ -72,6 +71,7 @@ public class StackdriverTracer implements Tracer, Closeable {
 	private final TraceServiceClient client;
 	private final Factory factory;
 	private final Sampler sampler;
+	private final ScopeManager scopeManager;
 
 	StackdriverTracer(final Builder builder) {
 		this.resource = builder.resource.orElse(ResourceType.autoDetect().monitoredResource());
@@ -80,6 +80,7 @@ public class StackdriverTracer implements Tracer, Closeable {
 		this.propagators.putAll(builder.propegators);
 		this.sampler = builder.sampler.orElse(defaultSampler());
 		this.factory = new Factory(this.resource);
+		this.scopeManager = builder.scopeManager.orElse(new ThreadLocalScopeManager());
 		this.executor.scheduleAtFixedRate(this::flush, 10, 10, TimeUnit.SECONDS);
 	}
 
@@ -226,6 +227,7 @@ public class StackdriverTracer implements Tracer, Closeable {
 		private Optional<MonitoredResource> resource = Optional.empty();
 		private Optional<TraceServiceClient> client = Optional.empty();
 		private Optional<Sampler> sampler = Optional.empty();
+		private Optional<ScopeManager> scopeManager = Optional.empty();
 
 		private Builder() { }
 
@@ -266,9 +268,19 @@ public class StackdriverTracer implements Tracer, Closeable {
 
 		/**
 		 * @param sampler the sampler to set
+		 * @return
 		 */
 		public Builder sampler(Sampler sampler) {
 			this.sampler = Optional.of(sampler);
+			return this;
+		}
+
+		/**
+		 * @param scopeManager
+		 * @return
+		 */
+		public Builder scopeManager(ScopeManager scopeManager) {
+			this.scopeManager = Optional.of(scopeManager);
 			return this;
 		}
 

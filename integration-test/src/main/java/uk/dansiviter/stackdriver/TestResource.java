@@ -49,7 +49,7 @@ public class TestResource {
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
 	public String get() throws InterruptedException {
-		// Thread.sleep((long) (Math.random() * 250));
+		Thread.sleep((long) (Math.random() * 250));
 		LOG.info("hello!");
 		return "hello";
 	}
@@ -71,10 +71,12 @@ public class TestResource {
 	@GET
 	@Path("downstream")
 	public void downstream(@Suspended AsyncResponse res) {
+		LOG.info("Getting posts from downstream!");
 		this.service.posts().whenComplete((r, t) -> complete(res, r, t));
 	}
 
 	private void complete(AsyncResponse res, List<Post> posts, Throwable t) {
+		LOG.info("Got posts.");
 		if (t != null) {
 			res.resume(t);
 			return;
