@@ -55,6 +55,7 @@ import uk.dansiviter.stackdriver.opentracing.propagation.Propagator;
 import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
 
 /**
+ * A OpenTracing {@link Tracer} that pushes the traces to GCP Stackdriver.
  *
  * @author Daniel Siviter
  * @since v1.0 [13 Dec 2019]
@@ -62,25 +63,27 @@ import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
 public class StackdriverTracer implements Tracer, Closeable {
 	private static final Logger LOG = Logger.getLogger(StackdriverTracer.class.getName());
 
-	private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 	private final BlockingQueue<StackdriverSpan> spans = new LinkedBlockingQueue<>();
-	private final Map<Format<?>, Propagator<?>> propagators = new HashMap<>();
 
+	private final Map<Format<?>, Propagator<?>> propagators;
 	private final MonitoredResource resource;
 	private final ProjectName projectName;
 	private final TraceServiceClient client;
 	private final Factory factory;
 	private final Sampler sampler;
 	private final ScopeManager scopeManager;
+	private final ScheduledExecutorService executor;
 
 	StackdriverTracer(final Builder builder) {
-		this.resource = builder.resource.orElse(ResourceType.autoDetect().monitoredResource());
+		this.resource = builder.resource.orElseGet(() -> ResourceType.autoDetect().monitoredResource());
 		this.projectName = ProjectName.of(builder.projectId.orElse(ResourceType.get(this.resource, PROJECT_ID).get()));
-		this.client = builder.client.orElse(defaultTraceServiceClient());
-		this.propagators.putAll(builder.propegators);
+		this.client = builder.client.orElseGet(StackdriverTracer::defaultTraceServiceClient);
+		this.propagators = Map.copyOf(builder.propegators);
 		this.sampler = builder.sampler.orElse(defaultSampler());
+		this.scopeManager = builder.scopeManager.orElseGet(ThreadLocalScopeManager::new);
+		this.executor = builder.executor.orElseGet(Executors::newSingleThreadScheduledExecutor);
+
 		this.factory = new Factory(this.resource);
-		this.scopeManager = builder.scopeManager.orElse(new ThreadLocalScopeManager());
 		this.executor.scheduleAtFixedRate(this::flush, 10, 10, TimeUnit.SECONDS);
 	}
 
@@ -191,20 +194,10 @@ public class StackdriverTracer implements Tracer, Closeable {
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return a new builder instance.
 	 */
 	public static Builder builder() {
 		return new Builder();
-	}
-
-	/**
-	 *
-	 * @param resource
-	 * @return
-	 */
-	public static StackdriverTracer create(final MonitoredResource resource) {
-		return builder().resource(resource).build();
 	}
 
 	/**
@@ -228,6 +221,7 @@ public class StackdriverTracer implements Tracer, Closeable {
 		private Optional<TraceServiceClient> client = Optional.empty();
 		private Optional<Sampler> sampler = Optional.empty();
 		private Optional<ScopeManager> scopeManager = Optional.empty();
+		private Optional<ScheduledExecutorService> executor = Optional.empty();
 
 		private Builder() { }
 
@@ -281,6 +275,15 @@ public class StackdriverTracer implements Tracer, Closeable {
 		 */
 		public Builder scopeManager(ScopeManager scopeManager) {
 			this.scopeManager = Optional.of(scopeManager);
+			return this;
+		}
+
+		/**
+		 * @param executor
+		 * @return
+		 */
+		public Builder executor(ScheduledExecutorService executor) {
+			this.executor = Optional.of(executor);
 			return this;
 		}
 
