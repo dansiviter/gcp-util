@@ -3,7 +3,7 @@
 An implementation of `io.opentracing.Tracer` that sends it's data to Stackdriver.
 
 Limitations:
-* Performance testing.
+* No performance testing.
 
 ## Usage ##
 
@@ -31,6 +31,8 @@ Implement `io.helidon.tracing.spi.TracerProvider` and a matching `ServiceLoader`
 			}
 		}
 	}
+
+It may also be important to create a `io.opentracing.ScopeManager` instance to ensure context is spanned across executors. See [Integration Test](../integration-test) project for an example.
 
 ### Thorntail ###
 

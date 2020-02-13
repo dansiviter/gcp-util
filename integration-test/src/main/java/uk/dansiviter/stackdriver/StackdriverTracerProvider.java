@@ -99,7 +99,7 @@ public class StackdriverTracerProvider implements TracerProvider {
 			final Tracer tracer = StackdriverTracer
 					.builder()
 					.sampler(Sampler.alwaysSample())
-					.scopeManager(new HelidonScopeManager())
+					// .scopeManager(new HelidonScopeManager())
 					.build();
 			GlobalTracer.registerIfAbsent(tracer);
 			return tracer;

@@ -15,10 +15,15 @@
  */
 package uk.dansiviter.stackdriver;
 
+import static java.util.concurrent.Executors.newCachedThreadPool;
+
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.spi.RestClientBuilderListener;
 import org.glassfish.jersey.jsonb.JsonBindingFeature;
 
+import io.helidon.common.context.Contexts;
+import io.opentracing.contrib.concurrent.TracedExecutorService;
+import io.opentracing.util.GlobalTracer;
 import uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ClientMetricsFeature;
 
 /**
@@ -30,5 +35,6 @@ public class RestClientBuilderHandler implements RestClientBuilderListener {
 	public void onNewBuilder(RestClientBuilder builder) {
 		builder.register(JsonBindingFeature.class);
 		builder.register(ClientMetricsFeature.class);
+		builder.executorService(Contexts.wrap(new TracedExecutorService(newCachedThreadPool(), GlobalTracer.get())));
 	}
 }
