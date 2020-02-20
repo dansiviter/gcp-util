@@ -33,19 +33,19 @@ import org.eclipse.microprofile.metrics.Tag;
  */
 public enum Metrics { ;
 	static final Metadata REQUEST_COUNT = Metadata.builder()
-			.withName("request.count")
+			.withName("jaxrs/request.count")
 			.withDisplayName("Request Count")
 			.withDescription("The number of requests receieved by JAX-RS.")
 			.withType(COUNTER)
 			.build();
 	static final Metadata RESPONSE_COUNT = Metadata.builder()
-			.withName("response.count")
+			.withName("jaxrs/response.count")
 			.withDisplayName("Response Count")
 			.withDescription("The number of requests receieved by JAX-RS.")
 			.withType(COUNTER)
 			.build();
 	static final Metadata RESPONSE_LATENCY = Metadata.builder()
-			.withName("request.latency")
+			.withName("jaxrs/request.latency")
 			.withDisplayName("Request Latency")
 			.withDescription("The time it took for the application code to process the request and respond.")
 			.withUnit(MILLISECONDS)
