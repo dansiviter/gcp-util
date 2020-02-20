@@ -107,7 +107,10 @@ public class Decorator implements EntryDecorator {
 	 */
 	private static String parseB3Single(String key, String value, Builder b) {
 		final String[] tokens = value.split("-");
-		if (tokens.length < 2) {
+		if (tokens.length == 1 && "0".equals(tokens[0])) {
+			b.setTraceSampled(false);
+			return value;
+		} else if (tokens.length < 2) {
 			return value;
 		}
 
