@@ -19,7 +19,6 @@ import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.stackdriver.ResourceType.Label.PROJECT_ID;
 import static uk.dansiviter.stackdriver.opentracing.sampling.Sampler.defaultSampler;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -60,7 +59,7 @@ import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
  * @author Daniel Siviter
  * @since v1.0 [13 Dec 2019]
  */
-public class StackdriverTracer implements Tracer, Closeable {
+public class StackdriverTracer implements Tracer {
 	private static final Logger LOG = Logger.getLogger(StackdriverTracer.class.getName());
 
 	private final BlockingQueue<StackdriverSpan> spans = new LinkedBlockingQueue<>();
