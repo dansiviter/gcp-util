@@ -15,6 +15,9 @@
  */
 package uk.dansiviter.stackdriver.microprofile.metrics.jaxrs;
 
+import static javax.ws.rs.RuntimeType.SERVER;
+
+import javax.ws.rs.ConstrainedTo;
 import javax.ws.rs.core.Feature;
 import javax.ws.rs.core.FeatureContext;
 import javax.ws.rs.ext.Provider;
@@ -24,6 +27,7 @@ import javax.ws.rs.ext.Provider;
  * @since v1.0 [8 Feb 2020]
  */
 @Provider
+@ConstrainedTo(SERVER)
 public class ContainerMetricsFeature implements Feature {
 	@Override
 	public boolean configure(FeatureContext context) {
