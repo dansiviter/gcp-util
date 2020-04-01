@@ -65,7 +65,7 @@ import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Context;
 import uk.dansiviter.stackdriver.microprofile.metrics.Factory.Snapshot;
 
 /**
- * TODO Histogram and Meter
+ * Bridges between the Microprofile Metrics API and Stackdriver to collect and push metrics.
  *
  * @author Daniel Siviter
  * @since v1.0 [6 Nov 2019]

@@ -32,16 +32,23 @@ It needs a `java.util.concurrent.ScheduledExecutorService` to be able to run whi
 	}
 
 
+### Settings ###
+
+| Key                        | Description                                | Value             | Default |
+|----------------------------|--------------------------------------------|-------------------|---------|
+| `stackdriver.pollDuration` | The duration between collection of metrics | ISO-8601 Duration | `PT1M`  |
+
+
 ### JAX-RS ###
 
-The following metrics can be collected from JAX-RS:
+The following metrics can be collected from JAX-RS for both Container and Client:
 * `request.count`: The number of requests received with `path` tag,
 * `response.count`: The number of requests received with `path` and `response_code` tags,
 * `request.latency`: The time it took for the application code to process the request and respond with `path` and `response_code` tags.
 
-To enable these ensure the following classes are included:
-* `uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.MetricsInterceptor`,
-* `uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.MetricsFilter`.
+To enable these use the following classes:
+* `uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ContainerMetricsFeature`,
+* `uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ClientMetricsFeature`.
 
 
 ## Dashboard ##
