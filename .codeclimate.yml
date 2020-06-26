@@ -13,6 +13,9 @@ checks:
   method-lines:
     config:
       threshold: 50
+  method-count:
+    config:
+      threshold: 50
   return-statements:
     config:
       threshold: 10

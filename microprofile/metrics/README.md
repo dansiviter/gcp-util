@@ -1,4 +1,4 @@
-# Microprofile Metrics Stackdriver Bridge
+# Microprofile Metrics Stackdriver Integration
 
 Bridges the gap between Microprofile Metrics and Stackdriver.
 

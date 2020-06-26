@@ -6,27 +6,9 @@
 		<artifactId>microprofile</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>microprofile-metrics</artifactId>
+	<artifactId>microprofile-config</artifactId>
 
 	<dependencies>
-		<dependency>
-			<groupId>jakarta.enterprise</groupId>
-			<artifactId>jakarta.enterprise.cdi-api</artifactId>
-			<version>2.0.2</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>jakarta.ws.rs</groupId>
-			<artifactId>jakarta.ws.rs-api</artifactId>
-			<version>2.1.6</version>
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.eclipse.microprofile.metrics</groupId>
-			<artifactId>microprofile-metrics-api</artifactId>
-			<version>2.3.2</version>
-		</dependency>
 		<dependency>
 			<groupId>org.eclipse.microprofile.config</groupId>
 			<artifactId>microprofile-config-api</artifactId>
@@ -35,8 +17,8 @@
 
 		<dependency>
 			<groupId>com.google.cloud</groupId>
-			<artifactId>google-cloud-monitoring</artifactId>
-		</dependency>
+			<artifactId>google-cloud-secretmanager</artifactId>
+		  </dependency>
 
 
 		<!-- Test Dependencies -->
@@ -56,10 +38,6 @@
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jboss.weld</groupId>
-			<artifactId>weld-junit5</artifactId>
 		</dependency>
 	</dependencies>
 </project>
