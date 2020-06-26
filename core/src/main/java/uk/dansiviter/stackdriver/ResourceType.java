@@ -216,5 +216,9 @@ public enum ResourceType {
 			}
 			return Optional.empty();
 		}
+
+		public  Optional<String> get(MonitoredResource resource) {
+			return ResourceType.get(resource, this);
+		}
 	}
 }
