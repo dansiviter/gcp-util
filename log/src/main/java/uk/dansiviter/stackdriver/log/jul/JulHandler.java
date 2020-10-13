@@ -231,7 +231,7 @@ public class JulHandler extends Handler {
 	}
 
 	@Override
-	public void close() throws SecurityException {
+	public void close() {
 		if (this.logging != null) {
 			try {
 				this.logging.close();
