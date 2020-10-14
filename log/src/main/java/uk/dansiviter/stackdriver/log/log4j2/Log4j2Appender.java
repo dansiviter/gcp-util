@@ -24,37 +24,30 @@ import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
+import com.google.cloud.logging.Logging.WriteOption;
 import com.google.cloud.logging.LoggingOptions;
 import com.google.cloud.logging.Severity;
 import com.google.cloud.logging.Synchronicity;
-import com.google.cloud.logging.Logging.WriteOption;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.StringLayout;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Node;
-import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
-import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
-import org.apache.logging.log4j.core.config.plugins.PluginElement;
-import org.apache.logging.log4j.core.config.plugins.PluginFactory;
-import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 
-import uk.dansiviter.stackdriver.ResourceType;
 import uk.dansiviter.stackdriver.log.Entry;
 import uk.dansiviter.stackdriver.log.EntryDecorator;
 import uk.dansiviter.stackdriver.log.Factory;
 
 /**
- * A Log4J v2 implementation of {@link Appender}.
+ * A Log4J v2 implementation of {@link Appender}. It's recommended this is used with a {@link org.apache.logging.log4j.core.appender.FailoverAppender} so that problems will be chained rather than lost.
  *
  * <pre>
  * &lt;Configuration status="WARN"&gt;
@@ -73,59 +66,55 @@ import uk.dansiviter.stackdriver.log.Factory;
  */
 @Plugin(name = "Stackdriver", category = Node.CATEGORY, elementType = Appender.ELEMENT_TYPE, printObject = true)
 public class Log4j2Appender extends AbstractAppender {
+	private final List<EntryDecorator> decorators = new LinkedList<>();
+	private final Optional<Synchronicity> synchronicity;
+	private final Optional<Severity> flushSeverity;
 	private final LoggingOptions loggingOptions;
 	private final WriteOption[] defaultWriteOptions;
-	private final List<EntryDecorator> decorators = new LinkedList<>();
 
 	private volatile Logging logging;
 
-	protected Log4j2Appender(
-			@Nonnull String name,
-			Optional<Filter> filter,
-			boolean ignoreExceptions,
-			Optional<Synchronicity> synchronicity,
-			Optional<Severity> flushSeverity,
-			Optional<String> decorators,
-			Optional<String> enhancers,
-			@Nonnull LoggingOptions loggingOptions,
-			@Nonnull MonitoredResource monitoredResource)
-	{
+	protected Log4j2Appender(Builder<?> builder) {
 		super(
-				name,
-				filter.orElse(null),
-				PatternLayout.createDefaultLayout(),
-				ignoreExceptions,
-				Property.EMPTY_ARRAY);
+				builder.getName(),
+				builder.getFilter(),
+				builder.getOrCreateLayout(),
+				builder.isIgnoreExceptions(),
+				builder.getPropertyArray());
 
-		this.loggingOptions = loggingOptions;
-
-		synchronicity.ifPresent(logging()::setWriteSynchronicity);
-		flushSeverity.ifPresent(logging()::setFlushSeverity);
-		decorators.map(Factory::decorators).ifPresent(this.decorators::addAll);
-		enhancers.map(Factory::enhancers).ifPresent(this.decorators::addAll);
+		this.loggingOptions = builder.loggingOptions;
+		this.synchronicity = Optional.ofNullable(builder.synchronicity);
+		this.flushSeverity = Optional.ofNullable(builder.flushSeverity);
+		Optional.ofNullable(builder.decorators).map(Factory::decorators).ifPresent(this.decorators::addAll);
+		Optional.ofNullable(builder.enhancers).map(Factory::enhancers).ifPresent(this.decorators::addAll);
 
 		this.defaultWriteOptions = new WriteOption[] {
-			WriteOption.logName(name),
-			WriteOption.resource(monitoredResource)
+			WriteOption.logName(builder.getName()),
+			WriteOption.resource(builder.monitoredResource)
 		};
 	}
 
-	/**
-	 *
-	 */
-	private Logging logging() {
-		if (this.logging == null) {
-			synchronized (this) {
-				if (this.logging == null) {
-					this.logging = this.loggingOptions.getService();
-				}
-			}
+	@Override
+	public void start() {
+		setStarting();
+
+		try {
+			this.logging = this.loggingOptions.getService();
+			this.synchronicity.ifPresent(this.logging::setWriteSynchronicity);
+			this.flushSeverity.ifPresent(this.logging::setFlushSeverity);
+			super.start();
+		} catch (RuntimeException e) {
+			error("Unable to start!", e);
 		}
-		return this.logging;
 	}
 
 	@Override
 	public void append(LogEvent event) {
+		if (!isStarted()) {
+			error("Log4j2Appender not started!");
+			return;
+		}
+
 		final LogEntry entry;
 		try {
 			entry = Factory.logEntry(new Log4J2Entry(event), this.decorators);
@@ -134,7 +123,7 @@ public class Log4j2Appender extends AbstractAppender {
 			return;
 		}
 		try {
-			logging().write(List.of(entry), this.defaultWriteOptions);
+			this.logging.write(List.of(entry), this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			error(e.getLocalizedMessage(), e);
 		}
@@ -165,78 +154,12 @@ public class Log4j2Appender extends AbstractAppender {
 
 	// --- Static Methods ---
 
-	/**
-	 *
-	 * @param name
-	 * @param filter
-	 * @param layout
-	 * @param ignoreExceptions
-	 * @param synchronicity
-	 * @param flushSeverity
-	 * @param decorators
-	 * @param enhancers
-	 * @return
-	 */
-	@PluginFactory
-	public static Log4j2Appender createAppender(
-		@PluginAttribute("name") @Nonnull String name,
-		@PluginElement("Filters") Filter filter,
-		@PluginAttribute("ignoreExceptions") boolean ignoreExceptions,
-		@PluginAttribute("synchronicity") Synchronicity synchronicity,
-		@PluginAttribute("synchronicity") Severity flushSeverity,
-		@PluginAttribute("decorators") String decorators,
-		@PluginAttribute("enhancers") String enhancers)
-	{
-		return createAppender(
-			name,
-			Optional.of(filter),
-			ignoreExceptions,
-			Optional.of(synchronicity),
-			Optional.of(flushSeverity),
-			Optional.of(decorators),
-			Optional.of(enhancers),
-			LoggingOptions.getDefaultInstance(),
-			ResourceType.autoDetect().monitoredResource());
-	}
+	@PluginBuilderFactory
+    public static <B extends Builder<B>> B newBuilder() {
+        return new Builder<B>().asBuilder();
+    }
 
-	/**
-	 *
-	 * @param name
-	 * @param filter
-	 * @param layout
-	 * @param ignoreExceptions
-	 * @param synchronicity
-	 * @param flushSeverity
-	 * @param decorators
-	 * @param enhancers
-	 * @param loggingOptions
-	 * @param monitoredResource
-	 * @return
-	 */
-	public static Log4j2Appender createAppender(
-		@Nonnull String name,
-		Optional<Filter> filter,
-		boolean ignoreExceptions,
-		Optional<Synchronicity> synchronicity,
-		Optional<Severity> flushSeverity,
-		Optional<String> decorators,
-		Optional<String> enhancers,
-		@Nonnull LoggingOptions loggingOptions,
-		@Nonnull MonitoredResource monitoredResource)
-	{
-		return new Log4j2Appender(
-			name,
-			filter,
-			ignoreExceptions,
-			synchronicity,
-			flushSeverity,
-			decorators,
-			enhancers,
-			loggingOptions,
-			monitoredResource);
-	}
-
-	/**
+    /**
 	 *
 	 * @param level
 	 * @return
@@ -331,4 +254,60 @@ public class Log4j2Appender extends AbstractAppender {
 			return Optional.ofNullable(this.delegate.getThreadName());
 		}
 	}
+
+	/**
+     * Builds {@link Log4j2Appender} instances.
+	 *
+     * @param <B> The type to build
+     */
+    public static class Builder<B extends Builder<B>> extends AbstractAppender.Builder<B>
+            implements org.apache.logging.log4j.core.util.Builder<Log4j2Appender> {
+
+		@PluginBuilderAttribute
+		private Synchronicity synchronicity;
+		@PluginBuilderAttribute
+		private Severity flushSeverity;
+		@PluginBuilderAttribute
+		private String decorators;
+		@PluginBuilderAttribute
+		private String enhancers;
+
+		private LoggingOptions loggingOptions;
+		private MonitoredResource monitoredResource;
+
+        public B setSynchronicity(Synchronicity synchronicity) {
+            this.synchronicity = synchronicity;
+            return asBuilder();
+        }
+
+        public B setFlushSeverity(Severity flushSeverity) {
+            this.flushSeverity = flushSeverity;
+            return asBuilder();
+        }
+
+        public B setDecorators(String decorators) {
+            this.decorators = decorators;
+            return asBuilder();
+		}
+
+		public B setEnhancers(String enhancers) {
+            this.enhancers = enhancers;
+            return asBuilder();
+        }
+
+		public B setLoggingOptions(LoggingOptions loggingOptions) {
+            this.loggingOptions = loggingOptions;
+            return asBuilder();
+		}
+
+		public B setMonitoredResource(MonitoredResource monitoredResource) {
+            this.monitoredResource = monitoredResource;
+            return asBuilder();
+		}
+
+        @Override
+        public Log4j2Appender build() {
+			return new Log4j2Appender(this);
+        }
+    }
 }
