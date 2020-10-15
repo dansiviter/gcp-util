@@ -6,7 +6,8 @@ A collection of utilities and experiments for integrating into Google Cloud Plat
 * [`log`](/log) - A slightly more modern Stackdriver Logging integration implementation,
 * [`microprofile/config`](/microprofile/config) - Integration for Google Secrets Manager within config,
 * [`microprofile/metrics`](/microprofile/metrics) - Extracts and sends Microprofile Metrics to Stackdriver,
-* [`opentracing`](/opentracing) - Sends trace information to Stackdriver. Also useful for Microprofile Trace.
+* [`opentelemetry`](/opentelemetry) - [OpenTelemetry](https://opentelemetry.io) implementation that sends trace and metrics informtaion to Stackdriver.
+* [`opentracing`](/opentracing) - [OpenTracing](https://opentracing.io) implementation that sends trace information to Stackdriver. Also useful for Microprofile Trace.
 
 > :warning: These utilities are not suitable for production environments. They are simply experiments.
 

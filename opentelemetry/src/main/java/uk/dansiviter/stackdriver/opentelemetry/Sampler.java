@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.stackdriver.opentracing.sampling;
+package uk.dansiviter.stackdriver.opentelemetry;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.lang.Math.abs;
@@ -22,18 +22,19 @@ import static java.lang.Math.round;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import uk.dansiviter.stackdriver.opentracing.StackdriverSpanContext;
+import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.trace.TraceId;
 
 /**
  * @author Daniel Siviter
- * @since v1.0 [13 Dec 2019]
+ * @since v1.0 [20 Feb 2020]
  */
 @FunctionalInterface
-public interface Sampler extends Predicate<Optional<StackdriverSpanContext>> {
+public interface Sampler extends Predicate<Optional<SpanContext>> {
 	/** Always sample. */
-	Sampler ALWAYS = (p) -> true;
+	Sampler ALWAYS = p -> true;
 	/** Never sample. */
-	Sampler NEVER = (p) -> false;
+	Sampler NEVER = p -> false;
 
 	/** Default sampler which samples ~1% which parent span overriding. */
 	Sampler DEFAULT = parentOverriding(probablistic(.01));
@@ -77,12 +78,7 @@ public interface Sampler extends Predicate<Optional<StackdriverSpanContext>> {
 		} else {
 			upper = round(probability * MAX_VALUE);
 		}
-		return new Sampler() {
-			@Override
-			public boolean test(Optional<StackdriverSpanContext> ctx) {
-				return ctx.map(c -> abs(c.traceIdLow()) < upper).orElse(false);
-			}
-		};
+		return ctx -> ctx.map(c -> abs(TraceId.getTraceIdRandomPart(c.getTraceIdAsHexString())) < upper).orElse(false);
 	}
 
 	/**
@@ -91,7 +87,7 @@ public interface Sampler extends Predicate<Optional<StackdriverSpanContext>> {
 	 * @return
 	 */
 	public static Sampler parent() {
-		return p -> p.isPresent() ? p.get().sampled() : false;
+		return p -> p.isPresent() ? p.get().isSampled() : false;
 	}
 
 	/**
@@ -100,6 +96,6 @@ public interface Sampler extends Predicate<Optional<StackdriverSpanContext>> {
 	 * @return
 	 */
 	public static Sampler parentOverriding(Sampler sampler) {
-		return p -> p.isPresent() ? p.get().sampled() : sampler.test(p);
+		return p -> p.isPresent() ? p.get().isSampled() : sampler.test(p);
 	}
 }

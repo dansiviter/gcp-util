@@ -6,7 +6,7 @@
 		<artifactId>gcp</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>log</artifactId>
+	<artifactId>opentelemetry</artifactId>
 
 	<dependencies>
 		<dependency>
@@ -16,35 +16,13 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>google-cloud-logging</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.jboss.logging</groupId>
-			<artifactId>jboss-logging</artifactId>
-			<version>3.4.1.Final</version>
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.13.3</version>
-			<scope>provided</scope>
-		  </dependency>
-
-		<dependency>
-			<groupId>io.opentracing</groupId>
-			<artifactId>opentracing-util</artifactId>
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-api</artifactId>
-			<scope>provided</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-trace</artifactId>
+		</dependency>
 	</dependencies>
 </project>
