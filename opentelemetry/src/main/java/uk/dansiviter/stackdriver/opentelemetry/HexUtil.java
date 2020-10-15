@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.stackdriver.opentracing;
+package uk.dansiviter.stackdriver.opentelemetry;
 
 import java.nio.CharBuffer;
 import java.util.OptionalLong;

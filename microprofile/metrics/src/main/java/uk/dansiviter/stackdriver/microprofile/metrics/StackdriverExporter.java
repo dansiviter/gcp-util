@@ -121,7 +121,7 @@ public class StackdriverExporter {
 	private void run() {
 		final ZonedDateTime intervalStartTime = this.previousIntervalEndTime == null ? this.startDateTime : this.previousIntervalEndTime;
 		final ZonedDateTime intervalEndTime = ZonedDateTime.now(UTC);
-		this.log.log(Level.FINE, "Starting metrics collection... [start={0},end={0}]",
+		this.log.log(Level.FINE, "Starting metrics collection... [start={0},end={1}]",
 				new Object[] { intervalStartTime, intervalEndTime });
 		try {
 			final Timestamp startTimestamp = Factory.toTimestamp(this.startDateTime);
@@ -131,7 +131,7 @@ public class StackdriverExporter {
 			final Map<MetricID, Snapshot> snapshots = new ConcurrentHashMap<>();
 			for (MetricRegistry.Type type : MetricRegistry.Type.values()) {
 				final MetricRegistry registry = this.registries.select(Factory.registryType(type)).get();
-				registry.getMetrics().forEach((k, v) -> collect(registry, snapshots, k, v));
+				registry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
 			}
 			final Context ctx = new Context(this.config, monitoredResource, startTimestamp, interval);
 			final List<TimeSeries> timeSeries = new ArrayList<>();
@@ -139,7 +139,7 @@ public class StackdriverExporter {
 			for (MetricRegistry.Type type : MetricRegistry.Type.values()) {
 				final MetricRegistry registry = this.registries.select(Factory.registryType(type)).get();
 				registry.getMetrics().forEach((k, v) -> {
-					timeSeries(ctx, registry, type, snapshots, k, v).ifPresent(ts -> add(timeSeries, ts));
+					timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts));
 				});
 			}
 
@@ -172,7 +172,7 @@ public class StackdriverExporter {
 	 * @param id
 	 * @param metric
 	 */
-	private void collect(MetricRegistry registry, Map<MetricID, Snapshot> snapshots, MetricID id, Metric metric) {
+	private void collect(Map<MetricID, Snapshot> snapshots, MetricID id, Metric metric) {
 		try {
 			Factory.toSnapshot(metric).ifPresent(s -> snapshots.put(id, s));
 		} catch (RuntimeException e) {
@@ -207,8 +207,7 @@ public class StackdriverExporter {
 			MetricRegistry registry,
 			MetricRegistry.Type type,
 			Map<MetricID, Snapshot> snapshots,
-			MetricID id,
-			Metric metric)
+			MetricID id)
 	{
 		final Snapshot snapshot = snapshots.get(id);
 		if (snapshot == null) {

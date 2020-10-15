@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.stackdriver.log.opentracing;
+package uk.dansiviter.stackdriver.log.opentelemetry;
 
 import static com.google.cloud.ServiceOptions.getDefaultProjectId;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
-import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.Tracer;
-import io.opentracing.util.GlobalTracer;
+import io.grpc.Context;
+import io.opentelemetry.trace.DefaultSpan;
+import io.opentelemetry.trace.Span;
+import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.trace.TracingContextUtils;
 import uk.dansiviter.stackdriver.log.Entry;
 import uk.dansiviter.stackdriver.log.EntryDecorator;
 
@@ -38,44 +38,36 @@ import uk.dansiviter.stackdriver.log.EntryDecorator;
  */
 public class Decorator implements EntryDecorator {
 	private final String prefix;
-	private final Supplier<Tracer> tracer;
-
-	/**
-	 * Creates a using {@link GlobalTracer#get()}
-	 */
-	public Decorator() {
-		this(GlobalTracer::get);
-	}
 
 	/**
 	 * Attempts to auto-detect the project ID.
-	 *
-	 * @param tracer the tracer supplier.
 	 */
-	public Decorator(@Nonnull Supplier<Tracer> tracer) {
-		this(tracer, getDefaultProjectId());
+	public Decorator() {
+		this(getDefaultProjectId());
 	}
 
 	/**
 	 *
-	 * @param tracer the tracer supplier.
 	 * @param projectId the project identifier.
 	 */
-	public Decorator(@Nonnull Supplier<Tracer> tracer, @Nonnull String projectId) {
-		this.prefix = String.format("projects/%s/traces/", projectId);
-		this.tracer = requireNonNull(tracer);
+	public Decorator(@Nonnull String projectId) {
+		this.prefix = String.format("projects/%s/traces/", requireNonNull(projectId));
 	}
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		final Span span = this.tracer.get().activeSpan();
-		if (span == null) {
+		Context current = Context.current();
+		if (current == null) {
 			return;
 		}
 
-		SpanContext spanCtx = span.context();
-		b.setTrace(this.prefix.concat(spanCtx.toTraceId()));
-		b.setSpanId(spanCtx.toSpanId());
-		b.setTraceSampled(true);
+		Span span = TracingContextUtils.getSpan(current);
+		if (span == DefaultSpan.getInvalid()) {
+			return;
+		}
+		SpanContext spanCtx = span.getContext();
+		b.setSpanId(spanCtx.getSpanIdAsHexString());
+		b.setTrace(this.prefix.concat(spanCtx.getTraceIdAsHexString()));
+		b.setTraceSampled(spanCtx.isSampled());
 	}
 }

@@ -16,7 +16,7 @@
 package uk.dansiviter.stackdriver.opentracing;
 
 import static java.lang.Math.abs;
-import static uk.dansiviter.stackdriver.opentracing.HexUtil.toHex;
+import static uk.dansiviter.stackdriver.HexUtil.toHex;
 
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalLong;
+
 import javax.annotation.Nonnull;
 
 import io.opentracing.SpanContext;
-import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
 
 /**
  *

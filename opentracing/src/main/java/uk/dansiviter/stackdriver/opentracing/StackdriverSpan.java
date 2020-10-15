@@ -34,7 +34,6 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 
 import io.opentracing.References;
-import io.opentracing.Scope;
 import io.opentracing.ScopeManager;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -329,17 +328,6 @@ public class StackdriverSpan implements Span {
 			}
 
 			return new StackdriverSpan(tracer, this);
-		}
-
-		@Override
-		public Scope startActive(boolean finishSpanOnClose) {
-			final ScopeManager scopeManager = this.tracer.scopeManager();
-			return scopeManager.activate(start());
-		}
-
-		@Override
-		public Span startManual() {
-			return start();
 		}
 	}
 

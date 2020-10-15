@@ -20,8 +20,8 @@ import io.helidon.tracing.TracerBuilder;
 import io.helidon.tracing.spi.TracerProvider;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
+import uk.dansiviter.stackdriver.opentracing.Sampler;
 import uk.dansiviter.stackdriver.opentracing.StackdriverTracer;
-import uk.dansiviter.stackdriver.opentracing.sampling.Sampler;
 
 /**
  * @author Daniel Siviter

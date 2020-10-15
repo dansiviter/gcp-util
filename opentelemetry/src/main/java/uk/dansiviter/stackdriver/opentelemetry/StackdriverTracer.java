@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.stackdriver.opentracing;
+package uk.dansiviter.stackdriver.opentelemetry;
 
 import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.stackdriver.ResourceType.Label.PROJECT_ID;
-import static uk.dansiviter.stackdriver.opentracing.Sampler.defaultSampler;
+import static uk.dansiviter.stackdriver.opentelemetry.Sampler.defaultSampler;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
@@ -33,52 +32,41 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
 import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.trace.v2.TraceServiceClient;
 import com.google.devtools.cloudtrace.v2.ProjectName;
 
-import io.opentracing.Scope;
-import io.opentracing.ScopeManager;
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.ThreadLocalScopeManager;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.trace.Span;
+import io.opentelemetry.trace.Tracer;
 import uk.dansiviter.stackdriver.GaxUtil;
 import uk.dansiviter.stackdriver.ResourceType;
-import uk.dansiviter.stackdriver.opentracing.propagation.B3MultiPropagator;
-import uk.dansiviter.stackdriver.opentracing.propagation.Propagator;
 
 /**
  * A OpenTracing {@link Tracer} that pushes the traces to GCP Stackdriver.
  *
  * @author Daniel Siviter
- * @since v1.0 [13 Dec 2019]
+ * @since v1.0 [20 Feb 2020]
  */
-public class StackdriverTracer implements Tracer {
+public class StackdriverTracer implements Tracer, Closeable {
 	private static final Logger LOG = Logger.getLogger(StackdriverTracer.class.getName());
 
 	private final BlockingQueue<StackdriverSpan> spans = new LinkedBlockingQueue<>();
+	private final ThreadLocal<StackdriverScope> tlsScope = new ThreadLocal<>();
 
-	private final Map<Format<?>, Propagator<?>> propagators;
 	private final MonitoredResource resource;
 	private final ProjectName projectName;
 	private final TraceServiceClient client;
 	private final Factory factory;
 	private final Sampler sampler;
-	private final ScopeManager scopeManager;
 	private final ScheduledExecutorService executor;
 
 	StackdriverTracer(final Builder builder) {
 		this.resource = builder.resource.orElseGet(() -> ResourceType.autoDetect().monitoredResource());
-		this.projectName = ProjectName.of(builder.projectId.orElse(ResourceType.get(this.resource, PROJECT_ID).get()));
+		this.projectName = ProjectName.of(builder.projectId.orElseGet(() -> ResourceType.get(this.resource, PROJECT_ID).get()));
 		this.client = builder.client.orElseGet(StackdriverTracer::defaultTraceServiceClient);
-		this.propagators = Map.copyOf(builder.propegators);
 		this.sampler = builder.sampler.orElse(defaultSampler());
-		this.scopeManager = builder.scopeManager.orElseGet(ThreadLocalScopeManager::new);
 		this.executor = builder.executor.orElseGet(Executors::newSingleThreadScheduledExecutor);
 
 		this.factory = new Factory(this.resource);
@@ -86,33 +74,19 @@ public class StackdriverTracer implements Tracer {
 	}
 
 	@Override
-	public ScopeManager scopeManager() {
-		return this.scopeManager;
+	public Span getCurrentSpan() {
+		final StackdriverScope scope = this.tlsScope.get();
+		return scope != null ? scope.span : null;
 	}
 
 	@Override
-	public Span activeSpan() {
-		return this.scopeManager.activeSpan();
+	public Scope withSpan(Span span) {
+		return new StackdriverScope(span);
 	}
 
 	@Override
-	public Scope activateSpan(Span span) {
-		return this.scopeManager.activate(span);
-	}
-
-	@Override
-	public SpanBuilder buildSpan(@Nonnull String operationName) {
-		return StackdriverSpan.builder(operationName, this);
-	}
-
-	@Override
-	public <C> void inject(@Nonnull SpanContext spanContext, @Nonnull Format<C> format, @Nonnull C carrier) {
-		propagator(format).inject((StackdriverSpanContext) spanContext, carrier);
-	}
-
-	@Override
-	public <C> StackdriverSpanContext extract(@Nonnull Format<C> format, @Nonnull C carrier) {
-		return propagator(format).extract(carrier);
+	public Span.Builder spanBuilder(String spanName) {
+		return StackdriverSpan.builder(spanName, this);
 	}
 
 	@Override
@@ -122,33 +96,25 @@ public class StackdriverTracer implements Tracer {
 			if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
 				this.executor.shutdownNow();
 			}
-		} catch (final InterruptedException e) {
+		} catch (InterruptedException e) {
 			this.executor.shutdownNow();
+			Thread.currentThread().interrupt();
 		}
 		flush();
 		GaxUtil.close(this.client);
-	}
-
-	private <C> Propagator<C> propagator(final Format<C> format) {
-		@SuppressWarnings("unchecked")
-		final Propagator<C> propagator = (Propagator<C>) this.propagators.get(format);
-		if (propagator == null) {
-			throw new IllegalStateException("No propagator found for format! [" + format + "]");
-		}
-		return propagator;
 	}
 
 	/**
 	 *
 	 */
 	private void flush() {
-		final List<StackdriverSpan> spans = new LinkedList<>();
-		this.spans.drainTo(spans);
-		if (spans.isEmpty()) {
+		final List<StackdriverSpan> drain = new LinkedList<>();
+		this.spans.drainTo(drain);
+		if (drain.isEmpty()) {
 			return;
 		}
 		final List<com.google.devtools.cloudtrace.v2.Span> converted =
-				spans.stream().map(factory::toSpan).collect(toList());
+				drain.stream().map(factory::toSpan).collect(toList());
 		LOG.log(Level.FINE, "Flushing spans... [size={0}]", converted.size());
 		try {
 			this.client.batchWriteSpans(projectName, converted);
@@ -162,7 +128,7 @@ public class StackdriverTracer implements Tracer {
 	 * @param span
 	 */
 	public void persist(final StackdriverSpan span) {
-		if (!span.context().sampled()) {
+		if (!span.getContext().isSampled()) {
 			return;
 		}
 		this.spans.add(span);
@@ -178,6 +144,25 @@ public class StackdriverTracer implements Tracer {
 
 
 	// --- Static Methods ---
+
+	private class StackdriverScope implements Scope {
+		final Span span;
+		final StackdriverScope prevScope;
+
+		StackdriverScope(Span span) {
+			this.span = span;
+			this.prevScope = tlsScope.get();
+		}
+
+		@Override
+		public void close() {
+			if (prevScope != null) {
+				tlsScope.set(this.prevScope);
+			} else {
+				tlsScope.remove();
+			}
+		}
+	}
 
 	/**
 	 *
@@ -198,14 +183,6 @@ public class StackdriverTracer implements Tracer {
 		return new Builder();
 	}
 
-	/**
-	 *
-	 * @return
-	 */
-	private static Map<Format<?>, Propagator<?>> defaultPropagators() {
-		return Map.of(Format.Builtin.HTTP_HEADERS, new B3MultiPropagator());
-	}
-
 
 	// --- Inner Classes ---
 
@@ -213,12 +190,11 @@ public class StackdriverTracer implements Tracer {
 	 *
 	 */
 	public static class Builder {
-		private final Map<Format<?>, Propagator<?>> propegators = new HashMap<>(defaultPropagators());
 		private Optional<String> projectId = Optional.empty();
 		private Optional<MonitoredResource> resource = Optional.empty();
 		private Optional<TraceServiceClient> client = Optional.empty();
+
 		private Optional<Sampler> sampler = Optional.empty();
-		private Optional<ScopeManager> scopeManager = Optional.empty();
 		private Optional<ScheduledExecutorService> executor = Optional.empty();
 
 		private Builder() { }
@@ -248,31 +224,11 @@ public class StackdriverTracer implements Tracer {
 		}
 
 		/**
-		 *
-		 * @param format
-		 * @param propagator
-		 * @return
-		 */
-		public Builder add(final Format<?> format, final Propagator<?> propagator) {
-			this.propegators.put(format, propagator);
-			return this;
-		}
-
-		/**
 		 * @param sampler the sampler to set
 		 * @return
 		 */
 		public Builder sampler(Sampler sampler) {
 			this.sampler = Optional.of(sampler);
-			return this;
-		}
-
-		/**
-		 * @param scopeManager
-		 * @return
-		 */
-		public Builder scopeManager(ScopeManager scopeManager) {
-			this.scopeManager = Optional.of(scopeManager);
 			return this;
 		}
 
