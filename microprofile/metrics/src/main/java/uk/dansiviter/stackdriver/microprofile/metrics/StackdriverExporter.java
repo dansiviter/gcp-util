@@ -75,11 +75,9 @@ public class StackdriverExporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
 	protected final Logger log;
 
-	// matches the default poll duration:
-	// https://cloud.google.com/monitoring/api/metrics_agent#agent-jvm
 	@Inject
-	@ConfigProperty(name = "stackdriver.pollDuration", defaultValue = "PT1M")
-	private Duration pollDuration;
+	@ConfigProperty(name = "stackdriver.samplingRate", defaultValue = "STANDARD")
+	private SamplingRate samplingRate;
 	@Inject
 	private ScheduledExecutorService executor;
 	// Annoyingly you can't get the type directly from the registry
@@ -111,7 +109,7 @@ public class StackdriverExporter {
 		this.projectName = ProjectName.of(ResourceType.get(this.monitoredResource, PROJECT_ID).get());
 		final MetricServiceSettings.Builder builder = MetricServiceSettings.newBuilder();
 		this.client = MetricServiceClient.create(builder.build());
-		this.future = this.executor.scheduleAtFixedRate(this::run, 0, pollDuration.getSeconds(), SECONDS);
+		this.future = this.executor.scheduleAtFixedRate(this::run, 0, samplingRate.duration.getSeconds(), SECONDS);
 	}
 
 	/**
@@ -232,5 +230,22 @@ public class StackdriverExporter {
 	private static Collection<List<TimeSeries>> partition(List<TimeSeries> in, int chunk) {
 		final AtomicInteger counter = new AtomicInteger();
 		return in.stream().collect(groupingBy(it -> counter.getAndIncrement() / chunk)).values();
+	}
+
+
+	// --- Inner Classes ---
+
+	/**
+	 *
+	 */
+	public enum SamplingRate {
+		STANDARD(Duration.parse("PT1M")),
+		HIGH_RESOLUTION(Duration.parse("PT10S"));
+
+		private final Duration duration;
+
+		SamplingRate(Duration duration) {
+			this.duration = duration;
+		}
 	}
 }
