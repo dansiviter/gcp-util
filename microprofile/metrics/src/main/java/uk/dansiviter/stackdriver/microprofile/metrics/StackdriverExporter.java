@@ -236,7 +236,7 @@ public class StackdriverExporter {
 	// --- Inner Classes ---
 
 	/**
-	 *
+	 * @see https://cloud.google.com/blog/products/management-tools/cloud-monitoring-metrics-get-10-second-resolution
 	 */
 	public enum SamplingRate {
 		STANDARD(Duration.parse("PT1M")),
