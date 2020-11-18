@@ -1,4 +1,4 @@
-# Stackdriver Utils. - Logging #
+# Cloud Monitoring Logging Utils #
 
 ## Configuration ##
 
@@ -8,18 +8,17 @@
 
 #### File Config ####
 
-Inspired by `com.google.cloud.logging.LoggingHandler` but one major limitation is it's use of `com.google.cloud.logging.Payload.StringPayload` which heavily limits the data that can be utilised by GCP. This implementation does not use that to give broader support to Stackdriver's features.
+Inspired by `com.google.cloud.logging.LoggingHandler` but one major limitation is it's use of `com.google.cloud.logging.Payload.StringPayload` which heavily limits the data that can be utilised by GCP. This implementation does not use that to give broader support to Cloud logging's features.
 
 Example `java.util.logging.config.file` file config:
 
 ```
 .level=INFO
-handlers=uk.dansiviter.stackdriver.log.jul.JulHandler
+handlers=uk.dansiviter.gcp.monitoring.log.jul.JulHandler
 
-uk.dansiviter.stackdriver.log.jul.JulHandler.level=INFO
-uk.dansiviter.stackdriver.log.jul.JulHandler.uk.dansiviter.stackdriver.log.JulHandler.filter=foo.MyFilter
-uk.dansiviter.stackdriver.log.jul.JulHandler.decorators=foo.MyDecorator
-uk.dansiviter.stackdriver.log.jul.JulHandler.enhancers=io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
+uk.dansiviter.gcp.monitoring.log.jul.JulHandler.level=INFO
+uk.dansiviter.gcp.monitoring.log.jul.JulHandler.uk.dansiviter.gcp.monitoring.log.JulHandler.filter=foo.MyFilter
+uk.dansiviter.gcp.monitoring.log.jul.JulHandler.decorators=foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
 ```
 
 #### Class Config ####
@@ -47,13 +46,12 @@ JBoss logger is based on the JUL logger, however has some extensions. Therefore,
 
 ```
 logger.level=INFO
-logger.handlers=STACKDRIVER
+logger.handlers=CLOUD_LOG
 
-handler.STACKDRIVER=uk.dansiviter.stackdriver.log.jul.JulHandler
-handler.STACKDRIVER.level=INFO
-handler.STACKDRIVER.properties=decorators,enhancers
-handler.STACKDRIVER.decorators=foo.MyDecorator
-handler.STACKDRIVER.enhancers=io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
+handler.CLOUD_LOG=uk.dansiviter.gcp.monitoring.log.jul.JulHandler
+handler.CLOUD_LOG.level=INFO
+handler.CLOUD_LOG.properties=decorators,enhancers
+handler.CLOUD_LOG.decorators=foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
 ```
 
 ### Log4J v2 ###
@@ -64,11 +62,10 @@ For Log4J v2 it's highly recommended a Failover appender is used to ensure any p
 <Configuration>
 	<Appenders>
 		<Console name="console" />
-		<Stackdriver name="stackdriver">
-			<Decorator class="foo.MyDecorator" />
-			<Enhancer class="io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer" />
-		</Stackdriver>
-		<Falover name="failover" primary="stackdriver">
+		<CloudLogging name="cloudLogging">
+			<Decorator class="foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer" />
+		</CloudLogging>
+		<Falover name="failover" primary="cloudLogging">
 			<Failovers>
 				<AppenderRef ref="console" />
 			</Failovers>
@@ -84,10 +81,30 @@ For Log4J v2 it's highly recommended a Failover appender is used to ensure any p
 
 ## Decorators ##
 
-### OpenTracing Log Correlation ###
+Both `com.google.cloud.logging.LoggingEnhancers` and the more flexible `uk.dansiviter.gcp.monitoring.log.EntryDecorator` are supported in `decorators`. As this implementation uses ` com.google.cloud.logging.Payload.JsonPayload` the `EntryDecorator` gives more control over that.
 
-To link traces to logs use `uk.dansiviter.stackdriver.log.opentracing.Decorator`.
+If you require a little more flexibility in decorating, it's recommended you group these into a single class which has the added benefit of less verbosity in the configuration:
 
-### JBoss Logger ###
+```java
+public class MyCombiedDecorator implements EntryDecorator {
+	private static final EntryDecorator DELEGATES = EntryDecorator.all(
+		EntryDecorator.serviceContext(MyClass.class),
+		new ThreadContextDecorator()
+	);
 
-To embed MDC params into log use `uk.dansiviter.stackdriver.log.jboss.MdcDecorator`. Use with caution as this could easily lead to an information leak.
+	@Override
+	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
+		DELEGATES.decorate(b, e, payload);
+		...
+	}
+}
+```
+
+A few common use-cases are already implemented:
+
+* `java.util.ServiceLoader` loading: `uk.dansiviter.gcp.monitoring.log.ServiceLoaderDecorator`,
+* Message masking: `uk.dansiviter.gcp.monitoring.log.MessageMaskingDecorator` - may help with your DLP requirements,
+* OpenTelemetry Log Correlation: `uk.dansiviter.gcp.monitoring.log.opentelemetry.Decorator`,
+* OpenTracing Log Correlation: `uk.dansiviter.gcp.monitoring.log.opentracing.Decorator`,
+* JBoss Logger MDC: `uk.dansiviter.gcp.monitoring.log.jboss.MdcDecorator` - Use with caution! May lead to an information leak,
+* Log4j v2 `ThreadContext`: `uk.dansiviter.gcp.monitoring.log.log4j2.ThreadContextDecorator` - Use with caution! May lead to an information leak.
