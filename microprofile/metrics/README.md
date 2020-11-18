@@ -1,11 +1,11 @@
-# Microprofile Metrics Stackdriver Integration
+# Microprofile Metrics Cloud Monitoring Integration
 
-Bridges the gap between Microprofile Metrics and Stackdriver.
+Bridges the gap between Microprofile Metrics and Cloud Monitoring.
 
 This implementation attempts the following:
 1. Snapshots the data as fast as possible,
-2. If not created already does it's best to create a `com.google.api.MetricDescriptor` for the `Metric` and persists to Stackdriver,
-3. Iterates around the snapshot data persisting it to Stackdriver.
+2. If not created already does it's best to create a `com.google.api.MetricDescriptor` for the `Metric` and persists to Cloud Monitoring,
+3. Iterates around the snapshot data persisting it to Cloud Monitoring.
 
 Metric will have the following values:
 * Type: `custom.googleapis.com/microprofile/<registry_type>/<MetricId#name>`
@@ -34,9 +34,9 @@ It needs a `java.util.concurrent.ScheduledExecutorService` to be able to run whi
 
 ### Settings ###
 
-| Key                        | Description                                | Value             | Default |
-|----------------------------|--------------------------------------------|-------------------|---------|
-| `stackdriver.pollDuration` | The duration between collection of metrics | ISO-8601 Duration | `PT1M`  |
+| Key                            | Description                                | Value             | Default |
+|--------------------------------|--------------------------------------------|-------------------|---------|
+| `cloudMonitoring.pollDuration` | The duration between collection of metrics | ISO-8601 Duration | `PT1M`  |
 
 
 ### JAX-RS ###
@@ -47,10 +47,10 @@ The following metrics can be collected from JAX-RS for both Container and Client
 * `request.latency`: The time it took for the application code to process the request and respond with `path` and `response_code` tags.
 
 To enable these use the following classes:
-* `uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ContainerMetricsFeature`,
-* `uk.dansiviter.stackdriver.microprofile.metrics.jaxrs.ClientMetricsFeature`.
+* `uk.dansiviter.gcp.monitoring.microprofile.metrics.jaxrs.ContainerMetricsFeature`,
+* `uk.dansiviter.gcp.monitoring.microprofile.metrics.jaxrs.ClientMetricsFeature`.
 
 
 ## Dashboard ##
 
-`dashboard.json` is an example Stackdriver dashboard that shows some of the Microprofile metrics.
+`dashboard.json` is an example Cloud Monitoring dashboard that shows some of the Microprofile metrics.

@@ -6,7 +6,7 @@
 	<version>0.1.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
-	<url>https://gitlab.com/dansiviter/stackdriver-util</url>
+	<url>https://gitlab.com/dansiviter/gcp-util</url>
 
 	<licenses>
 		<license>
@@ -62,7 +62,13 @@
 			<dependency>
 				<groupId>io.opentelemetry</groupId>
 				<artifactId>opentelemetry-api</artifactId>
-				<version>0.9.1</version>
+				<version>0.10.0</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.eclipse.microprofile.config</groupId>
+				<artifactId>microprofile-config-api</artifactId>
+				<version>1.3</version>
 			</dependency>
 
 			<dependency>
@@ -103,8 +109,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
-			<artifactId>annotations</artifactId>
-			<version>3.0.1</version>
+			<artifactId>jsr305</artifactId>
+			<version>3.0.2</version>
 			<scope>provided</scope>
 		</dependency>
 

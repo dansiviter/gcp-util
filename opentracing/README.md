@@ -1,6 +1,6 @@
-# Stackdriver Utils. - OpenTracing #
+# Cloud Tracing - OpenTracing #
 
-An implementation of `io.opentracing.Tracer` that sends it's data to Stackdriver.
+An implementation of `io.opentracing.Tracer` that sends it's data to Cloud Trace.
 
 Limitations:
 * No performance testing.
@@ -13,7 +13,7 @@ Some helpers to get you started.
 
 Implement `io.helidon.tracing.spi.TracerProvider` and a matching `ServiceLoader` file:
 
-	public class StackdriverTracerProvider implements TracerProvider {
+	public class CloudTraceProvider implements TracerProvider {
 
 		@Override
 		public TracerBuilder<?> createBuilder() {
@@ -25,7 +25,7 @@ Implement `io.helidon.tracing.spi.TracerProvider` and a matching `ServiceLoader`
 
 			@Override
 			public Tracer build() {
-				final Tracer tracer = StackdriverTracer.builder().sampler(Sampler.always()).build();
+				final Tracer tracer = CloudTracer.builder().sampler(Sampler.always()).build();
 				GlobalTracer.register(tracer);  // it doesn't do this :(
 				return tracer;
 			}
