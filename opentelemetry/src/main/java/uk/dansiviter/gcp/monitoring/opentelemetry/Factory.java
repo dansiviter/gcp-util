@@ -15,12 +15,18 @@
  */
 package uk.dansiviter.gcp.monitoring.opentelemetry;
 
+import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_HOST;
+import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_METHOD;
+import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_ROUTE;
+import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_STATUS_CODE;
+import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_URL;
+import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_USER_AGENT;
 import static java.lang.Math.abs;
 import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static uk.dansiviter.gcp.monitoring.Util.threadLocal;
 
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +48,6 @@ import com.google.devtools.cloudtrace.v2.TruncatableString;
 import com.google.protobuf.Timestamp;
 import com.google.rpc.Status;
 
-import io.opentelemetry.api.common.AttributeConsumer;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.SpanId;
 import io.opentelemetry.api.trace.StatusCode;
@@ -80,13 +85,12 @@ public class Factory {
 	private static final AttributeValue AGENT_LABEL_VALUE = AttributeValue.newBuilder()
 			.setStringValue(toTruncatableString(agent())).build();
 	private static final Map<String, String> HTTP_ATTRIBUTE_MAPPING = Map.of(
-		"http.host", "/http/host",
-		"http.method", "/http/method",
-		"http.path", "/http/path",
-		"http.url", "/http/url",
-		"http.route", "/http/route",
-		"http.user_agent", "/http/user_agent",
-		"http.status_code", "/http/status_code");
+		"/http/host", HTTP_HOST.getKey(),
+		"/http/method", HTTP_METHOD.getKey(),
+		"/http/url", HTTP_URL.getKey(),
+		"/http/route", HTTP_ROUTE.getKey(),
+		"/http/user_agent", HTTP_USER_AGENT.getKey(),
+		"/http/status_code", HTTP_STATUS_CODE.getKey());
 
 	private final MonitoredResource resource;
 
@@ -106,44 +110,39 @@ public class Factory {
 		var ctx = span.getSpanContext();
 		var spanId = ctx.getSpanIdAsHexString();
 		var spanName = SPAN_NAME_BUILDER.get() // no clear method, but should override all fields anyway
-				.setProject(ResourceType.get(this.resource, Label.PROJECT_ID).get())
+				.setProject(ResourceType.get(this.resource, Label.PROJECT_ID).orElseThrow())
 				.setTrace(ctx.getTraceIdAsHexString()).setSpan(spanId).build();
 
 		var spanBuilder = SPAN_BUILDER.get().setName(spanName.toString()).setSpanId(spanId)
-				.setDisplayName(toTruncatableString(span.name()))
-				.setAttributes(toAttrs(span.attributes(), this.resourceAttr))
-				.setTimeEvents(toTimeEvents(span.events()))
-				.setLinks(toLinks(span.links()));
+				.setDisplayName(toTruncatableString(span.name))
+				.setAttributes(toAttrs(span.attrs, this.resourceAttr))
+				.setTimeEvents(toTimeEvents(span.events))
+				.setLinks(toLinks(span.links));
 
 		var parentSpanId = ctx.getTraceState().get("parentSpanId");
 		if (parentSpanId != null) {
 			spanBuilder.setParentSpanId(parentSpanId);
 		}
 
-		status(span.statusCode(), span.statusDesciption()).ifPresent(spanBuilder::setStatus);
+		status(span.statusCode, span.statusDescription).ifPresent(spanBuilder::setStatus);
 
-		if (span.startNs() > 0) {
-			spanBuilder.setStartTime(toTimestamp(span.startNs()));
+		if (span.start == null) {
+			throw new IllegalStateException("Incomplete span! No start time.");
 		}
-		if (span.endNs() > 0) {
-			spanBuilder.setEndTime(toTimestamp(span.endNs()));
+		if (span.end == null) {
+			throw new IllegalStateException("Incomplete span! No end time.");
 		}
+
+		spanBuilder.setStartTime(toTimestamp(span.start));
+		spanBuilder.setEndTime(toTimestamp(span.end));
 
 		return spanBuilder.build();
 	}
 
-	private static Optional<Status> status(StatusCode status, String description) {
-		if(status == null && description == null) {
-			return Optional.empty();
-		}
-
+	private static Optional<Status> status(Optional<StatusCode> status, Optional<String> description) {
 		var statusBuilder = Status.newBuilder();
-		if (status != null) {
-			statusBuilder.setCode(status.value());
-		}
-		if (description != null) {
-			statusBuilder.setMessage(description);
-		}
+		status.ifPresent(s -> statusBuilder.setCode(s.ordinal()));
+		description.ifPresent(statusBuilder::setMessage);
 		return Optional.of(statusBuilder.build());
 	}
 
@@ -185,11 +184,10 @@ public class Factory {
 	 * @param microseconds
 	 * @return
 	 */
-	private static Timestamp toTimestamp(long nanos) {
-		var remainder = nanos % 1_000_000_000;
+	private static Timestamp toTimestamp(Instant timestamp) {
 		return TIMESTAMP_BUILDER.get()
-				.setSeconds(NANOSECONDS.toSeconds(nanos))
-				.setNanos((int) remainder)
+				.setSeconds(timestamp.getEpochSecond())
+				.setNanos(timestamp.getNano())
 				.build();
 	}
 
@@ -229,17 +227,14 @@ public class Factory {
 			@Nonnull io.opentelemetry.api.common.Attributes attrs)
 	{
 		final Attributes.Builder attributesBuilder = ATTRS_BUILDER.get();
-		attrs.forEach(new AttributeConsumer() {
-			@Override
-			public <T> void accept(AttributeKey<T> k, T v) {
+		attrs.forEach((k, v) -> {
 				var key = mapKey(k.getKey());
 				var value = toAttrValue(k, v);
 				if (value != null) {
 					attributesBuilder.putAttributeMap(key, value);
 				}
 					attributesBuilder.putAttributeMap(key, value);
-				}
-		});
+				});
 		return attributesBuilder;
 	}
 
@@ -273,7 +268,7 @@ public class Factory {
 	 * @param value
 	 * @return
 	 */
-	private static <V> AttributeValue toAttrValue(@Nonnull AttributeKey<V> key, @Nonnull V value) {
+	private static AttributeValue toAttrValue(@Nonnull AttributeKey<?> key, @Nonnull Object value) {
 		var builder = ATTR_VALUE_BUILDER.get();
 		switch (key.getType()) {
 		case BOOLEAN:
