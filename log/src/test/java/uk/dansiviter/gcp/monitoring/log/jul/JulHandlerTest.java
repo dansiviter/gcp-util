@@ -2,7 +2,6 @@ package uk.dansiviter.gcp.monitoring.log.jul;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,12 +18,8 @@ import com.google.cloud.logging.LoggingOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import uk.dansiviter.gcp.monitoring.ResourceType;
 
 /**
  * Unit test for {@link JulHandler}.

@@ -36,7 +36,7 @@ import com.google.cloud.MonitoredResource;
 import com.google.cloud.trace.v2.TraceServiceClient;
 import com.google.devtools.cloudtrace.v2.ProjectName;
 
-import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import uk.dansiviter.gcp.monitoring.GaxUtil;
 import uk.dansiviter.gcp.monitoring.ResourceType;
@@ -70,19 +70,8 @@ public class CloudTracer implements Tracer, Closeable {
 		this.executor.scheduleAtFixedRate(this::flush, 10, 10, TimeUnit.SECONDS);
 	}
 
-	// @Override
-	// public Span getCurrentSpan() {
-	// 	var scope = this.tlsScope.get();
-	// 	return scope != null ? scope.span : null;
-	// }
-
-	// @Override
-	// public Scope withSpan(Span span) {
-	// 	return new CloudTraceScope(span);
-	// }
-
 	@Override
-	public Span.Builder spanBuilder(String spanName) {
+	public SpanBuilder spanBuilder(String spanName) {
 		return CloudTraceSpan.builder(spanName, this);
 	}
 

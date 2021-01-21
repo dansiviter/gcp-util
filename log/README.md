@@ -17,7 +17,7 @@ Example `java.util.logging.config.file` file config:
 handlers=uk.dansiviter.gcp.monitoring.log.jul.JulHandler
 
 uk.dansiviter.gcp.monitoring.log.jul.JulHandler.level=INFO
-uk.dansiviter.gcp.monitoring.log.jul.JulHandler.uk.dansiviter.gcp.monitoring.log.JulHandler.filter=foo.MyFilter
+uk.dansiviter.gcp.monitoring.log.jul.JulHandler.filter=foo.MyFilter
 uk.dansiviter.gcp.monitoring.log.jul.JulHandler.decorators=foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
 ```
 
