@@ -41,9 +41,12 @@ import uk.dansiviter.gcp.monitoring.ResourceType;
 /**
  * Supports 3 formats of secret name:
  * <ul>
- *  <li><code>secrets/{secret}</code> - This will default to current projectId and 'latest' version,</li>
- *  <li><code>secrets/{secret}/versions/{version}</code> - This will default to current projectId,</li>
- *  <li><code>projects/{project}/secrets/{secret}/versions/{version}</code> - Standard GCP naming convention.</li>
+ * <li><code>secrets/{secret}</code> - This will default to current projectId
+ * and 'latest' version,</li>
+ * <li><code>secrets/{secret}/versions/{version}</code> - This will default to
+ * current projectId,</li>
+ * <li><code>projects/{project}/secrets/{secret}/versions/{version}</code> -
+ * Standard GCP naming convention.</li>
  * </ul>
  *
  * @author Daniel Siviter
@@ -51,7 +54,8 @@ import uk.dansiviter.gcp.monitoring.ResourceType;
  */
 public class SecretConfigSource implements ConfigSource, Closeable {
 	private static final PathTemplate SECRET_TEMPLATE = PathTemplate.createWithoutUrlEncoding("secrets/{secret}");
-	private static final PathTemplate SECRET_VERSION_TEMPLATE = PathTemplate.createWithoutUrlEncoding("secrets/{secret}/versions/{version}");
+	private static final PathTemplate SECRET_VERSION_TEMPLATE = PathTemplate
+			.createWithoutUrlEncoding("secrets/{secret}/versions/{version}");
 
 	private final AtomicInit<SecretManagerServiceClient> client;
 
@@ -108,7 +112,11 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 
 	@Override
 	public void close() throws IOException {
-		this.client.close();
+		try {
+			this.client.close();
+		} catch (Exception e) {
+			throw e instanceof IOException ? (IOException) e : new IOException(e);
+		}
 	}
 
 	private SecretManagerServiceClient client() {
