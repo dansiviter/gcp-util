@@ -54,7 +54,7 @@ deploy:
     - /^release/.*$/
     - /^trunk$/
   script:
-    - mvn $MAVEN_CLI_OPTS -s $CI_PROJECT_DIR/.m2/settings.xml deploy -DskipTests -DskipITs
+    - mvn $MAVEN_CLI_OPTS -s $CI_PROJECT_DIR/.m2/settings.xml source:jar deploy -DskipTests -DskipITs
 
 manual deploy:
   extends: deploy
