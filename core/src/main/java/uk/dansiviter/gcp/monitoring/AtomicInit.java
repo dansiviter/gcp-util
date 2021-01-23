@@ -4,7 +4,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -19,7 +18,7 @@ import javax.annotation.Nonnull;
  * @author Daniel Siviter
  * @since v1.0 [6 Nov 2020]
  */
-public class AtomicInit<T> implements Closeable {
+public class AtomicInit<T> implements AutoCloseable {
 	private final AtomicReference<AtomicInit<T>> shield = new AtomicReference<>();
 	private final AtomicReference<T> ref = new AtomicReference<>();
 	private final AtomicBoolean closed = new AtomicBoolean();
@@ -82,18 +81,19 @@ public class AtomicInit<T> implements Closeable {
 	}
 
 	/**
-	 * Closes removed the reference to the underlying instance if this has been initialised and, if it is an instance
-	 * of {@link Closeable}, will also close it.
+	 * Closes removed the reference to the underlying instance if this has been
+	 * initialised and, if it is an instance of {@link Closeable}, will also close
+	 * it.
 	 */
 	@Override
-	public void close() throws IOException {
+	public void close() throws Exception {
 		if (!isInitialised()) {
 			return;
 		}
 		while (this.ref.get() != null) {
 			if (this.closed.compareAndSet(false, true)) {
-				if (this.ref.get() instanceof Closeable) {
-					((Closeable) this.ref.get()).close();
+				if (this.ref.get() instanceof AutoCloseable) {
+					((AutoCloseable) this.ref.get()).close();
 				}
 				this.ref.set(null);
 			}
