@@ -68,8 +68,7 @@ import uk.dansiviter.gcp.monitoring.log.Factory;
  * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.level=FINEST
  * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.filter=foo.MyFilter
  * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.decorators=foo.MyDecorator
- * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.enhancers=io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
- *
+ * 
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>
  *
@@ -123,6 +122,7 @@ public class JulHandler extends Handler {
 	 */
 	private JulHandler(Optional<String> logName, @Nonnull LoggingOptions loggingOptions,
 			@Nonnull MonitoredResource monitoredResource) {
+		System.out.println("JulHandler starting...");
 		try {
 			this.logManager = requireNonNull(LogManager.getLogManager());
 			this.loggingOptions = requireNonNull(loggingOptions);
@@ -136,7 +136,7 @@ public class JulHandler extends Handler {
 				return instance;
 			});
 			property("filter").map(Factory::<Filter>instance).ifPresent(this::setFilter);
-			Formatter formatter = property("filter").map(Factory::<Formatter>instance).orElseGet(BasicFormatter::new);
+			Formatter formatter = property("formatter").map(Factory::<Formatter>instance).orElseGet(BasicFormatter::new);
 			setFormatter(formatter);
 			Level level = property("level").map(Level::parse).orElse(Level.INFO);
 			setLevel(level);

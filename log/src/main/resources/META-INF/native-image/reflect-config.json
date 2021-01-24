@@ -1,7 +1,0 @@
-[
-    {
-        "name": "uk.dansiviter.gcp.monitoring.log.jul.JulHandler",
-        "allDeclaredConstructors": true,
-        "allPublicMethods": true
-    }
-]
