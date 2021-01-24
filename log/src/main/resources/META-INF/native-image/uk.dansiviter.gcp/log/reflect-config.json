@@ -1,6 +1,7 @@
 [
   {
-   "name": "uk.dansiviter.gcp.monitoring.log.jul.JulHandler",
-   "methods": [{ "name": "<init>", "parameterTypes": [] }]
+    "name": "uk.dansiviter.gcp.monitoring.log.jul.JulHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
   }
 ]
