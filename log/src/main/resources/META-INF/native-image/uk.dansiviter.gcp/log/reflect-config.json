@@ -1,0 +1,6 @@
+[
+  {
+   "name": "uk.dansiviter.gcp.monitoring.log.jul.JulHandler",
+   "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  }
+]
