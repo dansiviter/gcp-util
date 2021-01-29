@@ -97,7 +97,6 @@ import uk.dansiviter.gcp.monitoring.log.Factory;
  */
 public class JulHandler extends Handler {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
-
 	private final LogManager logManager;
 	private final LoggingOptions loggingOptions;
 	private final AtomicInit<Logging> logging;
@@ -120,9 +119,11 @@ public class JulHandler extends Handler {
 	 * @param loggingOptions
 	 * @param monitoredResource
 	 */
-	private JulHandler(Optional<String> logName, @Nonnull LoggingOptions loggingOptions,
-			@Nonnull MonitoredResource monitoredResource) {
-		System.out.println("JulHandler starting...");
+	private JulHandler(
+		Optional<String> logName,
+		@Nonnull LoggingOptions loggingOptions,
+		@Nonnull MonitoredResource monitoredResource)
+	{
 		try {
 			this.logManager = requireNonNull(LogManager.getLogManager());
 			this.loggingOptions = requireNonNull(loggingOptions);
