@@ -1,4 +1,4 @@
-package uk.dansiviter.gcp.monitoring.log.jul;
+package uk.dansiviter.gcp.monitoring.log.logback;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -7,8 +7,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
 
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.logging.LogEntry;
@@ -21,31 +19,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * Unit test for {@link JulHandler}.
- */
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+
 @ExtendWith(MockitoExtension.class)
-public class JulHandlerTest {
-	private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
+public class LogbackAppenderTest {
+    private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
 
 	@Mock
 	private LoggingOptions loggingOptions;
 	@Mock
 	private Logging logging;
 
-	private JulHandler handler;
+	private LogbackAppender appender;
 
 	@BeforeEach
 	public void before() {
-		this.handler = JulHandler.julHandler(this.loggingOptions, this.monitoredResource);
+		this.appender = new LogbackAppender(this.loggingOptions, this.monitoredResource);
 		when(this.loggingOptions.getService()).thenReturn(this.logging);
-	}
+
+		this.appender.start();
+    }
 
 	@Test
-	public void publish(@Mock LogRecord record) {
-		when(record.getLevel()).thenReturn(Level.INFO);
+	public void doAppend(@Mock ILoggingEvent event) {
+		when(event.getLevel()).thenReturn(Level.INFO);
 
-		handler.publish(record);
+		appender.doAppend(event);
 
 		verify(this.logging).write(argThat(c -> ((List<LogEntry>) c).size() == 1), any());
 	}

@@ -24,7 +24,6 @@ import ch.qos.logback.classic.pattern.ThrowableProxyConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
-import ch.qos.logback.core.Layout;
 import ch.qos.logback.core.status.ErrorStatus;
 import uk.dansiviter.gcp.monitoring.ResourceType;
 import uk.dansiviter.gcp.monitoring.log.Entry;
@@ -61,7 +60,6 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	private WriteOption[] defaultWriteOptions;
 
 	private Logging logging;
-	private Layout<ILoggingEvent> layout;
 
 	/**
 	 *
@@ -75,7 +73,7 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	 * @param loggingOptions
 	 * @param monitoredResource
 	 */ 
-	private LogbackAppender(
+	LogbackAppender(
 		@Nonnull LoggingOptions loggingOptions,
 		@Nonnull MonitoredResource monitoredResource)
 	{
@@ -94,14 +92,6 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 
 	public void setLogName(String logName) {
 		this.logName = logName;
-	}
-
-	public Layout<ILoggingEvent> getLayout() {
-		return layout;
-	}
-
-	public void setLayout(Layout<ILoggingEvent> layout) {
-		this.layout = layout;
 	}
 
 	public Synchronicity getSynchronicity() {
@@ -253,8 +243,8 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 
 		@Override
 		public Optional<? super CharSequence> message() {
-			var layout = getLayout().doLayout(this.delegate);
-			return Optional.of(layout);
+			var msg = this.delegate.getFormattedMessage();
+			return msg == null || msg.isEmpty() ? Optional.empty() : Optional.of(msg);
 		}
 
 		@Override
