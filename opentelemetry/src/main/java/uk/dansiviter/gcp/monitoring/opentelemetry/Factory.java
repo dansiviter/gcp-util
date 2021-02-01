@@ -15,12 +15,12 @@
  */
 package uk.dansiviter.gcp.monitoring.opentelemetry;
 
-import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_HOST;
-import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_METHOD;
-import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_ROUTE;
-import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_STATUS_CODE;
-import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_URL;
-import static io.opentelemetry.api.trace.attributes.SemanticAttributes.HTTP_USER_AGENT;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_HOST;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_METHOD;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_ROUTE;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_STATUS_CODE;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_URL;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_USER_AGENT;
 import static java.lang.Math.abs;
 import static java.lang.String.format;
 import static uk.dansiviter.gcp.monitoring.Util.threadLocal;

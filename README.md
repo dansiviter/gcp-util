@@ -11,6 +11,41 @@ A collection of utilities and experiments for integrating into Google Cloud Plat
 
 > :warning: These utilities are not suitable for production environments. They are simply experiments.
 
+
 ## Running Locally ##
 
 Ensure `gcloud auth application-default login` is run to set the default credentials.
+
+
+## Java Platform Module System ##
+
+gRPC has some issues when it comes to JPMS as both context, api and core share packages. Fortunately, Helidon have helped workaround this with `io.helidon.grpc:io.grpc` which means excluding the others:
+
+```xml
+<dependency>
+  <groupId>uk.dansiviter.gcp</groupId>
+  <artifactId>log</artifactId>
+  <version>x.x.x</version>
+  <exclusions>
+    <exclusion>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-api</artifactId>
+    </exclusion>
+    <exclusion>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-core</artifactId>
+    </exclusion>
+    <exclusion>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-context</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+<dependency>
+  <groupId>io.helidon.grpc</groupId>
+  <artifactId>io.grpc</artifactId>
+</dependency>
+```
+
+If you see issues such as `java.io.IOException: Received fatal alert: handshake_failure` this is due to a lack of elliptical curve functionality which requires the `jdk.crypto.ec` module.
+```

@@ -8,6 +8,10 @@
 	</parent>
 	<artifactId>core</artifactId>
 
+	<properties>
+		<module.name>uk.dansiviter.gcp.core</module.name>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.eclipse.microprofile.config</groupId>
