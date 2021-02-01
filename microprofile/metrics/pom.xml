@@ -8,6 +8,10 @@
 	</parent>
 	<artifactId>microprofile-metrics</artifactId>
 
+	<properties>
+		<module.name>uk.dansiviter.gcp.microprofile.metrics</module.name>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>jakarta.enterprise</groupId>

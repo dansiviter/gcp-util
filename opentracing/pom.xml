@@ -8,6 +8,10 @@
 	</parent>
 	<artifactId>opentracing</artifactId>
 
+	<properties>
+		<module.name>uk.dansiviter.gcp.opentracing</module.name>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

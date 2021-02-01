@@ -50,7 +50,7 @@ logger.handlers=CLOUD_LOG
 
 handler.CLOUD_LOG=uk.dansiviter.gcp.monitoring.log.jul.JulHandler
 handler.CLOUD_LOG.level=INFO
-handler.CLOUD_LOG.properties=decorators,enhancers
+handler.CLOUD_LOG.properties=decorators
 handler.CLOUD_LOG.decorators=foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
 ```
 
@@ -60,23 +60,38 @@ For Log4J v2 it's highly recommended a Failover appender is used to ensure any p
 
 ```xml
 <Configuration>
-	<Appenders>
-		<Console name="console" />
-		<CloudLogging name="cloudLogging">
-			<Decorator class="foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer" />
-		</CloudLogging>
-		<Falover name="failover" primary="cloudLogging">
-			<Failovers>
-				<AppenderRef ref="console" />
-			</Failovers>
-		</Failover>
-	</Appenders>
-	<Loggers>
-		<Root level="info">
-			<AppenderRef ref="failover" />
-		</Root>
-	</Loggers>
+  <Appenders>
+    <Console name="console" />
+    <CloudLogging name="cloudLogging">
+      <Decorator class="foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer" />
+    </CloudLogging>
+    <Falover name="failover" primary="cloudLogging">
+      <Failovers>
+        <AppenderRef ref="console" />
+      </Failovers>
+    </Failover>
+  </Appenders>
+  <Loggers>
+    <Root level="info">
+      <AppenderRef ref="failover" />
+    </Root>
+  </Loggers>
 <Configuration>
+```
+
+### Logback ###
+
+```xml
+<configuration>
+   <appender name="GCP" class="uk.dansiviter.gcp.monitoring.log.logback.LogbackAppender">
+     <logName>java.log</logName>
+     <synchronicity>ASYNC</synchronicity>
+     <enhancers>io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer</enhancers>
+   </appender>
+    <root level="DEBUG">
+     <appender-ref ref="GCP" />
+   </root>
+ </configuration>
 ```
 
 ## Decorators ##

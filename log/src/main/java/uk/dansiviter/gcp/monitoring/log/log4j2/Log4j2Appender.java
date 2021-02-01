@@ -225,7 +225,8 @@ public class Log4j2Appender extends AbstractAppender {
 			} else {
 				charset = Charset.defaultCharset();
 			}
-			return Optional.of(charset.decode(ByteBuffer.wrap(bytes)));
+			var msg = charset.decode(ByteBuffer.wrap(bytes));
+			return msg == null || msg.length() == 0 ? Optional.empty() : Optional.of(msg);
 		}
 
 		@Override
