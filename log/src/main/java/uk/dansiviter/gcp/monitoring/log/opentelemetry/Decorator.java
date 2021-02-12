@@ -64,8 +64,8 @@ public class Decorator implements EntryDecorator {
 			return;
 		}
 		var spanCtx = span.getSpanContext();
-		b.setSpanId(spanCtx.getSpanIdAsHexString());
-		b.setTrace(this.prefix.concat(spanCtx.getTraceIdAsHexString()));
+		b.setSpanId(spanCtx.getSpanId());
+		b.setTrace(this.prefix.concat(spanCtx.getTraceId()));
 		b.setTraceSampled(spanCtx.isSampled());
 	}
 }
