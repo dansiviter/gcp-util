@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log.log4j2;
+package uk.dansiviter.gcp.log.log4j2;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -42,9 +42,9 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 
-import uk.dansiviter.gcp.monitoring.log.Entry;
-import uk.dansiviter.gcp.monitoring.log.EntryDecorator;
-import uk.dansiviter.gcp.monitoring.log.Factory;
+import uk.dansiviter.gcp.log.Entry;
+import uk.dansiviter.gcp.log.EntryDecorator;
+import uk.dansiviter.gcp.log.Factory;
 
 /**
  * A Log4J v2 implementation of {@link Appender}. It's recommended this is used

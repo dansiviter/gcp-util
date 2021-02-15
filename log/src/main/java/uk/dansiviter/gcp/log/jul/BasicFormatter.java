@@ -13,28 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log;
+package uk.dansiviter.gcp.log.jul;
 
-import java.util.Map;
-import java.util.ServiceLoader;
-
-import com.google.cloud.logging.LogEntry.Builder;
+import java.util.logging.LogRecord;
 
 /**
- * A {@link EntryDecorator} that uses {@link ServiceLoader} to extract another {@link EntryDecorator}s.
+ * Minimal formatter.
  *
  * @author Daniel Siviter
- * @since v1.0 [16 Jan 2020]
+ * @since v1.0 [6 Dec 2019]
  */
-public class ServiceLoaderDecorator implements EntryDecorator {
-	private final ServiceLoader<EntryDecorator> decorators;
-
-	public ServiceLoaderDecorator() {
-		this.decorators = ServiceLoader.load(EntryDecorator.class);
-	}
-
+public class BasicFormatter extends ExpandingFormatter {
 	@Override
-	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		this.decorators.forEach(d -> d.decorate(b, e, payload));
+	protected String doFormat(LogRecord record) {
+		return formatMessage(record);
 	}
 }

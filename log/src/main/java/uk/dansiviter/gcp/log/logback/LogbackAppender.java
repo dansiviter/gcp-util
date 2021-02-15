@@ -1,4 +1,19 @@
-package uk.dansiviter.gcp.monitoring.log.logback;
+/*
+ * Copyright 2019-2021 Daniel Siviter
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package uk.dansiviter.gcp.log.logback;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
@@ -26,9 +41,9 @@ import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.status.ErrorStatus;
 import uk.dansiviter.gcp.ResourceType;
-import uk.dansiviter.gcp.monitoring.log.Entry;
-import uk.dansiviter.gcp.monitoring.log.EntryDecorator;
-import uk.dansiviter.gcp.monitoring.log.Factory;
+import uk.dansiviter.gcp.log.Entry;
+import uk.dansiviter.gcp.log.EntryDecorator;
+import uk.dansiviter.gcp.log.Factory;
 
 /**
  * A Logback implementation of {@link Appender}.
@@ -149,7 +164,7 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	protected void append(ILoggingEvent eventObject) {
 		LogEntry entry;
 		try {
-			entry = uk.dansiviter.gcp.monitoring.log.Factory.logEntry(new LogbackEntry(eventObject), this.decorators);
+			entry = uk.dansiviter.gcp.log.Factory.logEntry(new LogbackEntry(eventObject), this.decorators);
 		} catch (RuntimeException e) {
 			addStatus(new ErrorStatus("Unable to stop appender named \"" + name + "\".", this, e));
 			return;

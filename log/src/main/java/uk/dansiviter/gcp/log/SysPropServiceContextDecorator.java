@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Daniel Siviter
+ * Copyright 2019-2021 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,28 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log.jboss;
+package uk.dansiviter.gcp.log;
+
+import static java.lang.System.getProperty;
 
 import java.util.Map;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
-import org.jboss.logging.MDC;
-
-import uk.dansiviter.gcp.monitoring.log.Entry;
-import uk.dansiviter.gcp.monitoring.log.EntryDecorator;
-
 /**
- * Only really useful for JUL logger, but it's here nontheless.
+ * A {@link EntryDecorator} that uses {@code serviceContext.service} and {@code serviceContext.version} System
+ * Properties to decorate the log messages for {@code serviceContext}.
  *
  * @author Daniel Siviter
- * @since v1.0 [6 Dec 2019]
+ * @since v1.0 [16 Jan 2020]
  */
-public class MdcDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
+public class SysPropServiceContextDecorator implements EntryDecorator {
+	private final EntryDecorator delegate;
+
+	public SysPropServiceContextDecorator() {
+		this.delegate = EntryDecorator.serviceContext(
+			getProperty("serviceContext.service"),
+			getProperty("serviceContext.version"));
+	}
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		DELEGATE.decorate(b, e, payload);
+		delegate.decorate(b, e, payload);
 	}
 }

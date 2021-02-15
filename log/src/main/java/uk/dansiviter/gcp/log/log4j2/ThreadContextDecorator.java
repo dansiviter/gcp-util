@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Daniel Siviter
+ * Copyright 2019-2021 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,32 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log;
-
-import static java.lang.System.getProperty;
+package uk.dansiviter.gcp.log.log4j2;
 
 import java.util.Map;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
+import org.apache.logging.log4j.ThreadContext;
+
+import uk.dansiviter.gcp.log.Entry;
+import uk.dansiviter.gcp.log.EntryDecorator;
+
 /**
- * A {@link EntryDecorator} that uses {@code serviceContext.service} and {@code serviceContext.version} System
- * Properties to decorate the log messages for {@code serviceContext}.
+ * Log4j2 {@link ThreadContext}. For consistency this will use the tag name {@code mdc}.
  *
  * @author Daniel Siviter
- * @since v1.0 [16 Jan 2020]
+ * @since v1.0 [30 Oct 2020]
  */
-public class SysPropServiceContextDecorator implements EntryDecorator {
-	private final EntryDecorator delegate;
-
-	public SysPropServiceContextDecorator() {
-		this.delegate = EntryDecorator.serviceContext(
-			getProperty("serviceContext.service"),
-			getProperty("serviceContext.version"));
-	}
+public class ThreadContextDecorator implements EntryDecorator {
+	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(ThreadContext::getContext);
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		delegate.decorate(b, e, payload);
+		DELEGATE.decorate(b, e, payload);
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Daniel Siviter
+ * Copyright 2019-2021 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log;
+package uk.dansiviter.gcp.log;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import uk.dansiviter.gcp.monitoring.log.Entry.Source;
+import uk.dansiviter.gcp.log.Entry.Source;
 
 /**
  * Unit test for {@link Factory}.
@@ -86,7 +86,7 @@ public class FactoryTest {
 	public void toCharSequence_throwable() {
 		var actual = Factory.toCharSequence(new Throwable("Oh no!")).toString();
 		assertThat(actual, startsWith("java.lang.Throwable: Oh no!\n" +
-				"\tat uk.dansiviter.gcp.monitoring.log.FactoryTest.toCharSequence_throwable(FactoryTest.java:"));
+				"\tat uk.dansiviter.gcp.log.FactoryTest.toCharSequence_throwable(FactoryTest.java:"));
 	}
 
 	@Test

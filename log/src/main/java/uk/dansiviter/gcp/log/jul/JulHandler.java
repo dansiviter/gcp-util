@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log.jul;
+package uk.dansiviter.gcp.log.jul;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
@@ -49,9 +49,9 @@ import com.google.cloud.logging.Synchronicity;
 
 import uk.dansiviter.gcp.AtomicInit;
 import uk.dansiviter.gcp.ResourceType;
-import uk.dansiviter.gcp.monitoring.log.Entry;
-import uk.dansiviter.gcp.monitoring.log.EntryDecorator;
-import uk.dansiviter.gcp.monitoring.log.Factory;
+import uk.dansiviter.gcp.log.Entry;
+import uk.dansiviter.gcp.log.EntryDecorator;
+import uk.dansiviter.gcp.log.Factory;
 
 /**
  * Inspired by {@link com.google.cloud.logging.LoggingHandler} but one major

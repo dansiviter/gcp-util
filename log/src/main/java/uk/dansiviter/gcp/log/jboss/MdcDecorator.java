@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log.log4j2;
+package uk.dansiviter.gcp.log.jboss;
 
 import java.util.Map;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
-import org.apache.logging.log4j.ThreadContext;
+import org.jboss.logging.MDC;
 
-import uk.dansiviter.gcp.monitoring.log.Entry;
-import uk.dansiviter.gcp.monitoring.log.EntryDecorator;
+import uk.dansiviter.gcp.log.Entry;
+import uk.dansiviter.gcp.log.EntryDecorator;
 
 /**
- * Log4j2 {@link ThreadContext}. For consistency this will use the tag name {@code mdc}.
+ * Only really useful for JUL logger, but it's here nontheless.
  *
  * @author Daniel Siviter
- * @since v1.0 [30 Oct 2020]
+ * @since v1.0 [6 Dec 2019]
  */
-public class ThreadContextDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(ThreadContext::getContext);
+public class MdcDecorator implements EntryDecorator {
+	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.log;
+package uk.dansiviter.gcp.log;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
