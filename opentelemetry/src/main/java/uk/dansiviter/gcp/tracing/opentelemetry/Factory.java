@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring.opentelemetry;
+package uk.dansiviter.gcp.tracing.opentelemetry;
 
+import static com.google.devtools.cloudtrace.v2.Span.Link.Type.CHILD_LINKED_SPAN;
+import static com.google.devtools.cloudtrace.v2.Span.Link.Type.PARENT_LINKED_SPAN;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_HOST;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_METHOD;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_ROUTE;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_STATUS_CODE;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_URL;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_USER_AGENT;
-import static java.lang.Math.abs;
 import static java.lang.String.format;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static uk.dansiviter.gcp.monitoring.Util.threadLocal;
 
-import java.security.SecureRandom;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,13 +50,12 @@ import com.google.protobuf.Timestamp;
 import com.google.rpc.Status;
 
 import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.api.trace.SpanId;
-import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.api.trace.TraceId;
+import io.opentelemetry.sdk.trace.data.EventData;
+import io.opentelemetry.sdk.trace.data.LinkData;
+import io.opentelemetry.sdk.trace.data.SpanData;
+import io.opentelemetry.sdk.trace.data.StatusData;
 import uk.dansiviter.gcp.monitoring.ResourceType;
 import uk.dansiviter.gcp.monitoring.ResourceType.Label;
-import uk.dansiviter.gcp.monitoring.opentelemetry.CloudTraceSpan.CloudTraceEvent;
-import uk.dansiviter.gcp.monitoring.opentelemetry.CloudTraceSpan.CloudTraceLink;
 
 /**
  *
@@ -63,34 +63,36 @@ import uk.dansiviter.gcp.monitoring.opentelemetry.CloudTraceSpan.CloudTraceLink;
  * @since v1.0 [20 Feb 2020]
  */
 public class Factory {
-	private static final ThreadLocal<SpanName.Builder> SPAN_NAME_BUILDER = threadLocal(SpanName::newBuilder, b -> b);
-	private static final ThreadLocal<Span.Builder> SPAN_BUILDER = threadLocal(Span::newBuilder, Span.Builder::clear);
-	private static final ThreadLocal<TruncatableString.Builder> STRING_BUILDER = threadLocal(
-			TruncatableString::newBuilder, TruncatableString.Builder::clear);
-	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER = threadLocal(Timestamp::newBuilder,
-			Timestamp.Builder::clear);
-	private static final ThreadLocal<Attributes.Builder> ATTRS_BUILDER = threadLocal(Attributes::newBuilder,
-			Attributes.Builder::clear);
-	private static final ThreadLocal<AttributeValue.Builder> ATTR_VALUE_BUILDER = threadLocal(
-			AttributeValue::newBuilder, AttributeValue.Builder::clear);
-	private static final ThreadLocal<TimeEvents.Builder> TIME_EVENTS_BUILDER = threadLocal(TimeEvents::newBuilder,
-			TimeEvents.Builder::clear);
-	private static final ThreadLocal<TimeEvent.Builder> TIME_EVENT_BUILDER = threadLocal(TimeEvent::newBuilder,
-			TimeEvent.Builder::clear);
-	private static final ThreadLocal<TimeEvent.Annotation.Builder> TIME_EVENT_ANNO_BUILDER = threadLocal(
-			TimeEvent.Annotation::newBuilder, TimeEvent.Annotation.Builder::clear);
-	private static final SecureRandom RAND = new SecureRandom();
+	private static final ThreadLocal<SpanName.Builder> SPAN_NAME_BUILDER =
+			threadLocal(SpanName::newBuilder, b -> b);
+	private static final ThreadLocal<Span.Builder> SPAN_BUILDER =
+			threadLocal(Span::newBuilder, Span.Builder::clear);
+	private static final ThreadLocal<TruncatableString.Builder> STRING_BUILDER =
+			threadLocal(TruncatableString::newBuilder, TruncatableString.Builder::clear);
+	private static final ThreadLocal<Timestamp.Builder> TIMESTAMP_BUILDER =
+			threadLocal(Timestamp::newBuilder, Timestamp.Builder::clear);
+	private static final ThreadLocal<Attributes.Builder> ATTRS_BUILDER =
+			threadLocal(Attributes::newBuilder, Attributes.Builder::clear);
+	private static final ThreadLocal<AttributeValue.Builder> ATTR_VALUE_BUILDER =
+			threadLocal(AttributeValue::newBuilder, AttributeValue.Builder::clear);
+	private static final ThreadLocal<TimeEvents.Builder> TIME_EVENTS_BUILDER =
+			threadLocal(TimeEvents::newBuilder, TimeEvents.Builder::clear);
+	private static final ThreadLocal<TimeEvent.Builder> TIME_EVENT_BUILDER =
+			threadLocal(TimeEvent::newBuilder, TimeEvent.Builder::clear);
+	private static final ThreadLocal<TimeEvent.Annotation.Builder> TIME_EVENT_ANNO_BUILDER =
+			threadLocal(TimeEvent.Annotation::newBuilder, TimeEvent.Annotation.Builder::clear);
 
 	private static final String AGENT_LABEL_KEY = "/agent";
-	private static final AttributeValue AGENT_LABEL_VALUE = AttributeValue.newBuilder()
-			.setStringValue(toTruncatableString(agent())).build();
+	private static final AttributeValue AGENT_LABEL_VALUE =
+			AttributeValue.newBuilder().setStringValue(toTruncatableString(agent())).build();
 	private static final Map<String, String> HTTP_ATTRIBUTE_MAPPING = Map.of(
-		"/http/host", HTTP_HOST.getKey(),
-		"/http/method", HTTP_METHOD.getKey(),
-		"/http/url", HTTP_URL.getKey(),
-		"/http/route", HTTP_ROUTE.getKey(),
-		"/http/user_agent", HTTP_USER_AGENT.getKey(),
-		"/http/status_code", HTTP_STATUS_CODE.getKey());
+		HTTP_HOST.getKey(), "/http/host",
+		HTTP_METHOD.getKey(), "/http/method",
+		"http.path", "/http/path",  // no SemanticAttributes alternative
+		HTTP_URL.getKey(), "/http/url",
+		HTTP_ROUTE.getKey(), "/http/route",
+		HTTP_USER_AGENT.getKey(), "/http/user_agent",
+		HTTP_STATUS_CODE.getKey(), "/http/status_code");
 
 	private final MonitoredResource resource;
 
@@ -106,7 +108,7 @@ public class Factory {
 	 * @param span
 	 * @return
 	 */
-	com.google.devtools.cloudtrace.v2.Span toSpan(CloudTraceSpan span) {
+	Span toSpan(SpanData span) {
 		var ctx = span.getSpanContext();
 		var spanId = ctx.getSpanId();
 		var spanName = SPAN_NAME_BUILDER.get() // no clear method, but should override all fields anyway
@@ -114,60 +116,38 @@ public class Factory {
 				.setTrace(ctx.getTraceId()).setSpan(spanId).build();
 
 		var spanBuilder = SPAN_BUILDER.get().setName(spanName.toString()).setSpanId(spanId)
-				.setDisplayName(toTruncatableString(span.name))
-				.setAttributes(toAttrs(span.attrs, this.resourceAttr))
-				.setTimeEvents(toTimeEvents(span.events))
-				.setLinks(toLinks(span.links));
+				.setDisplayName(toTruncatableString(span.getName()))
+				.setAttributes(toAttrs(span.getAttributes(), this.resourceAttr))
+				.setTimeEvents(toTimeEvents(span.getEvents()))
+				.setLinks(toLinks(span.getLinks()));
 
 		var parentSpanId = ctx.getTraceState().get("parentSpanId");
 		if (parentSpanId != null) {
 			spanBuilder.setParentSpanId(parentSpanId);
 		}
 
-		status(span.statusCode, span.statusDescription).ifPresent(spanBuilder::setStatus);
+		status(span.getStatus()).ifPresent(spanBuilder::setStatus);
 
-		if (span.start == null) {
+		if (span.getStartEpochNanos() == 0L) {
 			throw new IllegalStateException("Incomplete span! No start time.");
 		}
-		if (span.end == null) {
+		if (span.getEndEpochNanos() == 0L) {
 			throw new IllegalStateException("Incomplete span! No end time.");
 		}
 
-		spanBuilder.setStartTime(toTimestamp(span.start));
-		spanBuilder.setEndTime(toTimestamp(span.end));
+		spanBuilder.setStartTime(toTimestamp(span.getStartEpochNanos()));
+		spanBuilder.setEndTime(toTimestamp(span.getEndEpochNanos()));
 
 		return spanBuilder.build();
 	}
 
-	private static Optional<Status> status(Optional<StatusCode> status, Optional<String> description) {
+	private static Optional<Status> status(StatusData data) {
 		var statusBuilder = Status.newBuilder();
-		status.ifPresent(s -> statusBuilder.setCode(s.ordinal()));
-		description.ifPresent(statusBuilder::setMessage);
+		statusBuilder.setCode(data.getStatusCode().ordinal());
+		if (data.getDescription() != null && !data.getDescription().isEmpty()) {
+			statusBuilder.setMessage(data.getDescription());
+		}
 		return Optional.of(statusBuilder.build());
-	}
-
-	/**
-	 *
-	 * @return
-	 */
-	private static long randomId() {
-		return abs(RAND.nextLong());
-	}
-
-		/**
-	 *
-	 * @return
-	 */
-	public static String randomTraceId() {
-		return TraceId.fromLongs(randomId(), randomId());
-	}
-
-	/**
-	 *
-	 * @return
-	 */
-	public static String randomSpanId() {
-		return SpanId.fromLong(randomId());
 	}
 
 	/**
@@ -184,10 +164,11 @@ public class Factory {
 	 * @param microseconds
 	 * @return
 	 */
-	private static Timestamp toTimestamp(Instant timestamp) {
+	static Timestamp toTimestamp(long epochNanos) {
+		long seconds = NANOSECONDS.toSeconds(epochNanos);
 		return TIMESTAMP_BUILDER.get()
-				.setSeconds(timestamp.getEpochSecond())
-				.setNanos(timestamp.getNano())
+				.setSeconds(seconds)
+				.setNanos((int) (epochNanos - SECONDS.toNanos(seconds)))
 				.build();
 	}
 
@@ -212,9 +193,9 @@ public class Factory {
 	 * @param logs
 	 * @return
 	 */
-	private static Span.TimeEvents toTimeEvents(@Nonnull List<CloudTraceEvent> events) {
+	private static Span.TimeEvents toTimeEvents(@Nonnull List<EventData> events) {
 		var timeEventsBuilder = TIME_EVENTS_BUILDER.get();
-		events.forEach(l -> timeEventsBuilder.addTimeEvent(toTimeMessageEvent(l)));
+		events.forEach(e -> timeEventsBuilder.addTimeEvent(toTimeMessageEvent(e)));
 		return timeEventsBuilder.build();
 	}
 
@@ -228,7 +209,7 @@ public class Factory {
 	{
 		final Attributes.Builder attributesBuilder = ATTRS_BUILDER.get();
 		attrs.forEach((k, v) -> {
-				var key = mapKey(k.getKey());
+				var key = HTTP_ATTRIBUTE_MAPPING.getOrDefault(k.getKey(), k.getKey());
 				var value = toAttrValue(k, v);
 				if (value != null) {
 					attributesBuilder.putAttributeMap(key, value);
@@ -275,7 +256,7 @@ public class Factory {
 			builder.setBoolValue((Boolean) value);
 			break;
 		case DOUBLE:
-			builder.setStringValue(toTruncatableString(Double.toString((Double) value))); // FIXME
+			builder.setStringValue(toTruncatableString(Double.toString((Double) value)));
 			break;
 		case LONG:
 			// FIXME Cloud Trace doesn't like status code as an integer!
@@ -296,43 +277,31 @@ public class Factory {
 		return builder.build();
 	}
 
-	private static Link toLink(CloudTraceLink link) {
-		return Link.newBuilder()
-			.setTraceId(link.ctx.getTraceId())
-			.setSpanId(link.ctx.getSpanId())
-			.setType(link.ctx.isRemote() ? Link.Type.PARENT_LINKED_SPAN :  Link.Type.CHILD_LINKED_SPAN)
-			.setAttributes(toAttrsBuilder(link.attrs))
-			.build();
-	  }
+	private static Link toLink(LinkData link) {
+		return Link.newBuilder().setTraceId(link.getSpanContext().getTraceId())
+				.setSpanId(link.getSpanContext().getSpanId())
+				.setType(link.getSpanContext().isRemote() ? PARENT_LINKED_SPAN : CHILD_LINKED_SPAN)
+				.setAttributes(toAttrsBuilder(link.getAttributes())).build();
+	}
 
-	  private static Links toLinks(List<CloudTraceLink> links) {
+	private static Links toLinks(List<LinkData> links) {
 		var linksBuilder = Links.newBuilder();
-		for (CloudTraceLink link : links) {
-		  linksBuilder.addLink(toLink(link));
-		}
+		links.forEach(l -> linksBuilder.addLink(toLink(l)));
 		return linksBuilder.build();
-	  }
+	}
 
 	/**
 	 *
 	 * @param log
 	 * @return
 	 */
-	private static TimeEvent toTimeMessageEvent(CloudTraceEvent event) {
-		var timeEventBuilder = TIME_EVENT_BUILDER.get().setTime(toTimestamp(event.timestamp));
-		var annotationBuilder =
-				TIME_EVENT_ANNO_BUILDER.get().setAttributes(toAttrsBuilder(event.attrs));
-		timeEventBuilder.setAnnotation(annotationBuilder.build());
+	private static TimeEvent toTimeMessageEvent(EventData event) {
+		var timeEventBuilder = TIME_EVENT_BUILDER.get()
+				.setTime(toTimestamp(event.getEpochNanos()))
+				.setAnnotation(TIME_EVENT_ANNO_BUILDER.get()
+						.setAttributes(toAttrsBuilder(event.getAttributes()))
+						.setDescription(toTruncatableString(event.getName())));
 		return timeEventBuilder.build();
-	}
-
-	/**
-	 *
-	 * @param key
-	 * @return
-	 */
-	private static String mapKey(String key) {
-		return HTTP_ATTRIBUTE_MAPPING.getOrDefault(key, key);
 	}
 
 	/**
@@ -348,9 +317,8 @@ public class Factory {
 
 	private static String agent() {
 		var pkg = Factory.class.getPackage();
-
-		if (pkg.getImplementationVersion() == null) {
-			return "cloud-operations-util [development]";
+		if (pkg.getImplementationVendor() == null) {
+			return "uk.dansiviter:cloud-operations [develop.]";
 		}
 		return format(
 			"%s:%s [%s]",
