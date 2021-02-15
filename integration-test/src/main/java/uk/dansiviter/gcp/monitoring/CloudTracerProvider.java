@@ -20,8 +20,8 @@ import io.helidon.tracing.TracerBuilder;
 import io.helidon.tracing.spi.TracerProvider;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
-import uk.dansiviter.gcp.monitoring.opentracing.Sampler;
-import uk.dansiviter.gcp.monitoring.opentracing.CloudTracer;
+import uk.dansiviter.gcp.opentracing.Sampler;
+import uk.dansiviter.gcp.opentracing.CloudTracer;
 
 /**
  * @author Daniel Siviter
