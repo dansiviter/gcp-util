@@ -38,6 +38,7 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
@@ -55,7 +56,7 @@ public class CloudTraceSpan implements Span {
 
 	final List<CloudTraceEvent> events = new LinkedList<>();
 	final List<CloudTraceLink> links;
-	final Kind kind;
+	final SpanKind kind;
 	Attributes attrs;
 	String name;
 	Instant start;
@@ -69,11 +70,11 @@ public class CloudTraceSpan implements Span {
 		this.links = List.copyOf(builder.links);
 		this.attrs = builder.attrs.build();
 		this.start = builder.start;
-		this.kind = builder.spanKind.orElse(Kind.INTERNAL);
+		this.kind = builder.spanKind.orElse(SpanKind.INTERNAL);
 
 		final Optional<SpanContext> parentCtx = builder.parent;
 		final boolean sampled = tracer.sampler().test(parentCtx);
-		this.ctx = SpanContext.create(parentCtx.map(SpanContext::getTraceIdAsHexString).orElse(Factory.randomTraceId()),
+		this.ctx = SpanContext.create(parentCtx.map(SpanContext::getTraceId).orElse(Factory.randomTraceId()),
 				Factory.randomSpanId(), sampled ? TraceFlags.getSampled() : TraceFlags.getDefault(),
 				TraceState.getDefault());
 	}
@@ -233,7 +234,7 @@ public class CloudTraceSpan implements Span {
 		private Optional<SpanContext> parent = Optional.empty();
 		private List<CloudTraceLink> links = Collections.emptyList();
 		private Instant start;
-		private Optional<Kind> spanKind = Optional.empty();
+		private Optional<SpanKind> spanKind = Optional.empty();
 
 		private Builder(@Nonnull String name, @Nonnull CloudTracer tracer) {
 			this.name = name;
@@ -299,7 +300,7 @@ public class CloudTraceSpan implements Span {
 		}
 
 		@Override
-		public SpanBuilder setSpanKind(Kind spanKind) {
+		public SpanBuilder setSpanKind(SpanKind spanKind) {
 			this.spanKind = Optional.of(spanKind);
 			return this;
 		}

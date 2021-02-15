@@ -108,10 +108,10 @@ public class Factory {
 	 */
 	com.google.devtools.cloudtrace.v2.Span toSpan(CloudTraceSpan span) {
 		var ctx = span.getSpanContext();
-		var spanId = ctx.getSpanIdAsHexString();
+		var spanId = ctx.getSpanId();
 		var spanName = SPAN_NAME_BUILDER.get() // no clear method, but should override all fields anyway
 				.setProject(ResourceType.get(this.resource, Label.PROJECT_ID).orElseThrow())
-				.setTrace(ctx.getTraceIdAsHexString()).setSpan(spanId).build();
+				.setTrace(ctx.getTraceId()).setSpan(spanId).build();
 
 		var spanBuilder = SPAN_BUILDER.get().setName(spanName.toString()).setSpanId(spanId)
 				.setDisplayName(toTruncatableString(span.name))
@@ -298,8 +298,8 @@ public class Factory {
 
 	private static Link toLink(CloudTraceLink link) {
 		return Link.newBuilder()
-			.setTraceId(link.ctx.getTraceIdAsHexString())
-			.setSpanId(link.ctx.getSpanIdAsHexString())
+			.setTraceId(link.ctx.getTraceId())
+			.setSpanId(link.ctx.getSpanId())
 			.setType(link.ctx.isRemote() ? Link.Type.PARENT_LINKED_SPAN :  Link.Type.CHILD_LINKED_SPAN)
 			.setAttributes(toAttrsBuilder(link.attrs))
 			.build();

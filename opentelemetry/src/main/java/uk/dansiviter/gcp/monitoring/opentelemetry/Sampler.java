@@ -78,7 +78,7 @@ public interface Sampler extends Predicate<Optional<SpanContext>> {
 		} else {
 			upper = round(probability * MAX_VALUE);
 		}
-		return ctx -> ctx.map(c -> abs(TraceId.getTraceIdRandomPart(c.getTraceIdAsHexString())) < upper).orElse(false);
+		return ctx -> ctx.map(c -> abs(TraceId.getTraceIdRandomPart(c.getTraceId())) < upper).orElse(false);
 	}
 
 	/**
