@@ -47,8 +47,8 @@ The following metrics can be collected from JAX-RS for both Container and Client
 * `request.latency`: The time it took for the application code to process the request and respond with `path` and `response_code` tags.
 
 To enable these use the following classes:
-* `uk.dansiviter.gcp.monitoring.microprofile.metrics.jaxrs.ContainerMetricsFeature`,
-* `uk.dansiviter.gcp.monitoring.microprofile.metrics.jaxrs.ClientMetricsFeature`.
+* `uk.dansiviter.gcp.microprofile.metrics.jaxrs.ContainerMetricsFeature`,
+* `uk.dansiviter.gcp.microprofile.metrics.jaxrs.ClientMetricsFeature`.
 
 
 ## Dashboard ##
