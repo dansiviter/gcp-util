@@ -50,7 +50,7 @@ import uk.dansiviter.gcp.log.Factory;
  *
  * <pre>
  * &lt;configuration&gt;
- *   &lt;appender name="GCP" class="uk.dansiviter.gcp.monitoring.log.logback.LogbackAppender"&gt;
+ *   &lt;appender name="GCP" class="uk.dansiviter.gcp.log.logback.LogbackAppender"&gt;
  *     &lt;logName&gt;java.log&lt;/logName&gt;
  *     &lt;synchronicity&gt;ASYNC&lt;/synchronicity&gt;
  *     &lt;enhancers&gt;io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer&lt;/enhancers&gt;

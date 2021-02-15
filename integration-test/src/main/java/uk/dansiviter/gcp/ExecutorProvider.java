@@ -13,28 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.jboss;
+package uk.dansiviter.gcp;
 
-import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
-import com.google.cloud.logging.LogEntry.Builder;
-
-import org.jboss.logging.MDC;
-
-import uk.dansiviter.gcp.log.Entry;
-import uk.dansiviter.gcp.log.EntryDecorator;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Disposes;
+import javax.enterprise.inject.Produces;
 
 /**
- * Only really useful for JUL logger, but it's here nontheless.
- *
  * @author Daniel Siviter
- * @since v1.0 [6 Dec 2019]
+ * @since v1.0 [3 Feb 2020]
  */
-public class MdcDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
+@ApplicationScoped
+public class ExecutorProvider {
+	@Produces
+	@ApplicationScoped
+	public static ScheduledExecutorService scheduler() {
+		return Executors.newSingleThreadScheduledExecutor();
+	}
 
-	@Override
-	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		DELEGATE.decorate(b, e, payload);
+	public static void dispose(@Disposes ScheduledExecutorService scheduler) {
+		scheduler.shutdown();
 	}
 }

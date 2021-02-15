@@ -3,7 +3,7 @@
 
 ## Monitored Resource ##
 
-This library makes a best efforts to attempt to find suitable [Monitored Resource](https://cloud.google.com/monitoring/api/resources) type via `uk.dansiviter.gcp.monitoring.ResourceType#autoDetect()`. These values will first attempt to find these from Microprofile config all uppercase (i.e. to get them from environment parameters) then try using prefix `google.cloud.resource.`. Some will also have some other special ways of extracting, but you'll have to refer to the code for that. e.g.
+This library makes a best efforts to attempt to find suitable [Monitored Resource](https://cloud.google.com/monitoring/api/resources) type via `uk.dansiviter.gcp.ResourceType#autoDetect()`. These values will first attempt to find these from Microprofile config all uppercase (i.e. to get them from environment parameters) then try using prefix `google.cloud.resource.`. Some will also have some other special ways of extracting, but you'll have to refer to the code for that. e.g.
 
 `project_id` will try:
 * `PROJECT_ID` from Microprofile Config,

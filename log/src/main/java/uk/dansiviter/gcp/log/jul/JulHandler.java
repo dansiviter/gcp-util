@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Daniel Siviter
+ * Copyright 2019-2021 Daniel Siviter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,11 +63,11 @@ import uk.dansiviter.gcp.log.Factory;
  *
  * <pre>
  * .level=INFO
- * handlers=uk.dansiviter.gcp.monitoring.log.jul.JulHandler
+ * handlers=uk.dansiviter.gcp.log.jul.JulHandler
  *
- * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.level=FINEST
- * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.filter=foo.MyFilter
- * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.decorators=foo.MyDecorator
+ * uk.dansiviter.gcp.log.jul.JulHandler.level=FINEST
+ * uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
+ * uk.dansiviter.gcp.log.jul.JulHandler.decorators=foo.MyDecorator
  *
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>

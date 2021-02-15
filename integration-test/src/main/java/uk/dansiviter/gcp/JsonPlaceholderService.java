@@ -13,28 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.jboss;
+package uk.dansiviter.gcp;
 
-import java.util.Map;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
 
-import com.google.cloud.logging.LogEntry.Builder;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
-import org.jboss.logging.MDC;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-import uk.dansiviter.gcp.log.Entry;
-import uk.dansiviter.gcp.log.EntryDecorator;
+import uk.dansiviter.gcp.api.Post;
 
 /**
- * Only really useful for JUL logger, but it's here nontheless.
+ * Simple Rest Client to demonstrate functionality.
  *
  * @author Daniel Siviter
- * @since v1.0 [6 Dec 2019]
+ * @since v1.0 [11 Feb 2020]
  */
-public class MdcDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
-
-	@Override
-	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		DELEGATE.decorate(b, e, payload);
-	}
+@Produces(MediaType.APPLICATION_JSON)
+@RegisterRestClient(baseUri="https://jsonplaceholder.typicode.com")
+public interface JsonPlaceholderService {
+	@GET
+	@Path("posts")
+	CompletionStage<List<Post>> posts();
 }

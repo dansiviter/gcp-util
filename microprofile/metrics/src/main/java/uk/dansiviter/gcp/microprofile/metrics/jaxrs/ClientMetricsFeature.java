@@ -13,28 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.jboss;
+package uk.dansiviter.gcp.microprofile.metrics.jaxrs;
 
-import java.util.Map;
+import static javax.ws.rs.RuntimeType.CLIENT;
 
-import com.google.cloud.logging.LogEntry.Builder;
-
-import org.jboss.logging.MDC;
-
-import uk.dansiviter.gcp.log.Entry;
-import uk.dansiviter.gcp.log.EntryDecorator;
+import javax.ws.rs.ConstrainedTo;
+import javax.ws.rs.core.Feature;
+import javax.ws.rs.core.FeatureContext;
+import javax.ws.rs.ext.Provider;
 
 /**
- * Only really useful for JUL logger, but it's here nontheless.
- *
  * @author Daniel Siviter
- * @since v1.0 [6 Dec 2019]
+ * @since v1.0 [11 Feb 2020]
  */
-public class MdcDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
-
+@Provider
+@ConstrainedTo(CLIENT)
+public class ClientMetricsFeature implements Feature {
 	@Override
-	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		DELEGATE.decorate(b, e, payload);
+	public boolean configure(FeatureContext context) {
+		context.register(ClientMetricsReaderInterceptor.class);
+		context.register(ClientMetricsFilter.class);
+		return true;
 	}
 }

@@ -13,28 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.jboss;
+package uk.dansiviter.gcp.microprofile.metrics;
 
-import java.util.Map;
-
-import com.google.cloud.logging.LogEntry.Builder;
-
-import org.jboss.logging.MDC;
-
-import uk.dansiviter.gcp.log.Entry;
-import uk.dansiviter.gcp.log.EntryDecorator;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
 
 /**
- * Only really useful for JUL logger, but it's here nontheless.
  *
- * @author Daniel Siviter
- * @since v1.0 [6 Dec 2019]
  */
-public class MdcDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
-
-	@Override
-	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		DELEGATE.decorate(b, e, payload);
+public class ConfigProvider {
+	@Produces
+	@ApplicationScoped
+	public Config config() {
+		return Config.builder().build();
 	}
 }

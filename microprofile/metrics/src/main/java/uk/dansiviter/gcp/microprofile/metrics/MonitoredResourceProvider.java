@@ -13,28 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.jboss;
+package uk.dansiviter.gcp.microprofile.metrics;
 
-import java.util.Map;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
 
-import com.google.cloud.logging.LogEntry.Builder;
+import com.google.cloud.MonitoredResource;
 
-import org.jboss.logging.MDC;
-
-import uk.dansiviter.gcp.log.Entry;
-import uk.dansiviter.gcp.log.EntryDecorator;
+import uk.dansiviter.gcp.ResourceType;
 
 /**
- * Only really useful for JUL logger, but it's here nontheless.
+ * Use the {@link javax.enterprise.inject.Specializes} mechanism to override this if required.
  *
  * @author Daniel Siviter
  * @since v1.0 [6 Dec 2019]
  */
-public class MdcDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
-
-	@Override
-	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		DELEGATE.decorate(b, e, payload);
+@ApplicationScoped
+public class MonitoredResourceProvider {
+	@Produces
+	public MonitoredResource monitoredResource() {
+		return ResourceType.autoDetect().monitoredResource();
 	}
 }
