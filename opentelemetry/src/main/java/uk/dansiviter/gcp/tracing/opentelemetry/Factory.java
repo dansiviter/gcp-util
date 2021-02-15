@@ -26,7 +26,7 @@ import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static uk.dansiviter.gcp.monitoring.Util.threadLocal;
+import static uk.dansiviter.gcp.Util.threadLocal;
 
 import java.util.HashMap;
 import java.util.List;
@@ -54,8 +54,8 @@ import io.opentelemetry.sdk.trace.data.EventData;
 import io.opentelemetry.sdk.trace.data.LinkData;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.data.StatusData;
-import uk.dansiviter.gcp.monitoring.ResourceType;
-import uk.dansiviter.gcp.monitoring.ResourceType.Label;
+import uk.dansiviter.gcp.ResourceType;
+import uk.dansiviter.gcp.ResourceType.Label;
 
 /**
  *

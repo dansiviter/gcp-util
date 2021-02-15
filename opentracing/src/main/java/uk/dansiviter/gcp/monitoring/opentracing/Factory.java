@@ -17,7 +17,7 @@ package uk.dansiviter.gcp.monitoring.opentracing;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static uk.dansiviter.gcp.monitoring.Util.threadLocal;
+import static uk.dansiviter.gcp.Util.threadLocal;
 
 import java.util.HashMap;
 import java.util.List;
@@ -36,8 +36,8 @@ import com.google.devtools.cloudtrace.v2.SpanName;
 import com.google.devtools.cloudtrace.v2.TruncatableString;
 import com.google.protobuf.Timestamp;
 
-import uk.dansiviter.gcp.monitoring.ResourceType;
-import uk.dansiviter.gcp.monitoring.ResourceType.Label;
+import uk.dansiviter.gcp.ResourceType;
+import uk.dansiviter.gcp.ResourceType.Label;
 import uk.dansiviter.gcp.monitoring.opentracing.CloudTraceSpan.Log;
 
 /**

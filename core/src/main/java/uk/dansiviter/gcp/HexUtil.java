@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring;
+package uk.dansiviter.gcp;
 
 import java.nio.CharBuffer;
 import java.util.OptionalLong;

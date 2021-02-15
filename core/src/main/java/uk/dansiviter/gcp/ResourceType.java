@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.monitoring;
+package uk.dansiviter.gcp;
 
 import static java.lang.System.getenv;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.CLUSTER_NAME;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.CONTAINER_NAME;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.INSTANCE_ID;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.LOCATION;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.MODULE_ID;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.NAMESPACE_NAME;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.POD_NAME;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.PROJECT_ID;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.VERSION_ID;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.ZONE;
+import static uk.dansiviter.gcp.ResourceType.Label.CLUSTER_NAME;
+import static uk.dansiviter.gcp.ResourceType.Label.CONTAINER_NAME;
+import static uk.dansiviter.gcp.ResourceType.Label.INSTANCE_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.LOCATION;
+import static uk.dansiviter.gcp.ResourceType.Label.MODULE_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.NAMESPACE_NAME;
+import static uk.dansiviter.gcp.ResourceType.Label.POD_NAME;
+import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.VERSION_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.ZONE;
 
 import java.util.Arrays;
 import java.util.Optional;

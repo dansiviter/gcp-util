@@ -25,14 +25,14 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.status.ErrorStatus;
-import uk.dansiviter.gcp.monitoring.ResourceType;
+import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.monitoring.log.Entry;
 import uk.dansiviter.gcp.monitoring.log.EntryDecorator;
 import uk.dansiviter.gcp.monitoring.log.Factory;
 
 /**
  * A Logback implementation of {@link Appender}.
- * 
+ *
  * <pre>
  * &lt;configuration&gt;
  *   &lt;appender name="GCP" class="uk.dansiviter.gcp.monitoring.log.logback.LogbackAppender"&gt;
@@ -45,7 +45,7 @@ import uk.dansiviter.gcp.monitoring.log.Factory;
  *   &lt;/root&gt;
  * &lt;/configuration&gt;
  * </pre>
- * 
+ *
  * @author Daniel Siviter
  * @since v1.0 [29 Jan 2021]
  */
@@ -69,10 +69,10 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param loggingOptions
 	 * @param monitoredResource
-	 */ 
+	 */
 	LogbackAppender(
 		@Nonnull LoggingOptions loggingOptions,
 		@Nonnull MonitoredResource monitoredResource)
@@ -85,7 +85,7 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 			throw e;
 		}
 	}
-	
+
 	public String getLogName() {
 		return logName;
 	}
@@ -149,7 +149,7 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	protected void append(ILoggingEvent eventObject) {
 		LogEntry entry;
 		try {
-			entry = Factory.logEntry(new LogbackEntry(eventObject), this.decorators);
+			entry = uk.dansiviter.gcp.monitoring.log.Factory.logEntry(new LogbackEntry(eventObject), this.decorators);
 		} catch (RuntimeException e) {
 			addStatus(new ErrorStatus("Unable to stop appender named \"" + name + "\".", this, e));
 			return;

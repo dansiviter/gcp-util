@@ -16,7 +16,7 @@
 package uk.dansiviter.gcp.monitoring.opentracing;
 
 import static java.lang.Math.abs;
-import static uk.dansiviter.gcp.monitoring.HexUtil.toHex;
+import static uk.dansiviter.gcp.HexUtil.toHex;
 
 import java.security.SecureRandom;
 import java.util.HashMap;

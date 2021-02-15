@@ -16,7 +16,7 @@
 package uk.dansiviter.gcp.monitoring.opentracing;
 
 import static java.util.stream.Collectors.toList;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 import static uk.dansiviter.gcp.monitoring.opentracing.Sampler.defaultSampler;
 
 import java.io.IOException;
@@ -46,8 +46,8 @@ import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.util.ThreadLocalScopeManager;
-import uk.dansiviter.gcp.monitoring.GaxUtil;
-import uk.dansiviter.gcp.monitoring.ResourceType;
+import uk.dansiviter.gcp.GaxUtil;
+import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.monitoring.opentracing.propagation.B3MultiPropagator;
 import uk.dansiviter.gcp.monitoring.opentracing.propagation.Propagator;
 

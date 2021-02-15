@@ -22,7 +22,7 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.eclipse.microprofile.metrics.MetricType.TIMER;
-import static uk.dansiviter.gcp.monitoring.Util.threadLocal;
+import static uk.dansiviter.gcp.Util.threadLocal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

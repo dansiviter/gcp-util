@@ -47,8 +47,8 @@ import com.google.cloud.logging.LoggingOptions;
 import com.google.cloud.logging.Severity;
 import com.google.cloud.logging.Synchronicity;
 
-import uk.dansiviter.gcp.monitoring.AtomicInit;
-import uk.dansiviter.gcp.monitoring.ResourceType;
+import uk.dansiviter.gcp.AtomicInit;
+import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.monitoring.log.Entry;
 import uk.dansiviter.gcp.monitoring.log.EntryDecorator;
 import uk.dansiviter.gcp.monitoring.log.Factory;
@@ -68,7 +68,7 @@ import uk.dansiviter.gcp.monitoring.log.Factory;
  * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.level=FINEST
  * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.filter=foo.MyFilter
  * uk.dansiviter.gcp.monitoring.log.jul.JulHandler.decorators=foo.MyDecorator
- * 
+ *
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>
  *

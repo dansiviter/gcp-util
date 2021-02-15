@@ -9,7 +9,7 @@
 	<artifactId>core</artifactId>
 
 	<properties>
-		<module.name>uk.dansiviter.gcp.core</module.name>
+		<module.name>uk.dansiviter.gcp</module.name>
 	</properties>
 
 	<dependencies>

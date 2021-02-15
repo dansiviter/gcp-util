@@ -16,7 +16,7 @@
 package uk.dansiviter.gcp.secrets;
 
 import static java.util.Collections.emptyMap;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -35,8 +35,8 @@ import com.google.cloud.secretmanager.v1.SecretVersionName;
 
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
-import uk.dansiviter.gcp.monitoring.AtomicInit;
-import uk.dansiviter.gcp.monitoring.ResourceType;
+import uk.dansiviter.gcp.AtomicInit;
+import uk.dansiviter.gcp.ResourceType;
 
 /**
  * Supports 3 formats of secret name:

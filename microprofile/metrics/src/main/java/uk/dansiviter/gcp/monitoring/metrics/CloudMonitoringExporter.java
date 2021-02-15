@@ -18,7 +18,7 @@ package uk.dansiviter.gcp.monitoring.metrics;
 import static java.time.ZoneOffset.UTC;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -58,8 +58,8 @@ import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 
-import uk.dansiviter.gcp.monitoring.GaxUtil;
-import uk.dansiviter.gcp.monitoring.ResourceType;
+import uk.dansiviter.gcp.GaxUtil;
+import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.monitoring.metrics.Factory.Context;
 import uk.dansiviter.gcp.monitoring.metrics.Factory.Snapshot;
 

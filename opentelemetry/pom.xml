@@ -9,7 +9,7 @@
 	<artifactId>opentelemetry</artifactId>
 
 	<properties>
-		<module.name>uk.dansiviter.gcp.opentelemetry</module.name>
+		<module.name>uk.dansiviter.gcp.tracing.opentelemetry</module.name>
 	</properties>
 
 	<dependencies>

@@ -20,7 +20,7 @@ import javax.enterprise.inject.Produces;
 
 import com.google.cloud.MonitoredResource;
 
-import uk.dansiviter.gcp.monitoring.ResourceType;
+import uk.dansiviter.gcp.ResourceType;
 
 /**
  * Use the {@link javax.enterprise.inject.Specializes} mechanism to override this if required.

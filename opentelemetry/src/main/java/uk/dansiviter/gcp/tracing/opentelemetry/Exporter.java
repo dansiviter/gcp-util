@@ -1,7 +1,7 @@
 package uk.dansiviter.gcp.tracing.opentelemetry;
 
 import static java.util.stream.Collectors.toList;
-import static uk.dansiviter.gcp.monitoring.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -16,7 +16,7 @@ import com.google.devtools.cloudtrace.v2.ProjectName;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
-import uk.dansiviter.gcp.monitoring.ResourceType;
+import uk.dansiviter.gcp.ResourceType;
 
 /**
  * A OpenTelemetry {@link SpanExporter exporter} that pushes the traces to Cloud Trace.
