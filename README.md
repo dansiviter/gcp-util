@@ -48,4 +48,3 @@ gRPC has some issues when it comes to JPMS as both context, api and core share p
 ```
 
 If you see issues such as `java.io.IOException: Received fatal alert: handshake_failure` this is due to a lack of elliptical curve functionality which requires the `jdk.crypto.ec` module.
-```

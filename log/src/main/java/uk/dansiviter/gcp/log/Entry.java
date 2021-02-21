@@ -50,7 +50,7 @@ public interface Entry {
 	/**
 	 * @return formatted log message.
 	 */
-	default Optional<? super CharSequence> message() {
+	default Optional<CharSequence> message() {
 		return Optional.empty();
 	}
 

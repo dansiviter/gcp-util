@@ -15,8 +15,12 @@
  */
 package uk.dansiviter.gcp.log.log4j2;
 
+import static java.util.stream.Collectors.toList;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +45,7 @@ import org.apache.logging.log4j.core.config.Node;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
 
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
@@ -54,8 +59,10 @@ import uk.dansiviter.gcp.log.Factory;
  * <pre>
  * &lt;Configuration status="WARN"&gt;
  *   &lt;Appenders&gt;
- *     &lt;CloudLogging name="java.log" synchronicity="ASYNC"
- *         enhancers="io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer"&gt;
+ *     &lt;CloudLogging name="java.log" synchronicity="ASYNC"&gt;
+ *       &lt;Decorators&gt;
+ *         &lt;Decorator class="uk.dansiviter.gcp.log.opentelemetry.Decorator"/&gt;
+ *       &lt;/Decorators&gt;
  *       &lt;Filter .../&gt;
  *     &lt;/CloudLogging&gt;
  *   &lt;/Appenders&gt;
@@ -71,7 +78,7 @@ public class Log4j2Appender extends AbstractAppender {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
 	private final Optional<Synchronicity> synchronicity;
 	private final Optional<Severity> flushSeverity;
-	private final LoggingOptions loggingOptions;
+	private final Optional<LoggingOptions> loggingOptions;
 	private final WriteOption[] defaultWriteOptions;
 
 	private Logging logging;
@@ -80,13 +87,17 @@ public class Log4j2Appender extends AbstractAppender {
 		super(builder.getName(), builder.getFilter(), builder.getOrCreateLayout(), builder.isIgnoreExceptions(),
 				builder.getPropertyArray());
 
-		this.loggingOptions = builder.loggingOptions;
+		this.loggingOptions = Optional.ofNullable(builder.loggingOptions);
 		this.synchronicity = Optional.ofNullable(builder.synchronicity);
 		this.flushSeverity = Optional.ofNullable(builder.flushSeverity);
-		Optional.ofNullable(builder.decorators).map(Factory::decorators).ifPresent(this.decorators::addAll);
+		Optional.ofNullable(builder.decorators).map(Log4j2Appender::decorators).ifPresent(this.decorators::addAll);
 
 		this.defaultWriteOptions = new WriteOption[] { WriteOption.logName(builder.getName()),
 				WriteOption.resource(builder.monitoredResource) };
+	}
+
+	List<EntryDecorator> getDecorators() {
+		return decorators;
 	}
 
 	@Override
@@ -94,7 +105,9 @@ public class Log4j2Appender extends AbstractAppender {
 		setStarting();
 
 		try {
-			this.logging = this.loggingOptions.getService();
+			this.logging = this.loggingOptions
+					.orElseGet(LoggingOptions::getDefaultInstance)
+					.getService();
 			this.synchronicity.ifPresent(this.logging::setWriteSynchronicity);
 			this.flushSeverity.ifPresent(this.logging::setFlushSeverity);
 			super.start();
@@ -171,6 +184,14 @@ public class Log4j2Appender extends AbstractAppender {
 		return Severity.DEFAULT;
 	}
 
+	public static List<EntryDecorator> decorators(DecoratorItem... decorators) {
+		if (decorators == null || decorators.length == 0) {
+			return Collections.emptyList();
+		}
+		return Arrays.stream(decorators).map(DecoratorItem::getClazz).map(Factory::decorator).collect(toList());
+	}
+
+
 	// --- Inner Classes ---
 
 	/**
@@ -217,7 +238,7 @@ public class Log4j2Appender extends AbstractAppender {
 		}
 
 		@Override
-		public Optional<? super CharSequence> message() {
+		public Optional<CharSequence> message() {
 			var bytes = getLayout().toByteArray(this.delegate);
 			Charset charset;
 			if (getLayout() instanceof StringLayout) {
@@ -261,8 +282,8 @@ public class Log4j2Appender extends AbstractAppender {
 		private Synchronicity synchronicity;
 		@PluginBuilderAttribute
 		private Severity flushSeverity;
-		@PluginBuilderAttribute
-		private String decorators;
+		@PluginElement("Decorators")
+		private DecoratorItem[] decorators;
 
 		private LoggingOptions loggingOptions;
 		private MonitoredResource monitoredResource;
@@ -277,7 +298,7 @@ public class Log4j2Appender extends AbstractAppender {
 			return asBuilder();
 		}
 
-		public B setDecorators(String decorators) {
+		public B setDecorators(DecoratorItem... decorators) {
 			this.decorators = decorators;
 			return asBuilder();
 		}

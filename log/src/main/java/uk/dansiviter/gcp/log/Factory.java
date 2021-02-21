@@ -87,10 +87,11 @@ public enum Factory { ;
 		if (decorators.isBlank()) {
 			return emptyList();
 		}
-		return stream(decorators.split(",")).map(Factory::entryDecoratorInstance).collect(toList());
+		return stream(decorators.split(",")).map(Factory::decorator).collect(toList());
 	}
 
-	private static EntryDecorator entryDecoratorInstance(String name) {
+	@Nonnull
+	public static EntryDecorator decorator(String name) {
 		Object instance = instance(name);
 		if (instance instanceof EntryDecorator) {
 			return (EntryDecorator) instance;
@@ -109,7 +110,10 @@ public enum Factory { ;
 	private static @Nonnull Map<String, Object> payload(@Nonnull Entry entry) {
 		final Map<String, Object> data = new HashMap<>();
 
-		entry.message().ifPresent(m -> data.put("message", m));
+		entry.message().ifPresent(m -> {
+			// doesn't support CharSequence or even the protobuf ByteString
+			data.put("message", m instanceof String ? m : m.toString());
+		});
 
 		final Map<String, Object> context = new HashMap<>();
 		if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {

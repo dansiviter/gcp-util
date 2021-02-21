@@ -67,7 +67,7 @@ import uk.dansiviter.gcp.log.Factory;
  *
  * uk.dansiviter.gcp.log.jul.JulHandler.level=FINEST
  * uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
- * uk.dansiviter.gcp.log.jul.JulHandler.decorators=foo.MyDecorator
+ * uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator
  *
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>
@@ -79,7 +79,7 @@ import uk.dansiviter.gcp.log.Factory;
  * 	public MyConfig() {
  * 		final JulHandler handler = new JulHandler();
  * 		handler.setFilter(new MyFilter());
- * 		handler.add(new MyDecorator()).add(new OpenCensusTraceLoggingEnhancer());
+ * 		handler.add(new Decorator());
  *
  * 		final Logger root = Logger.getLogger("");
  * 		root.setLevel(Level.INFO);
@@ -363,7 +363,7 @@ public class JulHandler extends Handler {
 		}
 
 		@Override
-		public Optional<? super CharSequence> message() {
+		public Optional<CharSequence> message() {
 			var msg = getFormatter().format(this.delegate);
 			return msg == null || msg.isEmpty() ? Optional.empty() : Optional.of(msg);
 		}

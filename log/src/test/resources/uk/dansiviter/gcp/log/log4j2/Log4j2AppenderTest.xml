@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Appenders>
+    <CloudLogging name="cloud" synchronicity="ASYNC">
+      <Decorator class="uk.dansiviter.gcp.log.opentelemetry.Decorator"/>
+    </CloudLogging>
+  </Appenders>
+  <Loggers>
+    <Root level="info">
+      <AppenderRef ref="cloud"/>
+    </Root>
+  </Loggers>
+</Configuration>
