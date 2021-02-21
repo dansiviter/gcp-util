@@ -18,7 +18,7 @@ handlers=uk.dansiviter.gcp.log.jul.JulHandler
 
 uk.dansiviter.gcp.log.jul.JulHandler.level=INFO
 uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
-uk.dansiviter.gcp.log.jul.JulHandler.decorators=foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
+uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator
 ```
 
 #### Class Config ####
@@ -31,7 +31,7 @@ public class MyConfig {
     final JulHandler handler = new ConsoleHandler();
     handler.setLevel(Level.INFO);
     handler.setFilter(new MyFilter());
-    handler.add(new MyDecorator()).add(new OpenCensusLoggingEnhancer());
+    handler.add(new Decorator()).add(new MyDecorator());
 
     final Logger root = Logger.getLogger("");
     root.setLevel(Level.INFO);
@@ -51,7 +51,7 @@ logger.handlers=CLOUD_LOG
 handler.CLOUD_LOG=uk.dansiviter.gcp.log.jul.JulHandler
 handler.CLOUD_LOG.level=INFO
 handler.CLOUD_LOG.properties=decorators
-handler.CLOUD_LOG.decorators=foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer
+handler.CLOUD_LOG.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator
 ```
 
 ### Log4J v2 ###
@@ -61,9 +61,11 @@ For Log4J v2 it's highly recommended a Failover appender is used to ensure any p
 ```xml
 <Configuration>
   <Appenders>
-    <Console name="console" />
-    <CloudLogging name="cloudLogging">
-      <Decorator class="foo.MyDecorator,io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer" />
+    <CloudLogging name="java.log" synchronicity="ASYNC">
+      <Decorators>
+        <Decorator class="uk.dansiviter.gcp.log.opentelemetry.Decorator"/>
+        <Decorator class="foo.MyDecorator"/>
+      </Decorators>
     </CloudLogging>
     <Falover name="failover" primary="cloudLogging">
       <Failovers>
@@ -86,7 +88,7 @@ For Log4J v2 it's highly recommended a Failover appender is used to ensure any p
    <appender name="GCP" class="uk.dansiviter.gcp.log.logback.LogbackAppender">
      <logName>java.log</logName>
      <synchronicity>ASYNC</synchronicity>
-     <enhancers>io.opencensus.contrib.logcorrelation.stackdriver.OpenCensusTraceLoggingEnhancer</enhancers>
+     <decorators>uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator</decorators>
    </appender>
     <root level="DEBUG">
      <appender-ref ref="GCP" />
