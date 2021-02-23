@@ -32,6 +32,6 @@ import uk.dansiviter.gcp.ResourceType;
 public class MonitoredResourceProvider {
 	@Produces
 	public MonitoredResource monitoredResource() {
-		return ResourceType.autoDetect().monitoredResource();
+		return ResourceType.monitoredResource();
 	}
 }

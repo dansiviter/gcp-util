@@ -23,9 +23,15 @@ import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.FORMAT_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
@@ -34,6 +40,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -97,6 +104,7 @@ import uk.dansiviter.gcp.log.Factory;
  */
 public class JulHandler extends Handler {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
+	private final Queue<Entry> queue = new ConcurrentLinkedQueue<>();
 	private final LogManager logManager;
 	private final LoggingOptions loggingOptions;
 	private final AtomicInit<Logging> logging;
@@ -104,13 +112,14 @@ public class JulHandler extends Handler {
 
 	private Severity flushSeverity;
 	private Synchronicity synchronicity;
+	private int maxQueueSize;
 	private boolean closed;
 
 	/**
 	 *
 	 */
 	public JulHandler() {
-		this(Optional.empty(), LoggingOptions.getDefaultInstance(), ResourceType.autoDetect().monitoredResource());
+		this(Optional.empty(), LoggingOptions.getDefaultInstance(), ResourceType.monitoredResource());
 	}
 
 	/**
@@ -147,6 +156,7 @@ public class JulHandler extends Handler {
 					.orElse(Synchronicity.ASYNC);
 			setSynchronicity(synchronicity);
 			property("decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
+			this.maxQueueSize = property("maxQueueSize").map(Integer::valueOf).orElse(25);
 
 			this.defaultWriteOptions = new WriteOption[] { WriteOption.logName(logName.orElse("java.log")),
 					WriteOption.resource(monitoredResource) };
@@ -218,22 +228,44 @@ public class JulHandler extends Handler {
 			return;
 		}
 
-		LogEntry entry;
+		Entry entry = new JavaUtilEntry(record);
+		queue.add(entry);
+
+		if (flushSeverity.compareTo(entry.severity()) <= 0 || queue.size() > this.maxQueueSize) {
+			asyncFlush();
+		}
+	}
+
+	private void drain() {
+		if (queue.isEmpty()) {
+			return;
+		}
+
+		var drain = new ArrayList<Entry>(queue.size());
+		Entry entry;
+		while ((entry = queue.poll()) != null) {
+			drain.add(entry);
+		}
+
+		Iterable<LogEntry> entries;
 		try {
-			entry = Factory.logEntry(new JavaUtilEntry(record), this.decorators);
+			entries = drain.stream().map(e -> Factory.logEntry(e, this.decorators)).collect(Collectors.toList());
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, FORMAT_FAILURE);
 			return;
 		}
+
 		try {
-			logging().write(List.of(entry), this.defaultWriteOptions);
+			logging().write(entries, this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
+			return;
 		}
 	}
 
 	@Override
 	public void flush() {
+		drain();
 		this.logging.ifInitialised(l -> {
 			try {
 				l.flush();
@@ -243,11 +275,16 @@ public class JulHandler extends Handler {
 		});
 	}
 
+	private CompletionStage<?> asyncFlush() {
+		return CompletableFuture.runAsync(this::flush);
+	}
+
 	@Override
 	public void close() {
 		if (this.closed) {
 			return;
 		}
+		flush();
 		this.closed = true;
 		try {
 			this.logging.close();

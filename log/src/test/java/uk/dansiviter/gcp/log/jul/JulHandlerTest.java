@@ -61,6 +61,7 @@ public class JulHandlerTest {
 		when(record.getLevel()).thenReturn(Level.INFO);
 
 		handler.publish(record);
+		handler.flush();
 
 		verify(this.logging).write(argThat(c -> ((List<LogEntry>) c).size() == 1), any());
 	}

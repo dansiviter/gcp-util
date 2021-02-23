@@ -62,7 +62,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 	private final String projectId;
 
 	public SecretConfigSource() throws IOException {
-		this(ResourceType.autoDetect().monitoredResource(), SecretManagerServiceSettings.newBuilder().build());
+		this(ResourceType.monitoredResource(), SecretManagerServiceSettings.newBuilder().build());
 	}
 
 	public SecretConfigSource(MonitoredResource resource, SecretManagerServiceSettings settings) {

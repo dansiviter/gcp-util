@@ -72,7 +72,7 @@ public class CloudTracer implements Tracer {
 	private final ScheduledExecutorService executor;
 
 	CloudTracer(final Builder builder) {
-		this.resource = builder.resource.orElseGet(() -> ResourceType.autoDetect().monitoredResource());
+		this.resource = builder.resource.orElseGet(() -> ResourceType.monitoredResource());
 		this.projectName = ProjectName.of(builder.projectId.orElse(ResourceType.get(this.resource, PROJECT_ID).get()));
 		this.client = builder.client.orElseGet(CloudTracer::defaultTraceServiceClient);
 		this.propagators = Map.copyOf(builder.propegators);

@@ -38,6 +38,7 @@ import javax.annotation.Nonnull;
 
 import com.google.cloud.MonitoredResource;
 import com.google.devtools.cloudtrace.v2.AttributeValue;
+import com.google.devtools.cloudtrace.v2.ProjectName;
 import com.google.devtools.cloudtrace.v2.Span;
 import com.google.devtools.cloudtrace.v2.Span.Attributes;
 import com.google.devtools.cloudtrace.v2.Span.Link;
@@ -54,8 +55,6 @@ import io.opentelemetry.sdk.trace.data.EventData;
 import io.opentelemetry.sdk.trace.data.LinkData;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.data.StatusData;
-import uk.dansiviter.gcp.ResourceType;
-import uk.dansiviter.gcp.ResourceType.Label;
 
 /**
  *
@@ -94,13 +93,13 @@ public class Factory {
 		HTTP_USER_AGENT.getKey(), "/http/user_agent",
 		HTTP_STATUS_CODE.getKey(), "/http/status_code");
 
-	private final MonitoredResource resource;
+	private final ProjectName projectName;
 
 	private final Map<String, AttributeValue> resourceAttr;
 
-	Factory(MonitoredResource resource) {
-		this.resource = resource;
+	Factory(MonitoredResource resource, ProjectName projectName) {
 		this.resourceAttr = toAttrs(resource);
+		this.projectName = projectName;
 	}
 
 	/**
@@ -112,7 +111,7 @@ public class Factory {
 		var ctx = span.getSpanContext();
 		var spanId = ctx.getSpanId();
 		var spanName = SPAN_NAME_BUILDER.get() // no clear method, but should override all fields anyway
-				.setProject(ResourceType.get(this.resource, Label.PROJECT_ID).orElseThrow())
+				.setProject(this.projectName.getProject())
 				.setTrace(ctx.getTraceId()).setSpan(spanId).build();
 
 		var spanBuilder = SPAN_BUILDER.get().setName(spanName.toString()).setSpanId(spanId)
