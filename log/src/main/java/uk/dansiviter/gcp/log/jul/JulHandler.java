@@ -18,20 +18,19 @@ package uk.dansiviter.gcp.log.jul;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
 import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.FORMAT_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
+import static uk.dansiviter.gcp.log.Factory.logEntry;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
@@ -40,7 +39,6 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -228,35 +226,33 @@ public class JulHandler extends Handler {
 			return;
 		}
 
-		Entry entry = new JavaUtilEntry(record);
+		var entry = new JavaUtilEntry(record);
 		queue.add(entry);
 
-		if (flushSeverity.compareTo(entry.severity()) <= 0 || queue.size() > this.maxQueueSize) {
-			asyncFlush();
+		if (this.flushSeverity.compareTo(entry.severity()) <= 0) {
+			flush();  // if this an important message, flush now!
+		} else if (queue.size() > this.maxQueueSize) {
+			runAsync(this::flush);  // if queue has crept up flush in background
 		}
 	}
 
 	private void drain() {
-		if (queue.isEmpty()) {
+		if (this.queue.isEmpty()) {
 			return;
 		}
 
-		var drain = new ArrayList<Entry>(queue.size());
-		Entry entry;
-		while ((entry = queue.poll()) != null) {
-			drain.add(entry);
-		}
-
-		Iterable<LogEntry> entries;
+		var drain = new ArrayList<LogEntry>(this.queue.size());  // avoid array re-sizing
 		try {
-			entries = drain.stream().map(e -> Factory.logEntry(e, this.decorators)).collect(Collectors.toList());
+			for (Entry e; (e = this.queue.poll()) != null; ) {
+				drain.add(logEntry(e, this.decorators));
+			}
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, FORMAT_FAILURE);
 			return;
 		}
 
 		try {
-			logging().write(entries, this.defaultWriteOptions);
+			logging().write(drain, this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
 			return;
@@ -273,10 +269,6 @@ public class JulHandler extends Handler {
 				reportError("Unable to flush!", e, FLUSH_FAILURE);
 			}
 		});
-	}
-
-	private CompletionStage<?> asyncFlush() {
-		return CompletableFuture.runAsync(this::flush);
 	}
 
 	@Override

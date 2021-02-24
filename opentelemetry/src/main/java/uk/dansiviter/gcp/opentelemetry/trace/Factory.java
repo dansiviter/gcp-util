@@ -31,7 +31,6 @@ import static uk.dansiviter.gcp.Util.threadLocal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
@@ -51,6 +50,7 @@ import com.google.protobuf.Timestamp;
 import com.google.rpc.Status;
 
 import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.AttributeType;
 import io.opentelemetry.sdk.trace.data.EventData;
 import io.opentelemetry.sdk.trace.data.LinkData;
 import io.opentelemetry.sdk.trace.data.SpanData;
@@ -224,23 +224,15 @@ public class Factory {
 	 * @return
 	 */
 	private static AttributeValue toAttrValue(@Nonnull String key, @Nonnull Object value) {
-		var builder = ATTR_VALUE_BUILDER.get();
+		AttributeType type = null;
 		if (value instanceof CharSequence) {
-			builder.setStringValue(toTruncatableString((CharSequence) value));
+			type = AttributeType.STRING;
 		} else if (value instanceof Boolean) {
-			builder.setBoolValue((Boolean) value);
+			type = AttributeType.BOOLEAN;
 		} else if (value instanceof Short || value instanceof Integer || value instanceof Long) {
-			// FIXME Cloud Trace doesn't like status code as an integer!
-			// https://issuetracker.google.com/149088139
-			if ("/http/status_code".equals(key)) {
-				builder.setStringValue(toTruncatableString(Objects.toString(value)));
-			} else {
-				builder.setIntValue(((Number) value).longValue());
-			}
-		} else {
-			return null;
+			type = AttributeType.LONG;
 		}
-		return builder.build();
+		return toAttrValue(key, type, value);
 	}
 
 	/**
@@ -249,8 +241,21 @@ public class Factory {
 	 * @return
 	 */
 	private static AttributeValue toAttrValue(@Nonnull AttributeKey<?> key, @Nonnull Object value) {
+		return toAttrValue(key.getKey(), key.getType(), value);
+	}
+
+	/**
+	 *
+	 * @param value
+	 * @return
+	 */
+	private static AttributeValue toAttrValue(@Nonnull String key, AttributeType type, @Nonnull Object value) {
 		var builder = ATTR_VALUE_BUILDER.get();
-		switch (key.getType()) {
+		if (type == null) {
+			builder.setStringValue(toTruncatableString(value.toString()));
+			return builder.build();
+		}
+		switch (type) {
 		case BOOLEAN:
 			builder.setBoolValue((Boolean) value);
 			break;
@@ -260,19 +265,19 @@ public class Factory {
 		case LONG:
 			// FIXME Cloud Trace doesn't like status code as an integer!
 			// https://issuetracker.google.com/149088139
-			if ("/http/status_code".equals(key.getKey())) {
+			if ("/http/status_code".equals(key)) {
 				builder.setStringValue(toTruncatableString(Long.toString((Long) value)));
 			} else {
 				builder.setIntValue((Long) value);
 			}
 			break;
 		case STRING:
-				builder.setStringValue(toTruncatableString((CharSequence) value));
+			builder.setStringValue(toTruncatableString((CharSequence) value));
 			break;
 		default:
-				// unknown type!
-				return null;
-			}
+			// unknown type!
+			return null;
+		}
 		return builder.build();
 	}
 
