@@ -7,6 +7,10 @@
 	<packaging>pom</packaging>
 
 	<url>https://gitlab.com/dansiviter/gcp-util</url>
+	<scm>
+		<connection>https://gitlab.com/dansiviter/gcp-util.git</connection>
+		<developerConnection>git@gitlab.com:dansiviter/gcp-util.git</developerConnection>
+	</scm>
 
 	<licenses>
 		<license>
