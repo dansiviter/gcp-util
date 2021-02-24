@@ -78,7 +78,7 @@ release:
   needs: ["deploy"]
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH =~ /^release\/.*/'
-      when: always
+      when: manual
     - when: never
   script:
     - git checkout -B $CI_COMMIT_BRANCH
