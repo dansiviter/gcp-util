@@ -8,8 +8,8 @@
 
 	<url>https://gitlab.com/dansiviter/gcp-util</url>
 	<scm>
-		<connection>https://gitlab.com/dansiviter/gcp-util.git</connection>
-		<developerConnection>git@gitlab.com:dansiviter/gcp-util.git</developerConnection>
+		<developerConnection>scm:git:git@gitlab.com:dansiviter/gcp-util.git</developerConnection>
+		<tag>HEAD</tag>
 	</scm>
 
 	<licenses>
