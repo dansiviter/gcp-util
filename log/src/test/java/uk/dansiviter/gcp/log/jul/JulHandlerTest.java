@@ -20,7 +20,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -61,7 +61,8 @@ public class JulHandlerTest {
 		when(record.getLevel()).thenReturn(Level.INFO);
 
 		handler.publish(record);
+		handler.flush();
 
-		verify(this.logging).write(argThat(c -> ((List<LogEntry>) c).size() == 1), any());
+		verify(this.logging).write(argThat(c -> ((Collection<LogEntry>) c).size() == 1), any());
 	}
 }

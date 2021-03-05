@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -158,9 +157,7 @@ public enum Factory { ;
 		try {
 			Class<?> concreteCls = Class.forName(name);
 			return (T) concreteCls.getDeclaredConstructor().newInstance();
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-				| InvocationTargetException | NoSuchMethodException e)
-		{
+		} catch (ReflectiveOperationException e) {
 			throw new IllegalArgumentException(format("Unable to create! [%s]", name), e);
 		}
 	}

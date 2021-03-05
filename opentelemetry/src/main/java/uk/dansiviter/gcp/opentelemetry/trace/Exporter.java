@@ -46,10 +46,10 @@ public class Exporter implements SpanExporter {
 	private final Factory factory;
 
 	Exporter(final Builder builder) {
-		this.resource = builder.resource.orElseGet(() -> ResourceType.autoDetect().monitoredResource());
+		this.resource = builder.resource.orElseGet(() -> ResourceType.monitoredResource());
 		this.projectName = ProjectName.of(builder.projectId.orElseGet(() -> ResourceType.get(this.resource, PROJECT_ID).get()));
 		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);
-        this.factory = new Factory(this.resource);
+        this.factory = new Factory(this.resource, this.projectName);
     }
 
     @Override

@@ -12,6 +12,14 @@
 		<module.name>uk.dansiviter.gcp.log</module.name>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>dansiviter-logging</id>
+			<name>GitHub dansiviter/logging Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/dansiviter/logging</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
@@ -20,8 +28,20 @@
 		</dependency>
 
 		<dependency>
+			<groupId>uk.dansiviter.logging</groupId>
+			<artifactId>core</artifactId>
+			<version>0.1.1-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
 			<groupId>com.google.cloud</groupId>
 			<artifactId>google-cloud-logging</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.lmax</groupId>
+			<artifactId>disruptor</artifactId>
+			<version>3.4.2</version>
 		</dependency>
 
 		<dependency>

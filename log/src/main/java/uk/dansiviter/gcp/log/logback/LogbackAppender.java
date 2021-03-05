@@ -80,7 +80,7 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	 *
 	 */
 	public LogbackAppender() {
-		this(LoggingOptions.getDefaultInstance(), ResourceType.autoDetect().monitoredResource());
+		this(LoggingOptions.getDefaultInstance(), ResourceType.monitoredResource());
 	}
 
 	/**

@@ -26,6 +26,8 @@ import static uk.dansiviter.gcp.ResourceType.Label.MODULE_ID;
 import static uk.dansiviter.gcp.ResourceType.Label.NAMESPACE_NAME;
 import static uk.dansiviter.gcp.ResourceType.Label.POD_NAME;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.ResourceType.Label.REVISION_NAME;
+import static uk.dansiviter.gcp.ResourceType.Label.SERVICE_NAME;
 import static uk.dansiviter.gcp.ResourceType.Label.VERSION_ID;
 import static uk.dansiviter.gcp.ResourceType.Label.ZONE;
 
@@ -40,17 +42,17 @@ import com.google.cloud.MetadataConfig;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.ServiceOptions;
 
-import org.eclipse.microprofile.config.ConfigProvider;
-
 /**
  * Utility to create a {@link MonitoredResource} based on the Cloud Operations
  * Suite documentation. It will attempt to load the data from the environment
- * but all values can be overriden via Microprofile Config.
+ * but all values can be overriden via Microprofile Config. This is inspired by
+ * {@link com.google.cloud.logging.MonitoredResourceUtil} but more flexible.
  *
  * @author Daniel Siviter
  * @since v1.0 [6 Dec 2019]
  * @see https://cloud.google.com/monitoring
  * @see https://cloud.google.com/logging
+ * @see com.google.cloud.logging.MonitoredResourceUtil
  */
 public enum ResourceType {
 	/**
@@ -60,7 +62,11 @@ public enum ResourceType {
 	/**
 	 * An application running in Google App Engine (GAE).
 	 */
-	GAE_APP("gae_app", PROJECT_ID, MODULE_ID, VERSION_ID, ZONE),
+	GAE_APP("gae_app", PROJECT_ID, MODULE_ID, VERSION_ID),
+	/**
+	 * An application running in Google App Engine (GAE) Flex.
+	 */
+	GAE_APP_FLEX("gae_app_flex", PROJECT_ID, MODULE_ID, VERSION_ID, ZONE),
 	/**
 	 * A Kubernetes container instance.
 	 * </p>
@@ -68,6 +74,10 @@ public enum ResourceType {
 	 * https://cloud.google.com/monitoring/kubernetes-engine/migration#what-is-changing
 	 */
 	K8S_CONTAINER("k8s_container", PROJECT_ID, LOCATION, CLUSTER_NAME, NAMESPACE_NAME, POD_NAME, CONTAINER_NAME),
+	/**
+	 * A revision in Cloud Run (fully managed).
+	 */
+	CLOUD_RUN("cloud_run_revision",  REVISION_NAME, SERVICE_NAME, LOCATION),
 	/**
 	 * A resource type that is not associated with any specific resource.
 	 */
@@ -79,28 +89,6 @@ public enum ResourceType {
 	private ResourceType(String name, Label... labels) {
 		this.name = requireNonNull(name);
 		this.labels = labels;
-	}
-
-	/**
-	 * @return the created monitored instance.
-	 */
-	public MonitoredResource monitoredResource() {
-		return monitoredResource(n -> Optional.empty());
-	}
-
-	/**
-	 * @param override ability to override the default values.
-	 * @return the created monitored instance.
-	 */
-	public MonitoredResource monitoredResource(@Nonnull Function<String, Optional<String>> override) {
-		var builder = MonitoredResource.newBuilder(this.name);
-		Arrays.asList(this.labels).forEach(l -> {
-			var value = override.apply(l.name);
-			value.ifPresentOrElse(v -> builder.addLabel(l.name, v), () -> {
-				l.get().ifPresent(v -> builder.addLabel(l.name, v));
-			});
-		});
-		return builder.build();
 	}
 
 
@@ -125,16 +113,49 @@ public enum ResourceType {
 	 * @return
 	 */
 	public static ResourceType autoDetect() {
-		if (!isNull(getenv("KUBERNETES_SERVICE_HOST"))) {
+		if (getenv("K_SERVICE") != null
+				&& getenv("K_REVISION") != null
+				&& getenv("K_CONFIGURATION") != null
+				&& getenv("KUBERNETES_SERVICE_HOST") == null)
+		{
+			return CLOUD_RUN;
+		}
+		if (System.getenv("GAE_INSTANCE") != null) {
+			return GAE_APP_FLEX;
+		}
+		if (System.getenv("KUBERNETES_SERVICE_HOST") != null) {
 			return K8S_CONTAINER;
 		}
-		if (!isNull(getenv("GAE_INSTANCE"))) {
+		if (ServiceOptions.getAppEngineAppId() != null) {
 			return GAE_APP;
 		}
 		if (MetadataConfig.getInstanceId() != null) {
 			return GCE_INSTANCE;
 		}
 		return GLOBAL;
+	}
+
+	/**
+	 * @return the created monitored instance.
+	 */
+	public static MonitoredResource monitoredResource() {
+		return monitoredResource(n -> Optional.empty());
+	}
+
+	/**
+	 * @param override ability to override the default values.
+	 * @return the created monitored instance.
+	 */
+	public static MonitoredResource monitoredResource(@Nonnull Function<String, Optional<String>> override) {
+		ResourceType type = autoDetect();
+		var builder = MonitoredResource.newBuilder(type.name);
+		Arrays.asList(type.labels).forEach(l -> {
+			var value = override.apply(l.name);
+			value.ifPresentOrElse(v -> builder.addLabel(l.name, v), () -> {
+				l.get().ifPresent(v -> builder.addLabel(l.name, v));
+			});
+		});
+		return builder.build();
 	}
 
 	/**
@@ -147,13 +168,10 @@ public enum ResourceType {
 		return Optional.of(resource.getLabels().get(key.name));
 	}
 
-	private static Optional<String> config(String name) {
-		return ConfigProvider.getConfig().getOptionalValue(name, String.class);
-	}
-
 	private static Supplier<String> env(String name) {
 		return () -> getenv(name);
 	}
+
 
 	// --- Inner Classes ---
 
@@ -204,7 +222,15 @@ public enum ResourceType {
 		/**
 		 * The name of the container.
 		 */
-		CONTAINER_NAME("container_name", MetadataConfig::getContainerName);
+		CONTAINER_NAME("container_name", MetadataConfig::getContainerName),
+		/**
+		 *
+		 */
+		REVISION_NAME("revision_name", env("K_REVISION")),
+		/**
+		 *
+		 */
+        SERVICE_NAME("service_name", env("K_SERVICE"));
 
 		private final String name;
 		private final Supplier<String>[] suppliers;
@@ -219,11 +245,11 @@ public enum ResourceType {
 		 * @return
 		 */
 		public Optional<String> get() {
-			var value = config(this.name.toUpperCase());
+			var value = Optional.ofNullable(getenv(this.name.toUpperCase()));
 			if (value.isPresent()) {
 				return value;
 			}
-			value = config("gcp.cloud.resource.".concat(this.name));
+			value = Optional.ofNullable(System.getProperty("gcp.cloud.resource.".concat(this.name)));
 			if (value.isPresent()) {
 				return value;
 			}
