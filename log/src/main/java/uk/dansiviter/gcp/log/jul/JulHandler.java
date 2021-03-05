@@ -18,24 +18,18 @@ package uk.dansiviter.gcp.log.jul;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
 import static java.util.logging.ErrorManager.FLUSH_FAILURE;
-import static java.util.logging.ErrorManager.FORMAT_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 import java.util.logging.ErrorManager;
-import java.util.logging.Filter;
 import java.util.logging.Formatter;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
@@ -43,7 +37,6 @@ import java.util.logging.LogRecord;
 import javax.annotation.Nonnull;
 
 import com.google.cloud.MonitoredResource;
-import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
 import com.google.cloud.logging.Logging.WriteOption;
 import com.google.cloud.logging.LoggingEnhancer;
@@ -57,13 +50,27 @@ import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
+import uk.dansiviter.logging.AsyncHandler;
 
 /**
- * Inspired by {@link com.google.cloud.logging.LoggingHandler} but one major
- * limitation is it's use of
- * {@link com.google.cloud.logging.Payload.StringPayload} which heavily limits
- * the data that can be utilised by GCP.
+ * Inspired by {@link com.google.cloud.logging.LoggingHandler} but one major limitation is it's use of
+ * {@link com.google.cloud.logging.Payload.StringPayload} which heavily limits the data that can be utilised by GCP.
  * </p>
+ * </p>
+ * <b>Configuration:</b>
+ * In addition to the configuration defined in {@link AsyncHandler}:
+ * <ul>
+ * <li>   {@code &lt;handler-name&gt;.flushSeverity}
+ *        specifies the severity level which mandates a flush.
+ *        (defaults to {@link Severity#WARNING WARNING})
+ * <li>   {@code &lt;handler-name&gt;.synchronicity}
+ * 		  specifies the synchronicity of message writing.
+ * 		  (defaults to {@link Synchronicity#ASYNC ASYNC})
+ * <li>   {@code &lt;handler-name&gt;.decorators}
+ *        comma-separated list of fully qualified class names of either {@link EntryDecorator} or
+ *        {@link com.google.cloud.logging.LoggingEnhancer LoggingEnhancer} to perform decoration of log entries.
+ *        (defaults to empty list)</li>
+ * </ul>
  * Example file {@code java.util.logging.config.file} config:
  *
  * <pre>
@@ -100,18 +107,14 @@ import uk.dansiviter.gcp.log.Factory;
  * @since v1.0 [6 Dec 2019]
  * @see com.google.cloud.logging.LoggingHandler
  */
-public class JulHandler extends Handler {
+public class JulHandler extends AsyncHandler {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
-	private final Queue<Entry> queue = new ConcurrentLinkedQueue<>();
-	private final LogManager logManager;
 	private final LoggingOptions loggingOptions;
 	private final AtomicInit<Logging> logging;
 	private final WriteOption[] defaultWriteOptions;
 
 	private Severity flushSeverity;
 	private Synchronicity synchronicity;
-	private int maxQueueSize;
-	private boolean closed;
 
 	/**
 	 *
@@ -132,10 +135,10 @@ public class JulHandler extends Handler {
 		@Nonnull MonitoredResource monitoredResource)
 	{
 		try {
-			this.logManager = requireNonNull(LogManager.getLogManager());
+			var manager = requireNonNull(LogManager.getLogManager());
 			this.loggingOptions = requireNonNull(loggingOptions);
 			this.logging = new AtomicInit<>(() -> {
-				if (this.closed) {
+				if (this.closed.get()) {
 					throw new IllegalStateException("Handler already closed!");
 				}
 				var instance = this.loggingOptions.getService();
@@ -143,18 +146,13 @@ public class JulHandler extends Handler {
 				instance.setWriteSynchronicity(this.synchronicity);
 				return instance;
 			});
-			property("filter").map(Factory::<Filter>instance).ifPresent(this::setFilter);
-			Formatter formatter = property("formatter").map(Factory::<Formatter>instance).orElseGet(BasicFormatter::new);
-			setFormatter(formatter);
-			Level level = property("level").map(Level::parse).orElse(Level.INFO);
-			setLevel(level);
-			Severity flushSeverity = property("flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
+			setFormatter(new BasicFormatter());
+			Severity flushSeverity = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
 			setFlushSeverity(flushSeverity);
-			Synchronicity synchronicity = property("synchronicity").map(Synchronicity::valueOf)
+			Synchronicity synchronicity = property(manager, "synchronicity").map(Synchronicity::valueOf)
 					.orElse(Synchronicity.ASYNC);
 			setSynchronicity(synchronicity);
-			property("decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
-			this.maxQueueSize = property("maxQueueSize").map(Integer::valueOf).orElse(25);
+			property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
 			this.defaultWriteOptions = new WriteOption[] { WriteOption.logName(logName.orElse("java.log")),
 					WriteOption.resource(monitoredResource) };
@@ -221,38 +219,11 @@ public class JulHandler extends Handler {
 	}
 
 	@Override
-	public void publish(LogRecord record) {
-		if (!isLoggable(record)) {
-			return;
-		}
-
+	protected void doPublish(LogRecord record) {
 		var entry = new JavaUtilEntry(record);
-		queue.add(entry);
-
-		if (this.flushSeverity.compareTo(entry.severity()) <= 0) {
-			flush();  // if this an important message, flush now!
-		} else if (queue.size() > this.maxQueueSize) {
-			runAsync(this::flush);  // if queue has crept up flush in background
-		}
-	}
-
-	private void drain() {
-		if (this.queue.isEmpty()) {
-			return;
-		}
-
-		var drain = new ArrayList<LogEntry>(this.queue.size());  // avoid array re-sizing
-		try {
-			for (Entry e; (e = this.queue.poll()) != null; ) {
-				drain.add(logEntry(e, this.decorators));
-			}
-		} catch (RuntimeException e) {
-			reportError(e.getLocalizedMessage(), e, FORMAT_FAILURE);
-			return;
-		}
 
 		try {
-			logging().write(drain, this.defaultWriteOptions);
+			logging().write(Collections.singleton(logEntry(entry, this.decorators)), this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
 			return;
@@ -261,7 +232,6 @@ public class JulHandler extends Handler {
 
 	@Override
 	public void flush() {
-		drain();
 		this.logging.ifInitialised(l -> {
 			try {
 				l.flush();
@@ -273,27 +243,13 @@ public class JulHandler extends Handler {
 
 	@Override
 	public void close() {
-		if (this.closed) {
-			return;
-		}
+		super.close();
 		flush();
-		this.closed = true;
 		try {
 			this.logging.close();
 		} catch (Exception e) {
 			reportError("Unable to close!", e, CLOSE_FAILURE);
 		}
-	}
-
-	/**
-	 *
-	 * @param <T>
-	 * @param logManager
-	 * @param name
-	 * @return
-	 */
-	private Optional<String> property(@Nonnull String name) {
-		return Optional.ofNullable(this.logManager.getProperty(JulHandler.class.getName() + "." + name));
 	}
 
 
