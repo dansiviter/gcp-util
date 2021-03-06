@@ -26,7 +26,6 @@ import com.google.cloud.logging.LogEntry.Builder;
 
 import io.grpc.Context;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 
@@ -60,7 +59,7 @@ public class Decorator implements EntryDecorator {
 		}
 
 		var span = Span.current();
-		if (span == Tracer.getDefault()) {
+		if (!span.getSpanContext().isValid()) {
 			return;
 		}
 		var spanCtx = span.getSpanContext();

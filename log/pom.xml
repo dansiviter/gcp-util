@@ -12,14 +12,6 @@
 		<module.name>uk.dansiviter.gcp.log</module.name>
 	</properties>
 
-	<repositories>
-		<repository>
-			<id>dansiviter-logging</id>
-			<name>GitHub dansiviter/logging Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/dansiviter/logging</url>
-		</repository>
-	</repositories>
-
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

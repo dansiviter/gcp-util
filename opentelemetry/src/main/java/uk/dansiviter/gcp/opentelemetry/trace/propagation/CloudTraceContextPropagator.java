@@ -23,7 +23,9 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 
 /**
  * TRACE_ID/SPAN_ID;o=TRACE_TRUE
@@ -37,7 +39,7 @@ public class CloudTraceContextPropagator implements TextMapPropagator {
 	private static final List<String> FIELDS = List.of(HEADER);
 
 	@Override
-	public <C> void inject(Context context, C carrier, Setter<C> setter) {
+	public <C> void inject(Context context, C carrier, TextMapSetter<C> setter) {
 		SpanContext spanContext = Span.fromContext(context).getSpanContext();
 		if (!spanContext.isValid()) {
 			return;
@@ -51,7 +53,7 @@ public class CloudTraceContextPropagator implements TextMapPropagator {
 	}
 
 	@Override
-	public <C> Context extract(Context context, C carrier, Getter<C> getter) {
+	public <C> Context extract(Context context, C carrier, TextMapGetter<C> getter) {
 		String value = getter.get(carrier, HEADER);
 
 		if (value == null) {
