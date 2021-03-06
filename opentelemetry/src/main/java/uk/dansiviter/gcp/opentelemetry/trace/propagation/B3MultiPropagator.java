@@ -23,7 +23,9 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 
 
 /**
@@ -40,7 +42,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 	private static final List<String> FIELDS = List.of(TRACE_ID, SPAN_ID, PARENT_SPAN_ID, SAMPLED, FLAGS);
 
 	@Override
-	public <C> void inject(Context context, C carrier, Setter<C> setter) {
+	public <C> void inject(Context context, C carrier, TextMapSetter<C> setter) {
 		SpanContext spanContext = Span.fromContext(context).getSpanContext();
 		if (!spanContext.isValid()) {
 			return;
@@ -55,8 +57,9 @@ public class B3MultiPropagator implements TextMapPropagator {
 		setter.set(carrier, SAMPLED, spanContext.isSampled() ? "1" : "0");
 	}
 
+
 	@Override
-	public <C> Context extract(Context context, C carrier, Getter<C> getter) {
+	public <C> Context extract(Context context, C carrier, TextMapGetter<C> getter) {
 		String traceId = getter.get(carrier, TRACE_ID);
 		String spanId = getter.get(carrier, SPAN_ID);
 		String parentSpanId = getter.get(carrier, PARENT_SPAN_ID);
@@ -68,7 +71,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 
 		TraceState state;
 		if (parentSpanId != null) {
-			state = TraceState.builder().set(PARENT_SPAN_ID, parentSpanId).build();
+			state = TraceState.builder().put(PARENT_SPAN_ID, parentSpanId).build();
 		} else {
 			state = TraceState.getDefault();
 		}

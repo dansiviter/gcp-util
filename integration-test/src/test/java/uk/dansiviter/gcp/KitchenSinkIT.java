@@ -38,18 +38,18 @@ import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
 import com.google.cloud.logging.LoggingOptions;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.helidon.microprofile.server.Server;
+import net.bytebuddy.utility.RandomString;
 
 /**
  *
  */
 public class KitchenSinkIT {
-	private static final String TEST_ID = RandomStringUtils.randomAlphanumeric(6).toUpperCase();
+	private static final String TEST_ID = RandomString.make(6).toUpperCase();
 
 	private static Server SERVER;
 	private static URI BASE_URI;

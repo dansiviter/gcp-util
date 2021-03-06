@@ -35,24 +35,14 @@
 		<repository>
 			<id>github</id>
 			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/dansiviter/logging</url>
+			<url>https://maven.pkg.github.com/dansiviter/gcp-util</url>
 		</repository>
 		<snapshotRepository>
 			<id>github</id>
 			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/dansiviter/logging</url>
+			<url>https://maven.pkg.github.com/dansiviter/gcp-util</url>
 		</snapshotRepository>
 	</distributionManagement>
-
-	<repositories>
-		<repository>
-			<id>github</id>
-			<url>https://maven.pkg.github.com/dansiviter/*</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
 
 	<modules>
 		<module>core</module>
@@ -68,7 +58,7 @@
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
-				<version>16.4.0</version>
+				<version>19.0.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -80,7 +70,7 @@
 			<dependency>
 				<groupId>io.opentelemetry</groupId>
 				<artifactId>opentelemetry-bom</artifactId>
-				<version>0.16.0</version>
+				<version>0.17.1</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -106,7 +96,7 @@
 			<dependency>
 				<groupId>org.mockito</groupId>
 				<artifactId>mockito-junit-jupiter</artifactId>
-				<version>3.7.7</version>
+				<version>3.8.0</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>

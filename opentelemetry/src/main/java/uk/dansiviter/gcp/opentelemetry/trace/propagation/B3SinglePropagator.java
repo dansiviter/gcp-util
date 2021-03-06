@@ -23,7 +23,9 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 
 /**
  * @author Daniel Siviter
@@ -35,7 +37,7 @@ public class B3SinglePropagator implements TextMapPropagator {
 	private static final List<String> FIELDS = List.of(B3);
 
 	@Override
-	public <C> void inject(Context context, C carrier, Setter<C> setter) {
+	public <C> void inject(Context context, C carrier, TextMapSetter<C> setter) {
 		SpanContext spanContext = Span.fromContext(context).getSpanContext();
 		if (!spanContext.isValid()) {
 			return;
@@ -49,7 +51,7 @@ public class B3SinglePropagator implements TextMapPropagator {
 	}
 
 	@Override
-	public <C> Context extract(Context context, C carrier, Getter<C> getter) {
+	public <C> Context extract(Context context, C carrier, TextMapGetter<C> getter) {
 		String value = getter.get(carrier, B3);
 
 		if (value == null) {

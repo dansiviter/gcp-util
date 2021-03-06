@@ -17,10 +17,10 @@ package uk.dansiviter.gcp.opentelemetry.trace.propagation;
 
 import java.util.Map;
 
-import io.opentelemetry.context.propagation.TextMapPropagator.Getter;
-import io.opentelemetry.context.propagation.TextMapPropagator.Setter;
+import io.opentelemetry.context.propagation.TextMapGetter;
+import io.opentelemetry.context.propagation.TextMapSetter;
 
-class MapCarrier implements Getter<Map<String, String>>, Setter<Map<String, String>> {
+class MapCarrier implements TextMapGetter<Map<String, String>>, TextMapSetter<Map<String, String>> {
     private static final MapCarrier INSTANCE = new MapCarrier();
 
     private MapCarrier() { }
