@@ -17,6 +17,7 @@ package uk.dansiviter.gcp.log.jul;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +64,6 @@ public class JulHandlerTest {
 		handler.publish(record);
 		handler.flush();
 
-		verify(this.logging).write(argThat(c -> ((Collection<LogEntry>) c).size() == 1), any());
+		verify(this.logging, timeout(100)).write(argThat(c -> ((Collection<LogEntry>) c).size() == 1), any());
 	}
 }

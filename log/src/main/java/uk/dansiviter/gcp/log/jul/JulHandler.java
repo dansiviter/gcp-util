@@ -50,7 +50,6 @@ import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
-import uk.dansiviter.logging.AsyncHandler;
 
 /**
  * Inspired by {@link com.google.cloud.logging.LoggingHandler} but one major limitation is it's use of
