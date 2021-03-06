@@ -29,11 +29,11 @@ jobs:
     - name: Re-version
       if: startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/bugfix/') || startsWith(github.ref, 'refs/heads/hotfix/')
       env:
-        GITHUB_REF: ${{ secrets.PKG_RW }}
+        GITHUB_REF: ${{ github.ref }}
       run: |
         github_ref_slug="${GITHUB_REF////-}"
         mvn -B -ntp versions:set -DgenerateBackupPoms=false -DnewVersion=${github_ref_slug}-SNAPSHOT
     - name: Deploy
       env:
-        GITHUB_TOKEN: ${PKG_RW}
+        GITHUB_TOKEN: ${{ secrets.PKG_RW }}
       run: mvn -B -ntp source:jar deploy -DskipTests -DskipITs
