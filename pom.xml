@@ -28,7 +28,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-		<module.name>noop</module.name>
+		<module.name>${project.groupId}.${project.artifactId}</module.name>
 
 		<juli.version>0.2.0-SNAPSHOT</juli.version>
 	</properties>
