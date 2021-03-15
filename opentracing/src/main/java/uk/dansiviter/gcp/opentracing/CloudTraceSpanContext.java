@@ -44,10 +44,6 @@ public class CloudTraceSpanContext implements SpanContext {
 	private final int flags;
 	private final OptionalLong parentSpanId;
 
-	/**
-	 *
-	 * @param builder
-	 */
 	private CloudTraceSpanContext(Builder builder) {
 		this.traceIdLow = builder.traceIdLow;
 		this.traceIdHigh = builder.traceIdHigh;
@@ -67,22 +63,37 @@ public class CloudTraceSpanContext implements SpanContext {
 		return toHex(this.traceIdHigh, this.traceIdLow);
 	}
 
+	/**
+	 * @return high trace id.
+	 */
 	public OptionalLong traceIdHigh() {
 		return this.traceIdHigh;
 	}
 
+	/**
+	 * @return low trace id.
+	 */
 	public long traceIdLow() {
 		return this.traceIdLow;
 	}
 
+	/**
+	 * @return span id.
+	 */
 	public long spanId() {
 		return this.spanId;
 	}
 
+	/**
+	 * @return parent span id.
+	 */
 	public OptionalLong parentSpanId() {
 		return this.parentSpanId;
 	}
 
+	/**
+	 * @return parent span id.
+	 */
 	public Optional<String> toParentSpanId() {
 		var parentSpanId = parentSpanId();
 		if (parentSpanId.isPresent()) {
@@ -101,26 +112,24 @@ public class CloudTraceSpanContext implements SpanContext {
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return sampled flag.
 	 */
 	public boolean sampled() {
 		return flag(SAMPLED);
 	}
 
+
 	// --- Static Methods ---
 
 	/**
-	 *
-	 * @return
+	 * @return random id.
 	 */
 	private static long randomId() {
 		return abs(RAND.nextLong());
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return new builder instance.
 	 */
 	public static Builder builder() {
 		return builder(OptionalLong.of(randomId()), randomId(), randomId());
@@ -128,10 +137,11 @@ public class CloudTraceSpanContext implements SpanContext {
 
 	/**
 	 *
-	 * @param parent
-	 * @return
+	 * @param parent parent context.
+	 * @param sampler sampler.
+	 * @return new builder instance.
 	 */
-	public static Builder builder(Optional<CloudTraceSpanContext> parent, Sampler sampler) {
+	public static Builder builder(Optional<CloudTraceSpanContext> parent, @Nonnull Sampler sampler) {
 		return builder(
 				parent.map(CloudTraceSpanContext::traceIdHigh).orElse(OptionalLong.of(randomId())),
 				parent.map(CloudTraceSpanContext::traceIdLow).orElse(randomId()), randomId())
@@ -140,20 +150,20 @@ public class CloudTraceSpanContext implements SpanContext {
 
 	/**
 	 *
-	 * @param traceId
-	 * @param spanId
-	 * @return
+	 * @param traceId trace id.
+	 * @param spanId span id.
+	 * @return new builder instance.
 	 */
-	public static Builder builder(String traceId, String spanId) {
+	public static Builder builder(@Nonnull String traceId, String spanId) {
 		return new Builder(traceId, spanId);
 	}
 
 	/**
 	 *
-	 * @param traceIdHigh
-	 * @param traceIdLow
-	 * @param spanId
-	 * @return
+	 * @param traceIdHigh high trace id.
+	 * @param traceIdLow low trace id.
+	 * @param spanId span id.
+	 * @return new builder instance.
 	 */
 	public static Builder builder(OptionalLong traceIdHigh, long traceIdLow, long spanId) {
 		return new Builder(traceIdHigh, traceIdLow, spanId);
@@ -171,7 +181,7 @@ public class CloudTraceSpanContext implements SpanContext {
 		private OptionalLong parentSpanId = OptionalLong.empty();
 		private int flags;
 
-		private Builder(String traceId, String spanId) {
+		private Builder(@Nonnull String traceId, @Nonnull String spanId) {
 			if (traceId.length() < 1 || traceId.length() > 32) {
 				throw new IllegalArgumentException("Invalid token! Must be  1 > t <= 32. [" + traceId + "]");
 			}
@@ -189,33 +199,40 @@ public class CloudTraceSpanContext implements SpanContext {
 			this.spanId = spanId;
 		}
 
+		/**
+		 * @param parentSpanId parent span id.
+		 * @return this builder instance.
+		 */
 		public Builder parentSpanId(long parentSpanId) {
 			this.parentSpanId = OptionalLong.of(parentSpanId);
 			return this;
 		}
 
+		/**
+		 * @param parentSpanId parent span id.
+		 * @return this builder instance.
+		 */
 		public Builder parentSpanId(@Nonnull String parentSpanId) {
 			return parentSpanId(Long.parseLong(parentSpanId));
 		}
 
 		/**
 		 *
-		 * @param key
-		 * @param value
-		 * @return
+		 * @param key baggage key.
+		 * @param value baggage value.
+		 * @return this builder instance.
 		 */
-		public Builder addBaggage(String key, String value) {
+		public Builder addBaggage(@Nonnull String key, @Nonnull String value) {
 			this.baggage.put(key, value);
 			return this;
 		}
 
 		/**
-		 *
-		 * @param enabled
-		 * @return
+		 * @param sampled sampled flag.
+		 * @return this builder instance.
 		 */
-		public Builder sampled(boolean enabled) {
-			return flag(SAMPLED, enabled);
+		public Builder sampled(boolean sampled) {
+			return flag(SAMPLED, sampled);
 		}
 
 		private Builder flag(byte flag, boolean enabled) {
@@ -228,8 +245,7 @@ public class CloudTraceSpanContext implements SpanContext {
 		}
 
 		/**
-		 *
-		 * @return
+		 * @return new span context.
 		 */
 		public CloudTraceSpanContext build() {
 			return new CloudTraceSpanContext(this);

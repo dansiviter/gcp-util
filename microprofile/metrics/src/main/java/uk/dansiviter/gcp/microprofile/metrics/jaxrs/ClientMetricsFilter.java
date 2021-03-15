@@ -17,7 +17,7 @@ package uk.dansiviter.gcp.microprofile.metrics.jaxrs;
 
 import static java.time.Instant.now;
 import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
-import static uk.dansiviter.gcp.microprofile.metrics.Factory.registryType;
+import static uk.dansiviter.gcp.microprofile.metrics.RegistryTypeLiteral.registryType;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.tag;
 import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.Metrics.REQUEST_COUNT;
 import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.Metrics.RESPONSE_COUNT;
@@ -39,7 +39,6 @@ import javax.ws.rs.container.PreMatching;
 
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.Tag;
-import org.eclipse.microprofile.metrics.Timer;
 
 /**
  * @author Daniel Siviter
@@ -54,16 +53,16 @@ class ClientMetricsFilter implements ClientRequestFilter, ClientResponseFilter {
 
 	@Override
 	public void filter(ClientRequestContext req) throws IOException {
-		final MetricRegistry registry = metricRegistry();
+		var registry = metricRegistry();
 		registry.counter(REQUEST_COUNT, KIND, targetHost(req.getUri()), path(req.getUri())).inc();
 		req.setProperty(START, now());
 	}
 
 	@Override
 	public void filter(ClientRequestContext req, ClientResponseContext res) throws IOException {
-		final MetricRegistry registry = metricRegistry();
-		final Tag[] tags = { KIND, targetHost(req.getUri()), path(req.getUri()), status(res.getStatus()) };
-		final Timer timer = registry.timer(RESPONSE_LATENCY, tags);
+		var registry = metricRegistry();
+		Tag[] tags = { KIND, targetHost(req.getUri()), path(req.getUri()), status(res.getStatus()) };
+		var timer = registry.timer(RESPONSE_LATENCY, tags);
 		req.setProperty(RESPONSE_LATENCY.getName(), timer);
 		registry.counter(RESPONSE_COUNT, tags).inc();
 	}

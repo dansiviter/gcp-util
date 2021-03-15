@@ -19,9 +19,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
 /**
- *
+ * Provides an instance of {@link Config}.
  */
 public class ConfigProvider {
+	/**
+	 * @return a new config instance.
+	 */
 	@Produces
 	@ApplicationScoped
 	public Config config() {

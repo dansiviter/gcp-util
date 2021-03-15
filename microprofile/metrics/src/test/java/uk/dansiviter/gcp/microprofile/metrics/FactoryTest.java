@@ -91,10 +91,10 @@ public class FactoryTest {
 
 	@Test
 	public void toInterval() {
-		final ZonedDateTime start = ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 6, ZoneOffset.UTC);
-		final ZonedDateTime end = ZonedDateTime.of(1970, 3, 4, 5, 6, 7, 8, ZoneOffset.UTC);
+		var start = ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 6, ZoneOffset.UTC).toInstant();
+		var end = ZonedDateTime.of(1970, 3, 4, 5, 6, 7, 8, ZoneOffset.UTC).toInstant();
 
-		final TimeInterval actual = Factory.toInterval(start, end);
+		var actual = Factory.toInterval(start, end);
 		assertEquals(97445L, actual.getStartTime().getSeconds());
 		assertEquals(6, actual.getStartTime().getNanos());
 		assertEquals(5375167L, actual.getEndTime().getSeconds());

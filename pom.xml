@@ -29,19 +29,19 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
 		<module.name>noop</module.name>
+
+		<juli.version>0.2.0-SNAPSHOT</juli.version>
 	</properties>
 
 	<distributionManagement>
-		<repository>
-			<id>github</id>
-			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/dansiviter/gcp-util</url>
-		</repository>
 		<snapshotRepository>
-			<id>github</id>
-			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/dansiviter/gcp-util</url>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
 	</distributionManagement>
 
 	<modules>
@@ -55,6 +55,30 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>com.google.code.findbugs</groupId>
+				<artifactId>jsr305</artifactId>
+				<version>3.0.2</version>
+				<scope>provided</scope>
+			</dependency>
+		
+			<dependency>
+				<groupId>uk.dansiviter.juli</groupId>
+				<artifactId>core</artifactId>
+				<version>${juli.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>uk.dansiviter.juli</groupId>
+				<artifactId>cdi</artifactId>
+				<version>${juli.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>uk.dansiviter.juli</groupId>
+				<artifactId>processor</artifactId>
+				<version>${juli.version}</version>
+				<scope>provided</scope>
+			</dependency>
+
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
@@ -116,12 +140,28 @@
 		</dependencies>
 	</dependencyManagement>
 
+	<repositories>
+		<repository>
+			<id>snpsht</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+			<releases><enabled>false</enabled></releases>
+			<snapshots><enabled>true</enabled></snapshots>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
 			<artifactId>jsr305</artifactId>
-			<version>3.0.2</version>
-			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>processor</artifactId>
 		</dependency>
 
 

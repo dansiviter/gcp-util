@@ -13,28 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.microprofile.metrics;
+package uk.dansiviter.gcp.opentracing;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import static uk.dansiviter.juli.annotations.Message.Level.DEBUG;
+import static uk.dansiviter.juli.annotations.Message.Level.WARN;
 
-import com.google.cloud.MonitoredResource;
+import com.google.api.gax.rpc.ApiException;
 
-import uk.dansiviter.gcp.ResourceType;
+import uk.dansiviter.juli.annotations.Log;
+import uk.dansiviter.juli.annotations.Message;
 
 /**
- * Use the {@link javax.enterprise.inject.Specializes} mechanism to override this if required.
- *
- * @author Daniel Siviter
- * @since v1.0 [6 Dec 2019]
+ * Defines the logger.
  */
-@ApplicationScoped
-public class MonitoredResourceProvider {
-	/**
-	 * @return the monitored resource.
-	 */
-	@Produces
-	public MonitoredResource monitoredResource() {
-		return ResourceType.monitoredResource();
-	}
+@Log
+public interface Logger {
+  @Message(value = "Flushing spans... [size={0}]", level = DEBUG)
+  void flush(int size);
+
+  @Message(value = "Unable to persist span!", level = WARN)
+  void persistFail(ApiException e);
 }

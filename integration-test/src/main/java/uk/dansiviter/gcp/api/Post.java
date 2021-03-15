@@ -15,6 +15,9 @@
  */
 package uk.dansiviter.gcp.api;
 
+/**
+ * Post model.
+ */
 public class Post {
 	private int userId;
 	private int id;

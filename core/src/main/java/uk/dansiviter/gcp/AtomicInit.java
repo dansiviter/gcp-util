@@ -40,13 +40,17 @@ public class AtomicInit<T> implements AutoCloseable {
 
 	private final Supplier<T> supplier;
 
+	/**
+	 * Constructs new atomic initialiser.
+	 *
+	 * @param supplier the supplier to call to initialise.
+	 */
 	public AtomicInit(@Nonnull Supplier<T> supplier) {
 		this.supplier = requireNonNull(supplier);
 	}
 
 	/**
-	 *
-	 * @return the
+	 * @return the contained value, initialising if required.
 	 */
 	public T get() {
 		T value;
@@ -120,11 +124,11 @@ public class AtomicInit<T> implements AutoCloseable {
 
 	/**
 	 *
-	 * @param <T>
+	 * @param <T> the type to initialise.
 	 * @param supplier the supplier to get an instance.
-	 * @return
+	 * @return a new instance.
 	 */
-	public static <T> AtomicInit<T> atomic(Supplier<T> supplier) {
+	public static <T> AtomicInit<T> atomic(@Nonnull Supplier<T> supplier) {
 		return new AtomicInit<>(supplier);
 	}
 }

@@ -36,7 +36,6 @@ import com.google.devtools.cloudtrace.v2.SpanName;
 import com.google.devtools.cloudtrace.v2.TruncatableString;
 import com.google.protobuf.Timestamp;
 
-import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.ResourceType.Label;
 import uk.dansiviter.gcp.opentracing.CloudTraceSpan.Log;
 
@@ -95,7 +94,7 @@ public class Factory {
 	com.google.devtools.cloudtrace.v2.Span toSpan(CloudTraceSpan span) {
 		var spanId = span.context().toSpanId();
 		var spanName = SPAN_NAME_BUILDER.get()
-            .setProject(ResourceType.get(this.resource, Label.PROJECT_ID).get())
+            .setProject(Label.PROJECT_ID.get(this.resource).get())
             .setTrace(span.context().toTraceId())
             .setSpan(spanId)
 			.build();

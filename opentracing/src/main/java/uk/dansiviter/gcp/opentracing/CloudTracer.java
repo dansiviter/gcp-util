@@ -29,8 +29,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.Nonnull;
 
@@ -50,6 +48,7 @@ import uk.dansiviter.gcp.GaxUtil;
 import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.opentracing.propagation.B3MultiPropagator;
 import uk.dansiviter.gcp.opentracing.propagation.Propagator;
+import uk.dansiviter.juli.LogProducer;
 
 /**
  * A OpenTracing {@link Tracer} that pushes the traces to GCP Stackdriver.
@@ -58,7 +57,7 @@ import uk.dansiviter.gcp.opentracing.propagation.Propagator;
  * @since v1.0 [13 Dec 2019]
  */
 public class CloudTracer implements Tracer {
-	private static final Logger LOG = Logger.getLogger(CloudTracer.class.getName());
+	private static final Logger LOG = LogProducer.log(Logger.class);
 
 	private final BlockingQueue<CloudTraceSpan> spans = new LinkedBlockingQueue<>();
 
@@ -73,7 +72,7 @@ public class CloudTracer implements Tracer {
 
 	CloudTracer(final Builder builder) {
 		this.resource = builder.resource.orElseGet(() -> ResourceType.monitoredResource());
-		this.projectName = ProjectName.of(builder.projectId.orElse(ResourceType.get(this.resource, PROJECT_ID).get()));
+		this.projectName = ProjectName.of(builder.projectId.orElse(PROJECT_ID.get(this.resource).get()));
 		this.client = builder.client.orElseGet(CloudTracer::defaultTraceServiceClient);
 		this.propagators = Map.copyOf(builder.propegators);
 		this.sampler = builder.sampler.orElse(defaultSampler());
@@ -137,30 +136,25 @@ public class CloudTracer implements Tracer {
 		return propagator;
 	}
 
-	/**
-	 *
-	 */
 	private void flush() {
 		var spans = new LinkedList<CloudTraceSpan>();
 		this.spans.drainTo(spans);
 		if (spans.isEmpty()) {
 			return;
 		}
-		var converted =
-				spans.stream().map(factory::toSpan).collect(toList());
-		LOG.log(Level.FINE, "Flushing spans... [size={0}]", converted.size());
+		var converted = spans.stream().map(factory::toSpan).collect(toList());
+		LOG.flush(converted.size());
 		try {
 			this.client.batchWriteSpans(projectName, converted);
 		} catch (ApiException e) {
-			LOG.log(Level.WARNING, "Unable to persist span!", e);
+			LOG.persistFail(e);
 		}
 	}
 
 	/**
-	 *
-	 * @param span
+	 * @param span span to persist.
 	 */
-	public void persist(final CloudTraceSpan span) {
+	public void persist(CloudTraceSpan span) {
 		if (!span.context().sampled()) {
 			return;
 		}
@@ -168,8 +162,7 @@ public class CloudTracer implements Tracer {
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return sampler.
 	 */
 	Sampler sampler() {
 		return this.sampler;
@@ -179,8 +172,8 @@ public class CloudTracer implements Tracer {
 	// --- Static Methods ---
 
 	/**
-	 *
-	 * @return
+	 * @return default trace service client instance.
+	 * @throws IllegalArgumentException if it cannot be created.
 	 */
 	private static TraceServiceClient defaultTraceServiceClient() {
 		try {
@@ -224,42 +217,45 @@ public class CloudTracer implements Tracer {
 
 		/**
 		 * @param client the client to set
+		 * @return this builder instance.
 		 */
-		public Builder client(final TraceServiceClient client) {
+		public Builder client(@Nonnull TraceServiceClient client) {
 			this.client = Optional.of(client);
 			return this;
 		}
 
 		/**
 		 * @param projectId the projectId to set
+		 * @return this builder instance.
 		 */
-		public Builder projectId(final String projectId) {
+		public Builder projectId(@Nonnull String projectId) {
 			this.projectId = Optional.of(projectId);
 			return this;
 		}
 
 		/**
 		 * @param resource the resource to set
+		 * @return this builder instance.
 		 */
-		public Builder resource(final MonitoredResource resource) {
+		public Builder resource(@Nonnull MonitoredResource resource) {
 			this.resource = Optional.of(resource);
 			return this;
 		}
 
 		/**
 		 *
-		 * @param format
-		 * @param propagator
-		 * @return
+		 * @param format format.
+		 * @param propagator propagator.
+		 * @return this builder instance.
 		 */
-		public Builder add(final Format<?> format, final Propagator<?> propagator) {
+		public Builder add(@Nonnull Format<?> format, @Nonnull Propagator<?> propagator) {
 			this.propegators.put(format, propagator);
 			return this;
 		}
 
 		/**
 		 * @param sampler the sampler to set
-		 * @return
+		 * @return this builder instance.
 		 */
 		public Builder sampler(Sampler sampler) {
 			this.sampler = Optional.of(sampler);
@@ -267,8 +263,8 @@ public class CloudTracer implements Tracer {
 		}
 
 		/**
-		 * @param scopeManager
-		 * @return
+		 * @param scopeManager scope manager.
+		 * @return this builder instance.
 		 */
 		public Builder scopeManager(ScopeManager scopeManager) {
 			this.scopeManager = Optional.of(scopeManager);
@@ -276,8 +272,8 @@ public class CloudTracer implements Tracer {
 		}
 
 		/**
-		 * @param executor
-		 * @return
+		 * @param executor executor.
+		 * @return this builder instance.
 		 */
 		public Builder executor(ScheduledExecutorService executor) {
 			this.executor = Optional.of(executor);
@@ -285,8 +281,7 @@ public class CloudTracer implements Tracer {
 		}
 
 		/**
-		 *
-		 * @return
+		 * @return build new tracer.
 		 */
 		public CloudTracer build() {
 			return new CloudTracer(this);

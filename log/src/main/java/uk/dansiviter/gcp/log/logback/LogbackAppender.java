@@ -77,16 +77,17 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	private Logging logging;
 
 	/**
-	 *
+	 * A new appender instance with default {@link LoggingOptions} and auto-detected {@link MonitoredResource}.
 	 */
 	public LogbackAppender() {
 		this(LoggingOptions.getDefaultInstance(), ResourceType.monitoredResource());
 	}
 
 	/**
+	 * A new appender instance.
 	 *
-	 * @param loggingOptions
-	 * @param monitoredResource
+	 * @param loggingOptions the logging options.
+	 * @param monitoredResource the monitored resource.
 	 */
 	LogbackAppender(
 		@Nonnull LoggingOptions loggingOptions,
@@ -101,18 +102,30 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 		}
 	}
 
+	/**
+	 * @return the log name.
+	 */
 	public String getLogName() {
 		return logName;
 	}
 
+	/**
+	 * @param logName the log name to set.
+	 */
 	public void setLogName(String logName) {
 		this.logName = logName;
 	}
 
+	/**
+	 * @return the write synchronicity.
+	 */
 	public Synchronicity getSynchronicity() {
 		return synchronicity;
 	}
 
+	/**
+	 * @param synchronicity the write synchronicity to set.
+	 */
 	public void setSynchronicity(Synchronicity synchronicity) {
 		this.synchronicity = synchronicity;
 		if (isStarted()) {
@@ -120,10 +133,16 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 		}
 	}
 
+	/**
+	 * @return the flush severity.
+	 */
 	public Severity getFlushSeverity() {
 		return flushSeverity;
 	}
 
+	/**
+	 * @param flushSeverity the flush severity to set.
+	 */
 	public void setFlushSeverity(Severity flushSeverity) {
 		this.flushSeverity = flushSeverity;
 		if (isStarted()) {
@@ -131,10 +150,16 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 		}
 	}
 
+	/**
+	 * @param decorators the decorators to set.
+	 */
 	public void setDecorators(String decorators) {
 		this.decorators.addAll(Factory.decorators(decorators));
 	}
 
+	/**
+	 * @return the decorators.
+	 */
 	public String getDecorators() {
 		return decorators.stream().map(d -> d.getClass().getName()).collect(joining(","));
 	}

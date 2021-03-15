@@ -26,21 +26,18 @@ import static uk.dansiviter.gcp.Util.threadLocal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import javax.enterprise.util.AnnotationLiteral;
+import javax.annotation.Nonnull;
 
 import com.google.api.Distribution;
 import com.google.api.Distribution.BucketOptions;
-import com.google.api.Distribution.BucketOptions.Explicit;
 import com.google.api.Distribution.BucketOptions.Exponential;
-import com.google.api.Distribution.BucketOptions.Linear;
 import com.google.api.LabelDescriptor;
 import com.google.api.MetricDescriptor;
 import com.google.api.MetricDescriptor.MetricKind;
@@ -66,15 +63,13 @@ import org.eclipse.microprofile.metrics.MetricType;
 import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.Sampling;
 import org.eclipse.microprofile.metrics.Tag;
-import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 /**
  *
  * @author Daniel Siviter
  * @since v1.0 [13 Dec 2019]
  */
-public enum Factory {
-	;
+public enum Factory { ;
 	private static final ThreadLocal<MetricDescriptor.Builder> METRIC_DESC_BUILDER =
 			threadLocal(MetricDescriptor::newBuilder, MetricDescriptor.Builder::clear);
 	private static final ThreadLocal<LabelDescriptor.Builder> LABEL_BUILDER =
@@ -92,17 +87,14 @@ public enum Factory {
 	private static final ThreadLocal<Distribution.Builder> DISTRIBUTION_BUILDER =
 			threadLocal(Distribution::newBuilder, Distribution.Builder::clear);
 
-	private static final RegistryTypeLiteral BASE_TYPE = new RegistryTypeLiteral(Type.BASE);
-	private static final RegistryTypeLiteral VENDOR_TYPE = new RegistryTypeLiteral(Type.VENDOR);
-	private static final RegistryTypeLiteral APPLICATION_TYPE = new RegistryTypeLiteral(Type.APPLICATION);
-
 	/**
+	 * Create a new time interval.
 	 *
-	 * @param start
-	 * @param end
-	 * @return
+	 * @param start the start time.
+	 * @param end the end time.
+	 * @return the new instance.
 	 */
-	public static TimeInterval toInterval(ZonedDateTime start, ZonedDateTime end) {
+	public static TimeInterval toInterval(@Nonnull Instant start, @Nonnull Instant end) {
 		final TimeInterval.Builder b = INTERVAL_BUILDER.get();
 		b.setStartTime(toTimestamp(start));
 		b.setEndTime(toTimestamp(end));
@@ -110,24 +102,31 @@ public enum Factory {
 	}
 
 	/**
+	 * Creates a new timestamp instant.
 	 *
-	 * @param t
-	 * @return
+	 * @param t the input datetime.
+	 * @return the new instance.
 	 */
-	static Timestamp toTimestamp(ZonedDateTime t) {
-		return TIMESTAMP_BUILDER.get().setSeconds(t.toEpochSecond()).setNanos(t.getNano()).build();
+	static Timestamp toTimestamp(@Nonnull Instant i) {
+		return TIMESTAMP_BUILDER.get().setSeconds(i.getEpochSecond()).setNanos(i.getNano()).build();
 	}
 
 	/**
+	 * Creates a new descriptor instance.
 	 *
-	 * @param registry
-	 * @param id
-	 * @param metric
-	 * @return
+	 * @param config the configuration.
+	 * @param registry the registry.
+	 * @param type the type.
+	 * @param id the metric ID.
+	 * @param snapshot the metrics snapshot.
+	 * @return the created descriptor.
 	 */
 	public static MetricDescriptor toDescriptor(
-			Config config, MetricRegistry registry,
-			Type type, MetricID id, Snapshot snapshot)
+		@Nonnull Config config,
+		@Nonnull MetricRegistry registry,
+		@Nonnull Type type,
+		@Nonnull MetricID id,
+		@Nonnull Snapshot snapshot)
 	{
 		final String name = id.getName();
 		final String metricType = format("custom.googleapis.com/microprofile/%s/%s", type.getName(), name);
@@ -146,23 +145,27 @@ public enum Factory {
 
 	/**
 	 *
-	 * @param config
-	 * @param key
-	 * @param value
-	 * @return
+	 * @param config the configuration.
+	 * @param key the key.
+	 * @param value the value.
+	 * @return the builder instance.
 	 */
-	private static LabelDescriptor.Builder labelDescriptor(Config config, String key, String value) {
-		final LabelDescriptor.Builder builder = LABEL_BUILDER.get().setKey(key).setValueType(getValueType(value));
+	private static LabelDescriptor.Builder labelDescriptor(
+		@Nonnull Config config,
+		@Nonnull String key,
+		@Nonnull String value)
+	{
+		var builder = LABEL_BUILDER.get().setKey(key).setValueType(getValueType(value));
 		config.labelDescription(key).ifPresent(builder::setDescription);
 		return builder;
 	}
 
 	/**
 	 *
-	 * @param value
-	 * @return
+	 * @param value the value to test.
+	 * @return the type of value.
 	 */
-	private static LabelDescriptor.ValueType getValueType(String value) {
+	private static LabelDescriptor.ValueType getValueType(@Nonnull String value) {
 		try {
 			Long.parseLong(value);
 			return LabelDescriptor.ValueType.INT64;
@@ -177,8 +180,8 @@ public enum Factory {
 
 	/**
 	 *
-	 * @param metric
-	 * @return
+	 * @param snapshot the metrics snapshot.
+	 * @return the value type.
 	 */
 	private static Optional<ValueType> getValueType(Snapshot snapshot) {
 		if (snapshot instanceof GaugeSnapshot) {
@@ -266,7 +269,11 @@ public enum Factory {
 	 * @return
 	 * @see MetricUnits
 	 */
-	private static String convertPrefix(String original, String oldUnit, String newUnit) {
+	private static String convertPrefix(
+		@Nonnull String original,
+		@Nonnull String oldUnit,
+		@Nonnull String newUnit)
+	{
 		if (original.equals(oldUnit)) {
 			return newUnit;
 		}
@@ -298,9 +305,10 @@ public enum Factory {
 	}
 
 	/**
+	 * Create new snapshot instance for metric.
 	 *
-	 * @param metric
-	 * @return
+	 * @param metric the metric to test.
+	 * @return the snapshot.
 	 */
 	static Optional<Snapshot> toSnapshot(Metric metric) {
 		final Snapshot snapshot;
@@ -357,35 +365,36 @@ public enum Factory {
 	}
 
 	private static List<Bucket> explicitBuckets(BucketOptions options) {
-		final Explicit explicit = options.getExplicitBuckets();
-		final List<Bucket> buckets = new LinkedList<>();
-		for (Double upper : explicit.getBoundsList()) {
+		var explicit = options.getExplicitBuckets();
+		var buckets = new LinkedList<Bucket>();
+		for (var upper : explicit.getBoundsList()) {
 			buckets.add(new Bucket(upper.longValue()));
 		}
 		return buckets;
 	}
 
 	private static List<Bucket> linearBuckets(BucketOptions options) {
-		final Linear linear = options.getLinearBuckets();
-		final List<Bucket> buckets = new LinkedList<>();
+		var linear = options.getLinearBuckets();
+		var buckets = new LinkedList<Bucket>();
 		for (int i = 0; i <= linear.getNumFiniteBuckets(); i++) {
-			final long upper = round(linear.getOffset() + linear.getWidth() * i);
+			var upper = round(linear.getOffset() + linear.getWidth() * i);
 			buckets.add(new Bucket(upper));
 		}
 		return buckets;
 	}
 
 	/**
+	 * Creates a new tag instance.
 	 *
-	 * @param name
-	 * @param value
-	 * @return
+	 * @param name name of the tag.
+	 * @param value the value if the tag.
+	 * @return new tag instance.
 	 */
-	public static Tag tag(String name, String value) {
+	public static Tag tag(@Nonnull String name, @Nonnull String value) {
 		return new Tag(name, value);
 	}
 
-	private static Optional<TimeUnit> timeUnit(String unit) {
+	private static Optional<TimeUnit> timeUnit(@Nonnull String unit) {
 		switch (unit.toLowerCase()) {
 		case "ms":
 			return Optional.of(MILLISECONDS);
@@ -398,18 +407,6 @@ public enum Factory {
 		}
 	}
 
-	public static RegistryType registryType(Type type) {
-		switch (type) {
-		case BASE:
-			return BASE_TYPE;
-		case VENDOR:
-			return VENDOR_TYPE;
-		case APPLICATION:
-			return APPLICATION_TYPE;
-		default:
-			throw new IllegalArgumentException("Unknown type! [" + type + "]");
-		}
-	}
 
 	// --- Inner Classes ---
 
@@ -430,20 +427,6 @@ public enum Factory {
 		}
 	}
 
-	@SuppressWarnings("all")
-	private static class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> implements RegistryType {
-		private final Type type;
-
-		RegistryTypeLiteral(Type type) {
-			this.type = type;
-		}
-
-		@Override
-		public Type type() {
-			return this.type;
-		}
-	}
-
 	/**
 	 *
 	 */
@@ -460,7 +443,7 @@ public enum Factory {
 				MetricID id,
 				MetricDescriptor descriptor)
 		{
-			final Map<String, String> metricLabels = new HashMap<>();
+			var metricLabels = new HashMap<String, String>();
 			id.getTags().forEach(metricLabels::put);
 			return TIMESERIES_BUILDER.get()
 					.setMetric(com.google.api.Metric.newBuilder().setType(descriptor.getType())
@@ -485,7 +468,7 @@ public enum Factory {
 		}
 
 		private TypedValue value(MetricDescriptor descriptor) {
-			final TypedValue.Builder typedValue = TYPED_VALUE_BUILDER.get();
+			var typedValue = TYPED_VALUE_BUILDER.get();
 			switch (descriptor.getValueType()) {
 			case DOUBLE:
 				typedValue.setDoubleValue(((Number) value()).doubleValue());
@@ -505,7 +488,7 @@ public enum Factory {
 				MetricID id,
 				MetricDescriptor descriptor)
 		{
-			final Point point = POINT_BUILDER.get()
+			var point = POINT_BUILDER.get()
 					.setInterval(INTERVAL_BUILDER.get().setEndTime(ctx.interval.getEndTime()).build())
 					.setValue(value(descriptor)).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
@@ -528,7 +511,7 @@ public enum Factory {
 				MetricID id,
 				MetricDescriptor descriptor)
 		{
-			final Point point = POINT_BUILDER.get()
+			var point = POINT_BUILDER.get()
 					.setInterval(INTERVAL_BUILDER.get().setEndTime(ctx.interval.getEndTime()).build())
 					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
@@ -551,7 +534,7 @@ public enum Factory {
 				MetricID id,
 				MetricDescriptor descriptor)
 		{
-			final Point point = POINT_BUILDER.get()
+			var point = POINT_BUILDER.get()
 					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).setStartTime(ctx.startTime).build())
 					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
@@ -571,18 +554,17 @@ public enum Factory {
 				MetricID id,
 				MetricDescriptor descriptor)
 		{
-			BucketOptions options = ctx.config.bucketOptions(TIMER, descriptor.getUnit());
-			final Distribution.Builder distribution = DISTRIBUTION_BUILDER.get()
+			var options = ctx.config.bucketOptions(TIMER, descriptor.getUnit());
+			var distribution = DISTRIBUTION_BUILDER.get()
 					.setMean(this.snapshot.getMean()).setCount(this.snapshot.size())
 					.setSumOfSquaredDeviation(pow(this.snapshot.getStdDev(), 2)).setBucketOptions(options);
 
 			// if a time unit then convert it
-			final Optional<TimeUnit> timeUnit = timeUnit(descriptor.getUnit());
+			var timeUnit = timeUnit(descriptor.getUnit());
 			buckets(options, snapshot, l -> timeUnit.map(tu -> tu.convert(l, NANOSECONDS)).orElse(l), distribution);
 
-			final TimeSeries.Builder builder = Snapshot.super.timeseries(ctx, id, descriptor);
-
-			final Point point = POINT_BUILDER.get()
+			var builder = Snapshot.super.timeseries(ctx, id, descriptor);
+			var point = POINT_BUILDER.get()
 					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).clearStartTime().build())
 					.setValue(TYPED_VALUE_BUILDER.get().setDistributionValue(distribution).build()).build();
 			return builder.addPoints(point);
@@ -602,7 +584,7 @@ public enum Factory {
 				MetricID id,
 				MetricDescriptor descriptor)
 		{
-			final Point point = POINT_BUILDER.get()
+			var point = POINT_BUILDER.get()
 					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).clearStartTime().build())
 					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.count).build()).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);

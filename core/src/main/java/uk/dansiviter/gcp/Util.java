@@ -25,11 +25,24 @@ import java.util.function.UnaryOperator;
  */
 public enum Util { ;
 	/**
+	 * Creates a {@link ThreadLocal} that uses can supply and initial value
 	 *
-	 * @param <T>
-	 * @param initial
-	 * @param reset
-	 * @return
+	 * @param <T> the type to store.
+	 * @param initial the initial value.
+	 * @return the thread local instance.
+	 */
+	public static <T> ThreadLocal<T> threadLocal(Supplier<T> initial) {
+		return threadLocal(initial, v -> v);
+	}
+
+	/**
+	 * Creates a {@link ThreadLocal} that uses can supply and initial value and an operator to reset on each call. This
+	 * is useful for factories were creating new instances is potentially wasteful and help reduce garbage.
+	 *
+	 * @param <T> the type to store.
+	 * @param initial the initial value.
+	 * @param reset the reset function.
+	 * @return the tread local instance.
 	 */
 	public static <T> ThreadLocal<T> threadLocal(Supplier<T> initial, UnaryOperator<T> reset) {
 		return new ThreadLocal<T>() {

@@ -40,14 +40,14 @@ import uk.dansiviter.gcp.ResourceType;
  * @since v1.0 [13 Feb 2021]
  */
 public class Exporter implements SpanExporter {
-    private final MonitoredResource resource;
+	private final MonitoredResource resource;
 	private final ProjectName projectName;
 	private final TraceServiceClient client;
 	private final Factory factory;
 
 	Exporter(final Builder builder) {
 		this.resource = builder.resource.orElseGet(() -> ResourceType.monitoredResource());
-		this.projectName = ProjectName.of(builder.projectId.orElseGet(() -> ResourceType.get(this.resource, PROJECT_ID).get()));
+		this.projectName = ProjectName.of(builder.projectId.orElseGet(() -> PROJECT_ID.get(this.resource).get()));
 		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);
         this.factory = new Factory(this.resource, this.projectName);
     }
@@ -106,6 +106,7 @@ public class Exporter implements SpanExporter {
 
 		/**
 		 * @param client the client to set
+		 * @return this builder instance.
 		 */
 		public Builder client(@Nonnull TraceServiceClient client) {
 			this.client = Optional.of(client);
@@ -114,6 +115,7 @@ public class Exporter implements SpanExporter {
 
 		/**
 		 * @param projectId the projectId to set
+		 * @return this builder instance.
 		 */
 		public Builder projectId(@Nonnull String projectId) {
 			this.projectId = Optional.of(projectId);
@@ -122,6 +124,7 @@ public class Exporter implements SpanExporter {
 
 		/**
 		 * @param resource the resource to set
+		 * @return this builder instance.
 		 */
 		public Builder resource(@Nonnull MonitoredResource resource) {
 			this.resource = Optional.of(resource);
@@ -129,8 +132,7 @@ public class Exporter implements SpanExporter {
 		}
 
 		/**
-		 *
-		 * @return
+		 * @return build new exporter.
 		 */
 		public Exporter build() {
 			return new Exporter(this);

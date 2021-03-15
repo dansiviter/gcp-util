@@ -45,8 +45,8 @@ public class ClientMetricsReaderInterceptor implements ReaderInterceptor {
 		} finally {
 			final Timer timer = (Timer) context.getProperty(RESPONSE_LATENCY.getName());
 			if (timer != null) {
-				final Instant stop = now();
-				final Instant start = (Instant) context.getProperty(START);
+				var stop = now();
+				var start = (Instant) context.getProperty(START);
 				timer.update(between(start, stop).toNanos(), NANOSECONDS);
 			}
 		}

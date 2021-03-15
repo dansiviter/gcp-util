@@ -37,16 +37,14 @@ public interface Sampler extends Predicate<Optional<CloudTraceSpanContext>> {
 	Sampler DEFAULT = parentOverriding(probablistic(.01));
 
 	/**
-	 *
-	 * @return
+	 * @return always sampler instance.
 	 */
 	public static Sampler alwaysSample() {
 		return ALWAYS;
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return never sample instance.
 	 */
 	public static Sampler neverSample() {
 		return NEVER;
@@ -54,17 +52,15 @@ public interface Sampler extends Predicate<Optional<CloudTraceSpanContext>> {
 
 
 	/**
-	 *
-	 * @return
+	 * @return default sampler instance.
 	 */
 	public static Sampler defaultSampler() {
 		return DEFAULT;
 	}
 
 	/**
-	 *
-	 * @param probability
-	 * @return
+	 * @param probability the probability of sampling.
+	 * @return sampler instance.
 	 */
 	public static Sampler probablistic(double probability) {
 		final long upper;
@@ -79,18 +75,15 @@ public interface Sampler extends Predicate<Optional<CloudTraceSpanContext>> {
 	}
 
 	/**
-	 *
-	 * @param sampler
-	 * @return
+	 * @return a sampler that uses the parent context to decide.
 	 */
 	public static Sampler parent() {
 		return p -> p.isPresent() ? p.get().sampled() : false;
 	}
 
 	/**
-	 *
-	 * @param sampler
-	 * @return
+	 * @param sampler sampler that is overriden by the parent context.
+	 * @return sampler instance.
 	 */
 	public static Sampler parentOverriding(Sampler sampler) {
 		return p -> p.isPresent() ? p.get().sampled() : sampler.test(p);

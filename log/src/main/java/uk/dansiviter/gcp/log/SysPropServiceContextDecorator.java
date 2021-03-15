@@ -31,6 +31,9 @@ import com.google.cloud.logging.LogEntry.Builder;
 public class SysPropServiceContextDecorator implements EntryDecorator {
 	private final EntryDecorator delegate;
 
+	/**
+	 * Creates a new instance.
+	 */
 	public SysPropServiceContextDecorator() {
 		this.delegate = EntryDecorator.serviceContext(
 			getProperty("serviceContext.service"),

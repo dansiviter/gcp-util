@@ -38,10 +38,20 @@ public class MessageMaskingDecorator implements EntryDecorator {
 
 	private final List<Pattern> patterns;
 
+	/**
+	 * Creates a masking decorator for the given patterns.
+	 *
+	 * @param patterns regular expression patterns.
+	 */
 	public MessageMaskingDecorator(String... patterns) {
 		this.patterns = stream(patterns).map(Pattern::compile).collect(toUnmodifiableList());
 	}
 
+		/**
+	 * Creates a masking decorator for the given patterns.
+	 *
+	 * @param patterns regular expression patterns.
+	 */
 	public MessageMaskingDecorator(Pattern... patterns) {
 		this.patterns = asList(patterns);
 	}

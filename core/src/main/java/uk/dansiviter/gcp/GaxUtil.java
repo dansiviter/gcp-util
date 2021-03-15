@@ -26,8 +26,7 @@ import com.google.api.gax.core.BackgroundResource;
 public enum GaxUtil{ ;
 
 	/**
-	 *
-	 * @param resource
+	 * @param resource the resource to close.
 	 */
 	public static void close(BackgroundResource resource) {
 		if (resource == null) {

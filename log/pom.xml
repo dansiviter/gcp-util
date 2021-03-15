@@ -20,14 +20,13 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>google-cloud-logging</artifactId>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>core</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>com.lmax</groupId>
-			<artifactId>disruptor</artifactId>
-			<version>3.4.2</version>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-logging</artifactId>
 		</dependency>
 
 		<dependency>

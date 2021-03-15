@@ -83,6 +83,9 @@ public class Log4j2Appender extends AbstractAppender {
 
 	private Logging logging;
 
+	/**
+	 * @param builder the builder.
+	 */
 	protected Log4j2Appender(Builder<?> builder) {
 		super(builder.getName(), builder.getFilter(), builder.getOrCreateLayout(), builder.isIgnoreExceptions(),
 				builder.getPropertyArray());
@@ -96,6 +99,9 @@ public class Log4j2Appender extends AbstractAppender {
 				WriteOption.resource(builder.monitoredResource) };
 	}
 
+	/**
+	 * @return the entry decorators.
+	 */
 	List<EntryDecorator> getDecorators() {
 		return decorators;
 	}
@@ -159,17 +165,23 @@ public class Log4j2Appender extends AbstractAppender {
 		return super.toString() + "{name=" + getName() + '}';
 	}
 
+
 	// --- Static Methods ---
 
+	/**
+	 * New builder instance.
+	 *
+	 * @param <B> builder type.
+	 * @return a new instance of the builder.
+	 */
 	@PluginBuilderFactory
 	public static <B extends Builder<B>> B newBuilder() {
 		return new Builder<B>().asBuilder();
 	}
 
 	/**
-	 *
-	 * @param level
-	 * @return
+	 * @param level the severity level.
+	 * @return the equivalent severity or {@link Severity#DEFAULT}.
 	 */
 	private static Severity severity(Level level) {
 		if (Level.ERROR.equals(level)) {
@@ -184,22 +196,32 @@ public class Log4j2Appender extends AbstractAppender {
 		return Severity.DEFAULT;
 	}
 
+	/**
+	 * Coverts {@link DecoratorItem} to {@link EntryDecorator}.
+	 *
+	 * @param decorators the items to convert.
+	 * @return the list of decorators.
+	 */
 	public static List<EntryDecorator> decorators(DecoratorItem... decorators) {
 		if (decorators == null || decorators.length == 0) {
 			return Collections.emptyList();
 		}
-		return Arrays.stream(decorators).map(DecoratorItem::getClazz).map(Factory::decorator).collect(toList());
+		return Arrays.stream(decorators).map(DecoratorItem::getClassName).map(Factory::decorator).collect(toList());
 	}
 
 
 	// --- Inner Classes ---
 
 	/**
-	 *
+	 * A Log4j entry.
 	 */
 	private class Log4J2Entry implements Entry {
 		private final LogEvent delegate;
 
+		/**
+		 *
+		 * @param delegate
+		 */
 		Log4J2Entry(LogEvent delegate) {
 			this.delegate = delegate;
 		}
@@ -288,26 +310,46 @@ public class Log4j2Appender extends AbstractAppender {
 		private LoggingOptions loggingOptions;
 		private MonitoredResource monitoredResource;
 
+		/**
+		 * @param synchronicity the write synchronicity to set.
+		 * @return this builder.
+		 */
 		public B setSynchronicity(Synchronicity synchronicity) {
 			this.synchronicity = synchronicity;
 			return asBuilder();
 		}
 
+		/**
+		 * @param flushSeverity the flush severity to set.
+		 * @return this builder.
+		 */
 		public B setFlushSeverity(Severity flushSeverity) {
 			this.flushSeverity = flushSeverity;
 			return asBuilder();
 		}
 
+		/**
+		 * @param decorators the decorators to set.
+		 * @return this builder.
+		 */
 		public B setDecorators(DecoratorItem... decorators) {
 			this.decorators = decorators;
 			return asBuilder();
 		}
 
+		/**
+		 * @param loggingOptions the logging options to set.
+		 * @return this builder.
+		 */
 		public B setLoggingOptions(LoggingOptions loggingOptions) {
 			this.loggingOptions = loggingOptions;
 			return asBuilder();
 		}
 
+		/**
+		 * @param monitoredResource the monitored instance to set.
+		 * @return this builder.
+		 */
 		public B setMonitoredResource(MonitoredResource monitoredResource) {
 			this.monitoredResource = monitoredResource;
 			return asBuilder();

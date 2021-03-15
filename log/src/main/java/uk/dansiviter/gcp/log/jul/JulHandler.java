@@ -50,12 +50,12 @@ import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
+import uk.dansiviter.juli.AsyncHandler;
 
 /**
  * Inspired by {@link com.google.cloud.logging.LoggingHandler} but one major limitation is it's use of
  * {@link com.google.cloud.logging.Payload.StringPayload} which heavily limits the data that can be utilised by GCP.
- * </p>
- * </p>
+ * <p>
  * <b>Configuration:</b>
  * In addition to the configuration defined in {@link AsyncHandler}:
  * <ul>
@@ -192,9 +192,8 @@ public class JulHandler extends AsyncHandler {
 	}
 
 	/**
-	 *
-	 * @param decorators
-	 * @return
+	 * @param decorators the decorators to add.
+	 * @return the handler instance.
 	 */
 	public JulHandler add(EntryDecorator... decorators) {
 		this.decorators.addAll(asList(decorators));
@@ -202,24 +201,20 @@ public class JulHandler extends AsyncHandler {
 	}
 
 	/**
-	 *
-	 * @param enhancers
-	 * @return
+	 * @param enhancers the enhancers to add.
+	 * @return the handler instance.
 	 */
 	public JulHandler add(LoggingEnhancer... enhancers) {
 		return add(stream(enhancers).map(EntryDecorator::decorator).toArray(EntryDecorator[]::new));
 	}
 
-	/**
-	 *
-	 */
 	private Logging logging() {
 		return this.logging.get();
 	}
 
 	@Override
 	protected void doPublish(LogRecord record) {
-		var entry = new JavaUtilEntry(record);
+		var entry = new JulEntry(record);
 
 		try {
 			logging().write(Collections.singleton(logEntry(entry, this.decorators)), this.defaultWriteOptions);
@@ -255,41 +250,45 @@ public class JulHandler extends AsyncHandler {
 	// --- Static Methods ---
 
 	/**
+	 * Create handler instance.
 	 *
-	 * @param resource
-	 * @return
+	 * @param resource the resource instance to use.
+	 * @return the handler instance.
 	 */
 	public static JulHandler julHandler(@Nonnull MonitoredResource resource) {
 		return new JulHandler(Optional.empty(), LoggingOptions.getDefaultInstance(), resource);
 	}
 
 	/**
+	 * Create handler instance.
 	 *
-	 * @param loggingOptions
-	 * @param resource
-	 * @return
+	 * @param loggingOptions the logging options instance.
+	 * @param resource the resource instance to use.
+	 * @return the handler instance.
 	 */
 	public static JulHandler julHandler(@Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
 		return new JulHandler(Optional.empty(), loggingOptions, resource);
 	}
 
 	/**
+	 * Create handler instance.
 	 *
-	 * @param logName
-	 * @param loggingOptions
-	 * @param resource
-	 * @return
+	 * @param logName the log name.
+	 * @param loggingOptions the logging options instance.
+	 * @param resource the resource instance to use.
+	 * @return the handler instance.
 	 */
 	public static JulHandler julHandler(@Nonnull String logName, @Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
 		return new JulHandler(Optional.of(logName), loggingOptions, resource);
 	}
 
 	/**
+	 * Convert level to severity equivalent.
 	 *
-	 * @param level
-	 * @return
+	 * @param level the level to convert.
+	 * @return the severity equivalent or {@link Severity#DEFAULT} if not.
 	 */
-	private static Severity severity(Level level) {
+	private static Severity severity(@Nonnull Level level) {
 		if (level instanceof LoggingLevel) {
 			return ((LoggingLevel) level).getSeverity();
 		}
@@ -309,12 +308,12 @@ public class JulHandler extends AsyncHandler {
 	// --- Inner Classes ---
 
 	/**
-	 *
+	 * The JUL entry.
 	 */
-	private class JavaUtilEntry implements Entry {
+	private class JulEntry implements Entry {
 		private final LogRecord delegate;
 
-		JavaUtilEntry(LogRecord delegate) {
+		JulEntry(LogRecord delegate) {
 			this.delegate = delegate;
 		}
 

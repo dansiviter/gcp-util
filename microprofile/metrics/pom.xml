@@ -14,6 +14,11 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>cdi</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>jakarta.enterprise</groupId>
 			<artifactId>jakarta.enterprise.cdi-api</artifactId>
 			<version>2.0.2</version>
@@ -29,7 +34,7 @@
 		<dependency>
 			<groupId>org.eclipse.microprofile.metrics</groupId>
 			<artifactId>microprofile-metrics-api</artifactId>
-			<version>2.3.2</version>
+			<version>2.3.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.microprofile.config</groupId>
