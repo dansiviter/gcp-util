@@ -1,3 +1,5 @@
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dansiviter/gcp-util/Java%20CI?style=flat-square) [![Known Vulnerabilities](https://snyk.io/test/github/dansiviter/gcp-util/badge.svg?style=flat-square)](https://snyk.io/test/github/dansiviter/gcp-util)
+
 # Google Cloud Platform Utils. #
 
 A collection of utilities and experiments for integrating into Google Cloud Platform:
