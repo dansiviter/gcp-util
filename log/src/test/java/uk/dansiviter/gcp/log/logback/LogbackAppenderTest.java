@@ -39,7 +39,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 
 @ExtendWith(MockitoExtension.class)
 public class LogbackAppenderTest {
-    private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
+	private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
 
 	@Mock
 	private LoggingOptions loggingOptions;
@@ -54,7 +54,7 @@ public class LogbackAppenderTest {
 		when(this.loggingOptions.getService()).thenReturn(this.logging);
 
 		this.appender.start();
-    }
+	}
 
 	@Test
 	public void doAppend(@Mock ILoggingEvent event) {

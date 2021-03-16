@@ -15,6 +15,8 @@
  */
 package uk.dansiviter.gcp;
 
+import static java.util.function.UnaryOperator.identity;
+
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -32,7 +34,7 @@ public enum Util { ;
 	 * @return the thread local instance.
 	 */
 	public static <T> ThreadLocal<T> threadLocal(Supplier<T> initial) {
-		return threadLocal(initial, v -> v);
+		return threadLocal(initial, identity());
 	}
 
 	/**

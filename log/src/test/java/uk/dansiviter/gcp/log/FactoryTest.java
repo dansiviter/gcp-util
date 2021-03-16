@@ -16,21 +16,19 @@
 package uk.dansiviter.gcp.log;
 
 import static java.util.Collections.emptyList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
-import static org.hamcrest.MatcherAssert.*;
-
-import static org.hamcrest.Matchers.*;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Payload.JsonPayload;
 import com.google.cloud.logging.Severity;
 
@@ -51,7 +49,7 @@ public class FactoryTest {
 		when(entry.severity()).thenReturn(Severity.INFO);
 		when(entry.message()).thenReturn(Optional.of("foo"));
 
-		LogEntry logEntry = Factory.logEntry(entry, emptyList());
+		var logEntry = Factory.logEntry(entry, emptyList());
 
 		JsonPayload payload = logEntry.getPayload();
 

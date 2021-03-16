@@ -13,36 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.jul;
+package uk.dansiviter.gcp;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import java.util.function.Supplier;
-import java.util.logging.LogRecord;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Unit tests for {@link BasicFormatter}.
+ * Tests for {@link Util}.
  */
 @ExtendWith(MockitoExtension.class)
-public class BasicFormatterTest {
-	@InjectMocks
-	private BasicFormatter formatter;
+public class UtilTest {
+	@Test
+	public void threadLocal(@Mock Function<?, ?> function) {
+		var threadLocal = Util.threadLocal(() -> function);
+
+		threadLocal.get();
+		threadLocal.get();
+
+		verifyNoInteractions(function);
+	}
 
 	@Test
-	public void format(@Mock LogRecord record) {
-		Object[] params = { "acme", (Supplier<?>) () -> "foo" };
-		when(record.getParameters()).thenReturn(params);
-		when(record.getMessage()).thenReturn("Hello {0} [{1}]");
+	public void threadLocal_reset(@Mock Function<?, ?> function) {
+		var threadLocal = Util.threadLocal(() -> function, f -> { f.apply(null); return f; });
 
-		var actual = formatter.format(record);
+		threadLocal.get();
+		threadLocal.get();
 
-		assertEquals("Hello acme [foo]", actual);
+		verify(function, times(2)).apply(null);
+		verifyNoMoreInteractions(function);
 	}
 }

@@ -147,7 +147,7 @@ public enum ResourceType {
 	 * @return the created monitored instance.
 	 */
 	public static MonitoredResource monitoredResource(@Nonnull Function<String, Optional<String>> override) {
-		ResourceType type = autoDetect();
+		var type = autoDetect();
 		var builder = MonitoredResource.newBuilder(type.name);
 		Arrays.asList(type.labels).forEach(l -> {
 			var value = override.apply(l.name);

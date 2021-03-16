@@ -125,3 +125,5 @@ A few common use-cases are already implemented:
 * OpenTracing Log Correlation: `uk.dansiviter.gcp.log.opentracing.Decorator`,
 * JBoss Logger MDC: `uk.dansiviter.gcp.log.jboss.MdcDecorator` - Use with caution! May lead to an information leak,
 * Log4j v2 `ThreadContext`: `uk.dansiviter.gcp.log.log4j2.ThreadContextDecorator` - Use with caution! May lead to an information leak.
+
+Check the JavaDoc for each class for more information.

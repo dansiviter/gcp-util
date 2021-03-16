@@ -15,26 +15,28 @@
  */
 package uk.dansiviter.gcp;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
+import java.util.OptionalLong;
+
+import org.junit.jupiter.api.Test;
 
 /**
- * @author Daniel Siviter
- * @since v1.0 [3 Feb 2020]
+ * Tests for {@link HexUtil}.
  */
-@ApplicationScoped
-public class ExecutorProvider {
-	@Produces
-	@ApplicationScoped
-	public static ScheduledExecutorService scheduler() {
-		return Executors.newSingleThreadScheduledExecutor();
+public class HexUtilTest {
+	@Test
+	void toHex() {
+		var actual = HexUtil.toHex(123);
+
+		assertThat(actual, equalTo("000000000000007b"));
 	}
 
-	public static void dispose(@Disposes ScheduledExecutorService scheduler) {
-		scheduler.shutdown();
+	@Test
+	void toHex_high() {
+		var actual = HexUtil.toHex(OptionalLong.of(321), 123);
+
+		assertThat(actual, equalTo("0000000000000141000000000000007b"));
 	}
 }

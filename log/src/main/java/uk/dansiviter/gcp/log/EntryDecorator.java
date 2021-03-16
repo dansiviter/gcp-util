@@ -83,7 +83,7 @@ public interface EntryDecorator {
 	 * @return a new decorator.
 	 */
 	public static EntryDecorator serviceContext(String service, String version) {
-		final Map<String, Object> serviceContext = Map.of(
+		var serviceContext = Map.of(
 						"service", service,
 						"version", version);
 		return (b, e, p) -> p.put("serviceContext", serviceContext);
@@ -97,12 +97,12 @@ public interface EntryDecorator {
 	 */
 	public static EntryDecorator mdc(@Nonnull Supplier<Map<String, ?>> mdcSupplier) {
 		return (b, e, p) -> {
-			Map<String, ?> mdc = mdcSupplier.get();
+			var mdc = mdcSupplier.get();
 			if (mdc.isEmpty()) {
 				return;
 			}
 			@SuppressWarnings("unchecked")
-			Map<String, Object> map = (Map<String, Object>) p.computeIfAbsent("mdc", k -> new HashMap<>());
+			var map = (Map<String, Object>) p.computeIfAbsent("mdc", k -> new HashMap<>());
 			mdc.forEach((k, v) -> map.put(k, Objects.toString(v)));
 		};
 	}

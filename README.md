@@ -1,4 +1,4 @@
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dansiviter/gcp-util/Java%20CI?style=flat-square) [![Known Vulnerabilities](https://snyk.io/test/github/dansiviter/gcp-util/badge.svg?style=flat-square)](https://snyk.io/test/github/dansiviter/gcp-util)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dansiviter/gcp-util/Java%20CI?style=flat-square) [![Known Vulnerabilities](https://snyk.io/test/github/dansiviter/gcp-util/badge.svg?style=flat-square)](https://snyk.io/test/github/dansiviter/gcp-util) ![Java 11+](https://img.shields.io/badge/-Java%2011%2B-informational?style=flat-square)
 
 # Google Cloud Platform Utils. #
 

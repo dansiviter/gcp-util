@@ -122,6 +122,7 @@ public enum Factory { ;
 	 * @return the created descriptor.
 	 */
 	public static MetricDescriptor toDescriptor(
+		@Nonnull MonitoredResource resource,
 		@Nonnull Config config,
 		@Nonnull MetricRegistry registry,
 		@Nonnull Type type,
@@ -133,7 +134,8 @@ public enum Factory { ;
 		final Metadata metadata = registry.getMetadata().get(name);
 		final MetricDescriptor.Builder descriptor = METRIC_DESC_BUILDER.get().setType(metricType)
 				.setMetricKind(getMetricKind(metadata.getTypeRaw())).setName(name)
-				.setDisplayName(metadata.getDisplayName());
+				.setDisplayName(metadata.getDisplayName())
+				.addMonitoredResourceTypes(resource.getType());
 		getValueType(snapshot).ifPresent(descriptor::setValueType);
 		metadata.getDescription().ifPresent(descriptor::setDescription);
 		metadata.getUnit().ifPresentOrElse(

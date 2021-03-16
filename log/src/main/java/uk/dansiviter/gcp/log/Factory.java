@@ -61,17 +61,15 @@ public enum Factory { ;
 	 */
 	@Nonnull
 	public static LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
-		final Map<String, Object> payload = payload(entry);
-
-		final LogEntry.Builder b = BUILDER.get()
+		var b = BUILDER.get()
 				.setTimestamp(entry.timestamp())
 				.setSeverity(entry.severity());
 		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
 		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
+
+		var payload = payload(entry);
 		decorators.forEach(d -> d.decorate(b, entry, payload));
-
 		b.setPayload(JsonPayload.of(payload));
-
 		return b.build();
 	}
 
@@ -98,7 +96,7 @@ public enum Factory { ;
 	 */
 	@Nonnull
 	public static EntryDecorator decorator(String name) {
-		Object instance = instance(name);
+		var instance = instance(name);
 		if (instance instanceof EntryDecorator) {
 			return (EntryDecorator) instance;
 		}
@@ -115,14 +113,14 @@ public enum Factory { ;
 	 * @return the map instance.
 	 */
 	private static @Nonnull Map<String, Object> payload(@Nonnull Entry entry) {
-		final Map<String, Object> data = new HashMap<>();
+		var data = new HashMap<String, Object>();
 
 		entry.message().ifPresent(m -> {
 			// doesn't support CharSequence or even the protobuf ByteString
 			data.put("message", m instanceof String ? m : m.toString());
 		});
 
-		final Map<String, Object> context = new HashMap<>();
+		var context = new HashMap<String, Object>();
 		if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {
 			data.put("@type", TYPE);  // an Error may not have a stacktrace, force it in regardless
 		}
@@ -147,7 +145,7 @@ public enum Factory { ;
 	 * @return the character sequence.
 	 */
 	public static @Nonnull CharSequence toCharSequence(@Nonnull Throwable t) {
-		try (StringWriter sw = new StringWriter(); PrintWriter pw = new UnixPrintWriter(sw)) {
+		try (var sw = new StringWriter(); var pw = new UnixPrintWriter(sw)) {
 			t.printStackTrace(pw);
 			return sw.getBuffer();
 		} catch (IOException e) {
@@ -166,7 +164,7 @@ public enum Factory { ;
 	@SuppressWarnings("unchecked")
 	public static @Nonnull <T> T instance(@Nonnull String name) {
 		try {
-			Class<?> concreteCls = Class.forName(name);
+			var concreteCls = Class.forName(name);
 			return (T) concreteCls.getDeclaredConstructor().newInstance();
 		} catch (ReflectiveOperationException e) {
 			throw new IllegalArgumentException(format("Unable to create! [%s]", name), e);

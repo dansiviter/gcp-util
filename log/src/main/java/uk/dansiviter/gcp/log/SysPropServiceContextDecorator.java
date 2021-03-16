@@ -42,6 +42,6 @@ public class SysPropServiceContextDecorator implements EntryDecorator {
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		delegate.decorate(b, e, payload);
+		this.delegate.decorate(b, e, payload);
 	}
 }

@@ -15,6 +15,9 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,7 +28,6 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.google.api.Distribution;
 import com.google.api.Distribution.BucketOptions;
@@ -35,9 +37,7 @@ import com.google.api.Distribution.BucketOptions.Linear;
 import com.google.api.MetricDescriptor;
 import com.google.api.MetricDescriptor.ValueType;
 import com.google.cloud.MonitoredResource;
-import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.TimeInterval;
-import com.google.monitoring.v3.TimeSeries;
 import com.google.monitoring.v3.TypedValue.ValueCase;
 import com.google.protobuf.Timestamp;
 
@@ -68,25 +68,29 @@ public class FactoryTest {
 
 	@Test
 	public void toDescriptor(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock GaugeSnapshot snapshot, @Mock Metadata metadata) {
+		var resource = MonitoredResource.newBuilder("global").build();
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
 		when(snapshot.value()).thenReturn(123L);
 		when(metadata.getDisplayName()).thenReturn("displayName");
 
-		MetricDescriptor actual = Factory.toDescriptor(config, registry, Type.APPLICATION, id, snapshot);
-		assertEquals(actual.getDisplayName(), "displayName");
-		assertEquals(ValueType.INT64, actual.getValueType());
+		var actual = Factory.toDescriptor(resource, config, registry, Type.APPLICATION, id, snapshot);
+		assertThat(actual.getDisplayName(), equalTo("displayName"));
+		assertThat(actual.getValueType(), equalTo(ValueType.INT64));
+		assertThat(actual.getMonitoredResourceTypesList(), hasItem("global"));
 	}
 
 	@Test
 	public void toDescriptor_unknownType(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock Snapshot snapshot, @Mock Metadata metadata) {
+		var resource = MonitoredResource.newBuilder("global").build();
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
 		when(metadata.getDisplayName()).thenReturn("displayName");
 
-		MetricDescriptor actual = Factory.toDescriptor(config, registry, Type.APPLICATION, id, snapshot);
-		assertEquals(actual.getDisplayName(), "displayName");
-		assertEquals(ValueType.VALUE_TYPE_UNSPECIFIED, actual.getValueType());
+		var actual = Factory.toDescriptor(resource, config, registry, Type.APPLICATION, id, snapshot);
+		assertThat(actual.getDisplayName(), equalTo("displayName"));
+		assertThat(actual.getValueType(), equalTo(ValueType.VALUE_TYPE_UNSPECIFIED));
+		assertThat(actual.getMonitoredResourceTypesList(), hasItem("global"));
 	}
 
 	@Test
@@ -103,14 +107,14 @@ public class FactoryTest {
 
 	@Test
 	public void toSnapshot(@Mock Metric metric) {
-		Optional<Snapshot> snapshot = Factory.toSnapshot(metric);
+		var snapshot = Factory.toSnapshot(metric);
 
 		assertTrue(snapshot.isEmpty());
 	}
 
 	@Test
 	public void toSnapshot_gauge(@Mock Gauge<?> metric) {
-		Optional<Snapshot> snapshot = Factory.toSnapshot(metric);
+		var snapshot = Factory.toSnapshot(metric);
 
 		assertFalse(snapshot.isEmpty());
 		verify(metric).getValue();
@@ -118,7 +122,7 @@ public class FactoryTest {
 
 	@Test
 	public void toSnapshot(@Mock ConcurrentGauge metric) {
-		Optional<Snapshot> snapshot = Factory.toSnapshot(metric);
+		var snapshot = Factory.toSnapshot(metric);
 
 		assertFalse(snapshot.isEmpty());
 		verify(metric).getCount();
@@ -130,18 +134,18 @@ public class FactoryTest {
 			@Mock Config config,
 			@Mock MetricID id)
 	{
-		MetricDescriptor descriptor = MetricDescriptor.newBuilder().setValueType(ValueType.INT64).build();
-		MonitoredResource monitoredResource = MonitoredResource.newBuilder("global").build();
-		TimeInterval interval = TimeInterval.newBuilder().build();
+		var descriptor = MetricDescriptor.newBuilder().setValueType(ValueType.INT64).build();
+		var resource = MonitoredResource.newBuilder("global").build();
+		var interval = TimeInterval.newBuilder().build();
 
 		when(gauge.getValue()).thenReturn(123L);
-		GaugeSnapshot gaugeSnapshot = new GaugeSnapshot(gauge);
-		Context ctx = new Context(config, monitoredResource, Timestamp.getDefaultInstance(), interval);
-		TimeSeries.Builder builder = gaugeSnapshot.timeseries(ctx, id, descriptor);
-		TimeSeries timeSeries = builder.build();
+		var gaugeSnapshot = new GaugeSnapshot(gauge);
+		var ctx = new Context(config, resource, Timestamp.getDefaultInstance(), interval);
+		var builder = gaugeSnapshot.timeseries(ctx, id, descriptor);
+		var timeSeries = builder.build();
 		assertEquals(1, timeSeries.getPointsCount());
 
-		Point point = timeSeries.getPoints(0);
+		var point = timeSeries.getPoints(0);
 		assertEquals(Timestamp.getDefaultInstance(), point.getInterval().getStartTime());
 		assertEquals(interval.getEndTime(), point.getInterval().getEndTime());
 		assertEquals(ValueCase.INT64_VALUE, point.getValue().getValueCase());
@@ -152,18 +156,18 @@ public class FactoryTest {
 	public void buckets_exponential(
 			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
 	{
-		Distribution.Builder builder = Distribution.newBuilder();
-		Exponential exponential = Exponential.newBuilder()
+		var builder = Distribution.newBuilder();
+		var exponential = Exponential.newBuilder()
 				.setNumFiniteBuckets(5)
 				.setScale(1)
 				.setGrowthFactor(2)
 				.build();
-		BucketOptions options = BucketOptions.newBuilder().setExponentialBuckets(exponential).build();
+		var options = BucketOptions.newBuilder().setExponentialBuckets(exponential).build();
 		when(snapshot.getValues()).thenReturn(new long[] { 0, 1, 3, 9, 15, 5_000, 50_000 });
 
 		Factory.buckets(options, snapshot, l -> l, builder);
 
-		Distribution distribution = builder.build();
+		var distribution = builder.build();
 		assertEquals(7, distribution.getBucketCountsCount());
 		assertEquals(List.of(1L, 1L, 1L, 0L, 2L, 0L, 2L), distribution.getBucketCountsList());
 	}
@@ -172,18 +176,18 @@ public class FactoryTest {
 	public void buckets_linear(
 			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
 	{
-		Distribution.Builder builder = Distribution.newBuilder();
-		Linear linear = Linear.newBuilder()
+		var builder = Distribution.newBuilder();
+		var linear = Linear.newBuilder()
 				.setNumFiniteBuckets(5)
 				.setOffset(3)
 				.setWidth(4)
 				.build();
-		BucketOptions options = BucketOptions.newBuilder().setLinearBuckets(linear).build();
+		var options = BucketOptions.newBuilder().setLinearBuckets(linear).build();
 		when(snapshot.getValues()).thenReturn(new long[] { 0, 1, 3, 9, 15, 5_000, 50_000 });
 
 		Factory.buckets(options, snapshot, l -> l, builder);
 
-		Distribution distribution = builder.build();
+		var distribution = builder.build();
 		assertEquals(7, distribution.getBucketCountsCount());
 		assertEquals(List.of(2L, 1L, 1L, 0L, 1L, 0L, 2L), distribution.getBucketCountsList());
 	}
@@ -192,19 +196,19 @@ public class FactoryTest {
 	public void buckets_explicit(
 			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
 	{
-		Distribution.Builder builder = Distribution.newBuilder();
-		Explicit explicit = Explicit.newBuilder()
+		var builder = Distribution.newBuilder();
+		var explicit = Explicit.newBuilder()
 				.addBounds(2)
 				.addBounds(5)
 				.addBounds(20)
 				.addBounds(1000)
 				.build();
-		BucketOptions options = BucketOptions.newBuilder().setExplicitBuckets(explicit).build();
+		var options = BucketOptions.newBuilder().setExplicitBuckets(explicit).build();
 		when(snapshot.getValues()).thenReturn(VALUES);
 
 		Factory.buckets(options, snapshot, l -> l, builder);
 
-		Distribution distribution = builder.build();
+		var distribution = builder.build();
 		assertEquals(5, distribution.getBucketCountsCount());
 		assertEquals(List.of(2L, 1L, 2L, 0L, 2L), distribution.getBucketCountsList());
 	}

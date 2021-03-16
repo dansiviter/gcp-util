@@ -29,6 +29,7 @@ public enum HexUtil { ;
 	private static final char[] HEX_DIGITS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
 	/**
+	 * Generates a 16 or, if high value is present, a 32 character representation of the input longs.
 	 *
 	 * @param high optional high value.
 	 * @param low low value.
@@ -43,6 +44,7 @@ public enum HexUtil { ;
 	}
 
 	/**
+	 * Generates a 16 character String representation of the long value.
 	 *
 	 * @param v the value to convert to hexadecimal.
 	 * @return hexadecimal value.

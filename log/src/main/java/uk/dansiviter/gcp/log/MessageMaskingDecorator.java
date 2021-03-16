@@ -29,6 +29,15 @@ import com.google.cloud.logging.LogEntry.Builder;
 /**
  * A {@link EntryDecorator} that applies masking to any matching patterns. Be aware of the performance of the regex you
  * provide as this could seriously hamper the performance of the application.
+ * <p>
+ * If using this with a logger that does not permit constructor parameters it's recommended to create your own subclass:
+ * <pre>
+ * public class Ip4MaskingDecorator extends MessageMaskingDecorator {
+ *   public Ip4MaskingDecorator() {
+ *     super("\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b")
+ *   }
+ * }
+ * </pre>
  *
  * @author Daniel Siviter
  * @since v1.0 [16 Jan 2020]

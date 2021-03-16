@@ -50,7 +50,6 @@
 		<module>microprofile</module>
 		<module>opentracing</module>
 		<module>opentelemetry</module>
-		<module>integration-test</module>
 	</modules>
 
 	<dependencyManagement>

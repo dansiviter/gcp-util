@@ -80,7 +80,7 @@ public class CloudMonitoringExporter {
 	@Inject @Any
 	private Instance<MetricRegistry> registries;
 	@Inject
-	private MonitoredResource monitoredResource;
+	private MonitoredResource resource;
 	@Inject
 	private Config config;
 
@@ -98,7 +98,7 @@ public class CloudMonitoringExporter {
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) throws IOException {
 		this.startDateTime = Instant.now();
-		this.projectName = ProjectName.of(PROJECT_ID.get(this.monitoredResource).orElseThrow());
+		this.projectName = ProjectName.of(PROJECT_ID.get(this.resource).orElseThrow());
 		var builder = MetricServiceSettings.newBuilder();
 		this.client = MetricServiceClient.create(builder.build());
 		this.future = this.executor.scheduleAtFixedRate(this::run, 0, samplingRate.duration.getSeconds(), SECONDS);
@@ -118,7 +118,7 @@ public class CloudMonitoringExporter {
 				var registry = this.registries.select(registryType(type)).get();
 				registry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
 			}
-			var ctx = new Context(this.config, monitoredResource, startTimestamp, interval);
+			var ctx = new Context(this.config, this.resource, startTimestamp, interval);
 			var timeSeries = new ArrayList<TimeSeries>();
 
 			for (var type : MetricRegistry.Type.values()) {
@@ -186,7 +186,7 @@ public class CloudMonitoringExporter {
 
 		// on first run create metric view data as we have no other way of knowing if it's a Double or Int64
 		var descriptor = this.descriptors.computeIfAbsent(id, k -> {
-			var created = Factory.toDescriptor(this.config, registry, type, id, snapshot);
+			var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
 			return this.client.createMetricDescriptor(this.projectName, created);
 		});
 

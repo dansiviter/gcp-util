@@ -18,6 +18,7 @@ package uk.dansiviter.gcp.log.jul;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.empty;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
 import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
@@ -116,26 +117,21 @@ public class JulHandler extends AsyncHandler {
 	private Synchronicity synchronicity;
 
 	/**
-	 *
+	 * Creates a handler with log name of {@code java.log}, {@link LoggingOptions#getDefaultInstance()} and auto-detected
+	 * {@link MonitoredResource}.
 	 */
 	public JulHandler() {
-		this(Optional.empty(), LoggingOptions.getDefaultInstance(), ResourceType.monitoredResource());
+		this(empty(), empty(), empty());
 	}
 
-	/**
-	 *
-	 * @param logName
-	 * @param loggingOptions
-	 * @param monitoredResource
-	 */
 	private JulHandler(
 		Optional<String> logName,
-		@Nonnull LoggingOptions loggingOptions,
-		@Nonnull MonitoredResource monitoredResource)
+		Optional<LoggingOptions> loggingOptions,
+		Optional<MonitoredResource> monitoredResource)
 	{
 		try {
 			var manager = requireNonNull(LogManager.getLogManager());
-			this.loggingOptions = requireNonNull(loggingOptions);
+			this.loggingOptions = loggingOptions.orElseGet(LoggingOptions::getDefaultInstance);
 			this.logging = new AtomicInit<>(() -> {
 				if (this.closed.get()) {
 					throw new IllegalStateException("Handler already closed!");
@@ -153,8 +149,10 @@ public class JulHandler extends AsyncHandler {
 			setSynchronicity(synchronicity);
 			property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
-			this.defaultWriteOptions = new WriteOption[] { WriteOption.logName(logName.orElse("java.log")),
-					WriteOption.resource(monitoredResource) };
+			this.defaultWriteOptions = new WriteOption[] {
+				WriteOption.logName(logName.orElse("java.log")),
+				WriteOption.resource(monitoredResource.orElseGet(ResourceType::monitoredResource))
+			};
 		} catch (RuntimeException e) {
 			reportError(null, e, ErrorManager.OPEN_FAILURE);
 			throw e;
@@ -256,7 +254,7 @@ public class JulHandler extends AsyncHandler {
 	 * @return the handler instance.
 	 */
 	public static JulHandler julHandler(@Nonnull MonitoredResource resource) {
-		return new JulHandler(Optional.empty(), LoggingOptions.getDefaultInstance(), resource);
+		return new JulHandler(empty(), empty(), Optional.of(resource));
 	}
 
 	/**
@@ -267,7 +265,7 @@ public class JulHandler extends AsyncHandler {
 	 * @return the handler instance.
 	 */
 	public static JulHandler julHandler(@Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
-		return new JulHandler(Optional.empty(), loggingOptions, resource);
+		return new JulHandler(empty(), Optional.of(loggingOptions), Optional.of(resource));
 	}
 
 	/**
@@ -278,8 +276,12 @@ public class JulHandler extends AsyncHandler {
 	 * @param resource the resource instance to use.
 	 * @return the handler instance.
 	 */
-	public static JulHandler julHandler(@Nonnull String logName, @Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
-		return new JulHandler(Optional.of(logName), loggingOptions, resource);
+	public static JulHandler julHandler(
+		@Nonnull String logName,
+		@Nonnull LoggingOptions loggingOptions,
+		@Nonnull MonitoredResource resource)
+	{
+		return new JulHandler(Optional.of(logName), Optional.of(loggingOptions), Optional.of(resource));
 	}
 
 	/**

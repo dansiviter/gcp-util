@@ -101,7 +101,7 @@ public interface Entry {
 		 * @see <a href="https://cloud.google.com/error-reporting/docs/formatting-error-messages#json_representation">JSON Representation</a>
 		 */
 		default Map<String, Object> asMap() {
-			final Map<String, Object> map = new HashMap<>();
+			var map = new HashMap<String, Object>();
 			map.put("filePath", className());
 			map.put("functionName", method());
 			line().ifPresent(i -> map.put("lineNumber", i));

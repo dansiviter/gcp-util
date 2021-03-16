@@ -258,11 +258,11 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 
 		@Override
 		public Optional<Source> source() {
-			StackTraceElement[] caller = delegate.getCallerData();
+			var caller = delegate.getCallerData();
 			if (caller == null || caller.length == 0) {
 				return Optional.empty();
 			}
-			StackTraceElement first = caller[0];
+			var first = caller[0];
 			return Optional.of(new Source() {
 				@Override
 				public String className() {
