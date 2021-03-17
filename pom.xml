@@ -28,6 +28,11 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+		<sonar.projectKey>dansiviter_gcp-util</sonar.projectKey>
+		<sonar.organization>dansiviter-github</sonar.organization>
+		<sonar.moduleKey>${project.groupId}:${project.artifactId}</sonar.moduleKey>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+
 		<module.name>${project.groupId}.${project.artifactId}</module.name>
 
 		<juli.version>0.2.0-SNAPSHOT</juli.version>
