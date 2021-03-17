@@ -94,7 +94,7 @@ public class Factory {
 	com.google.devtools.cloudtrace.v2.Span toSpan(CloudTraceSpan span) {
 		var spanId = span.context().toSpanId();
 		var spanName = SPAN_NAME_BUILDER.get()
-            .setProject(Label.PROJECT_ID.get(this.resource).get())
+            .setProject(Label.PROJECT_ID.get(this.resource).orElseThrow())
             .setTrace(span.context().toTraceId())
             .setSpan(spanId)
 			.build();

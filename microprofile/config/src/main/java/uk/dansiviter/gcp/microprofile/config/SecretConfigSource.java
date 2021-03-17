@@ -81,7 +81,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		@Nonnull MonitoredResource resource,
 		@Nonnull SecretManagerServiceSettings settings)
 	{
-		this.projectId = PROJECT_ID.get(resource).get();
+		this.projectId = PROJECT_ID.get(resource).orElseThrow();
 		this.client = new AtomicInit<>(() -> {
 			try {
 				return SecretManagerServiceClient.create(settings);

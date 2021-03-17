@@ -125,7 +125,8 @@ public class CloudTraceSpanContext implements SpanContext {
 	 * @return random id.
 	 */
 	private static long randomId() {
-		return abs(RAND.nextLong());
+		var rand = RAND.nextLong();
+		return rand != 0 ? abs(rand) : 0;
 	}
 
 	/**

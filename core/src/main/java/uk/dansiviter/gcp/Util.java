@@ -17,6 +17,8 @@ package uk.dansiviter.gcp;
 
 import static java.util.function.UnaryOperator.identity;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -58,5 +60,30 @@ public enum Util { ;
 				return reset.apply(super.get());
 			}
 		};
+	}
+
+	/**
+	 * Shuts down the {@link ExecutorService} as per recommendation.
+	 *
+	 * @param e executor to shutdown.
+	 * @param timeout timeout.
+	 * @param unit timeout unit.
+	 * @return {@code true} if shutdown occurred cleanly.
+	 */
+	public static boolean shutdown(ExecutorService e, long timeout, TimeUnit unit) {
+		e.shutdown();
+		try {
+			if (!e.awaitTermination(timeout, unit)) {
+				e.shutdownNow();
+				if (!e.awaitTermination(timeout, unit)) {
+					return false;
+				}
+			}
+		} catch (InterruptedException ie) {
+			e.shutdownNow();
+			Thread.currentThread().interrupt();
+			return false;
+		}
+		return true;
 	}
 }

@@ -17,6 +17,7 @@ package uk.dansiviter.gcp.opentracing;
 
 import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.Util.shutdown;
 import static uk.dansiviter.gcp.opentracing.Sampler.defaultSampler;
 
 import java.io.IOException;
@@ -72,7 +73,7 @@ public class CloudTracer implements Tracer {
 
 	CloudTracer(final Builder builder) {
 		this.resource = builder.resource.orElseGet(() -> ResourceType.monitoredResource());
-		this.projectName = ProjectName.of(builder.projectId.orElse(PROJECT_ID.get(this.resource).get()));
+		this.projectName = ProjectName.of(builder.projectId.orElse(PROJECT_ID.get(this.resource).orElseThrow()));
 		this.client = builder.client.orElseGet(CloudTracer::defaultTraceServiceClient);
 		this.propagators = Map.copyOf(builder.propegators);
 		this.sampler = builder.sampler.orElse(defaultSampler());
@@ -115,14 +116,7 @@ public class CloudTracer implements Tracer {
 
 	@Override
 	public void close() {
-		this.executor.shutdown();
-		try {
-			if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
-				this.executor.shutdownNow();
-			}
-		} catch (final InterruptedException e) {
-			this.executor.shutdownNow();
-		}
+		shutdown(this.executor, 5, TimeUnit.SECONDS);
 		flush();
 		GaxUtil.close(this.client);
 	}

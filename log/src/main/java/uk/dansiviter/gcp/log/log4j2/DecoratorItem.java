@@ -62,7 +62,7 @@ public final class DecoratorItem {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
+        if (obj == null || this.getClass() != obj.getClass()) {
             return false;
         }
         return Objects.equals(this.className, ((DecoratorItem) obj).className);
