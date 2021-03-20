@@ -29,6 +29,9 @@ import com.google.cloud.logging.LogEntry.Builder;
 public class ServiceLoaderDecorator implements EntryDecorator {
 	private final ServiceLoader<EntryDecorator> decorators;
 
+	/**
+	 * Creates a new instance.
+	 */
 	public ServiceLoaderDecorator() {
 		this.decorators = ServiceLoader.load(EntryDecorator.class);
 	}

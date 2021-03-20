@@ -55,7 +55,8 @@ public class CloudTraceSpan implements Span {
 	private final CloudTraceSpanContext ctx;
 
 	private String operationName;
-	private long startUs, finishUs;
+	private long startUs;
+	private long finishUs;
 
 	private CloudTraceSpan(CloudTracer tracer, Builder builder) {
 		this.tracer = tracer;

@@ -15,6 +15,8 @@
  */
 package uk.dansiviter.gcp.log.jboss;
 
+import static uk.dansiviter.gcp.log.EntryDecorator.mdc;
+
 import java.util.Map;
 
 import com.google.cloud.logging.LogEntry.Builder;
@@ -31,7 +33,7 @@ import uk.dansiviter.gcp.log.EntryDecorator;
  * @since v1.0 [6 Dec 2019]
  */
 public class MdcDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(MDC::getMap);
+	private static final EntryDecorator DELEGATE = mdc(MDC::getMap);
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {

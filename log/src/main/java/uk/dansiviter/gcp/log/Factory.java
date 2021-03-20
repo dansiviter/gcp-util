@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2019-2021 Daniel Siviter
  *
@@ -53,33 +52,31 @@ public enum Factory { ;
 	private static final String TYPE = "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent";
 
 	/**
+	 * Transforms the input entry into Cloud Logging entry.
 	 *
-	 * @param entry
-	 * @param decorators
-	 * @return
+	 * @param entry the log entry.
+	 * @param decorators the log entry decorators.
+	 * @return the Cloud Logging entry.
 	 */
 	@Nonnull
 	public static LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
-		final Map<String, Object> payload = payload(entry);
-
-		final LogEntry.Builder b = BUILDER.get()
+		var b = BUILDER.get()
 				.setTimestamp(entry.timestamp())
 				.setSeverity(entry.severity());
 		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
 		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
+
+		var payload = payload(entry);
 		decorators.forEach(d -> d.decorate(b, entry, payload));
-
 		b.setPayload(JsonPayload.of(payload));
-
 		return b.build();
 	}
 
 	/**
-	 * Converts comma separated list of {@link EntryDecorator} class names into
-	 * instances.
+	 * Converts comma separated list of {@link EntryDecorator} or {@link LoggingEnhancer} class names into instances.
 	 *
-	 * @param decorators
-	 * @return
+	 * @param decorators the decorators represented as a comma separated string.
+	 * @return a list of decorator instances.
 	 */
 	@Nonnull
 	public static List<EntryDecorator> decorators(@Nonnull String decorators) {
@@ -89,9 +86,16 @@ public enum Factory { ;
 		return stream(decorators.split(",")).map(Factory::decorator).collect(toList());
 	}
 
+	/**
+	 * Creates a {@link EntryDecorator} from the class name. If this is a {@link LoggingEnhancer} then it will be
+	 * wrapped.
+	 *
+	 * @param name the class name.
+	 * @return a decorator instance.
+	 */
 	@Nonnull
 	public static EntryDecorator decorator(String name) {
-		Object instance = instance(name);
+		var instance = instance(name);
 		if (instance instanceof EntryDecorator) {
 			return (EntryDecorator) instance;
 		}
@@ -102,26 +106,23 @@ public enum Factory { ;
 	}
 
 	/**
+	 * Converts the input entry into a {@link Map}.
 	 *
-	 * @param entry
-	 * @return
+	 * @param entry the log entry.
+	 * @return the map instance.
 	 */
 	private static @Nonnull Map<String, Object> payload(@Nonnull Entry entry) {
-		final Map<String, Object> data = new HashMap<>();
+		var data = new HashMap<String, Object>();
 
-		entry.message().ifPresent(m -> {
-			// doesn't support CharSequence or even the protobuf ByteString
-			data.put("message", m instanceof String ? m : m.toString());
-		});
+		// doesn't support CharSequence or even the protobuf ByteString
+		entry.message().ifPresent(m -> data.put("message", m instanceof String ? m : m.toString()));
 
-		final Map<String, Object> context = new HashMap<>();
+		var context = new HashMap<String, Object>();
 		if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {
 			data.put("@type", TYPE);  // an Error may not have a stacktrace, force it in regardless
 		}
 		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && !entry.thrown().isPresent()) {
-			entry.source().ifPresent(s -> {
-				context.put("reportLocation", s.asMap());
-			});
+			entry.source().ifPresent(s -> context.put("reportLocation", s.asMap()));
 		}
 		entry.thrown().ifPresent(t -> data.put("stack_trace", t.get().toString()));
 
@@ -133,12 +134,13 @@ public enum Factory { ;
 	}
 
 	/**
+	 * Converts the {@link Throwable} to a {@link CharSequence}.
 	 *
-	 * @param t
-	 * @return
+	 * @param t the throwable.
+	 * @return the character sequence.
 	 */
 	public static @Nonnull CharSequence toCharSequence(@Nonnull Throwable t) {
-		try (StringWriter sw = new StringWriter(); PrintWriter pw = new UnixPrintWriter(sw)) {
+		try (var sw = new StringWriter(); var pw = new UnixPrintWriter(sw)) {
 			t.printStackTrace(pw);
 			return sw.getBuffer();
 		} catch (IOException e) {
@@ -147,21 +149,26 @@ public enum Factory { ;
 	}
 
 	/**
+	 * Create an instance of the given class name using no-args constructor.
 	 *
-	 * @param <T>
-	 * @param name
-	 * @return
+	 * @param <T> the class type.
+	 * @param name the class name.
+	 * @return a instance of the class.
+	 * @throws IllegalArgumentException if the class cannot be created.
 	 */
 	@SuppressWarnings("unchecked")
 	public static @Nonnull <T> T instance(@Nonnull String name) {
 		try {
-			Class<?> concreteCls = Class.forName(name);
+			var concreteCls = Class.forName(name);
 			return (T) concreteCls.getDeclaredConstructor().newInstance();
 		} catch (ReflectiveOperationException e) {
 			throw new IllegalArgumentException(format("Unable to create! [%s]", name), e);
 		}
 	}
 
+	/**
+	 * A PrintWriter that forces Unix EoL.
+	 */
 	private static class UnixPrintWriter extends PrintWriter {
 		UnixPrintWriter(Writer writer) {
 			super(writer);

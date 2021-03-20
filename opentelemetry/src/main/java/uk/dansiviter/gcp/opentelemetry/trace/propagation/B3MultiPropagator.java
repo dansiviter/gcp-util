@@ -92,6 +92,9 @@ public class B3MultiPropagator implements TextMapPropagator {
 
 	// --- Static Methods ---
 
+	/**
+	 * @return B3 multi-header propagator.
+	 */
 	public static B3MultiPropagator b3MultiPropagator() {
 		return INSTANCE;
 	}

@@ -1,3 +1,5 @@
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dansiviter/gcp-util/Java%20CI?style=flat-square) [![Known Vulnerabilities](https://snyk.io/test/github/dansiviter/gcp-util/badge.svg?style=flat-square)](https://snyk.io/test/github/dansiviter/gcp-util) [![Sonar Coverage](https://img.shields.io/sonar/coverage/dansiviter_gcp-util?server=https%3A%2F%2Fsonarcloud.io&style=flat-square)](https://sonarcloud.io/dashboard?id=dansiviter_gcp-util) ![Java 11+](https://img.shields.io/badge/-Java%2011%2B-informational?style=flat-square)
+
 # Google Cloud Platform Utils. #
 
 A collection of utilities and experiments for integrating into Google Cloud Platform:

@@ -37,12 +37,12 @@ import uk.dansiviter.gcp.opentracing.CloudTraceSpanContext;
  * @since v1.0 [22 Dec 2019]
  */
 @ExtendWith(MockitoExtension.class)
-public class B3MultiPropagatorTest {
+class B3MultiPropagatorTest {
 	@InjectMocks
 	private B3MultiPropagator propagator;
 
 	@Test
-	public void inject() {
+	void inject() {
 		var spanContext = CloudTraceSpanContext
 				.builder(OptionalLong.of(0), 2748, 291)
 				.sampled(true)
@@ -59,7 +59,7 @@ public class B3MultiPropagatorTest {
 	}
 
 	@Test
-	public void inject_shortTraceId() {
+	void inject_shortTraceId() {
 		var spanContext = CloudTraceSpanContext
 				.builder(OptionalLong.empty(), 2748, 291)
 				.sampled(true)
@@ -76,7 +76,7 @@ public class B3MultiPropagatorTest {
 	}
 
 	@Test
-	public void inject_null() {
+	void inject_null() {
 		var map = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 		var carrier = new TextMapAdapter(map);
 
@@ -86,7 +86,7 @@ public class B3MultiPropagatorTest {
 	}
 
 	@Test
-	public void extract() {
+	void extract() {
 		var map = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 		map.put("x-b3-traceid", "00000000000000000000000000000abc");
 		map.put("x-b3-spanid", "123");
@@ -101,7 +101,7 @@ public class B3MultiPropagatorTest {
 	}
 
 	@Test
-	public void extract_shortTraceId() {
+	void extract_shortTraceId() {
 		var map = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 		map.put("x-b3-traceid", "0000000000000abc");
 		map.put("x-b3-spanid", "0000000000000123");
@@ -116,7 +116,7 @@ public class B3MultiPropagatorTest {
 	}
 
 	@Test
-	public void extract_poorFormat() {
+	void extract_poorFormat() {
 		var map = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 		map.put("x-b3-traceid", "abc");
 		map.put("x-b3-spanid", "123");
@@ -131,7 +131,7 @@ public class B3MultiPropagatorTest {
 	}
 
 	@Test
-	public void extract_null() {
+	void extract_null() {
 		var carrier = new TextMapAdapter(Collections.emptyMap());
 		var actual = this.propagator.extract(carrier);
 

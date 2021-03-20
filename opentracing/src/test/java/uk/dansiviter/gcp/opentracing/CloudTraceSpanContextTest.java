@@ -26,9 +26,9 @@ import org.junit.jupiter.api.Test;
  * @author Daniel Siviter
  * @since v1.0 [15 Dec 2019]
  */
-public class CloudTraceSpanContextTest {
+class CloudTraceSpanContextTest {
 	@Test
-	public void builder_str() {
+	void builder_str() {
 		var builder = CloudTraceSpanContext.builder("463ac35c9f6413ad48485a3953bb6124", "05e3ac9a4f6e3b90");
 
 		var ctx = builder.build();
@@ -40,7 +40,7 @@ public class CloudTraceSpanContextTest {
 	}
 
 	@Test
-	public void builder_long() {
+	void builder_long() {
 		var builder = CloudTraceSpanContext.builder(OptionalLong.of(123L), 321L, 987L);
 
 		var ctx = builder.build();

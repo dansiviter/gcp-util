@@ -20,10 +20,9 @@ import static java.util.Objects.requireNonNull;
 import static org.eclipse.microprofile.metrics.MetricType.HISTOGRAM;
 import static org.eclipse.microprofile.metrics.MetricType.TIMER;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
@@ -46,38 +45,34 @@ public class Config {
 		this.labelDescriptions = Map.copyOf(b.labelDescriptions);
 	}
 
+	/**
+	 * Gets an instance of bucket options for the given unit.
+	 *
+	 * @param type the metric type.
+	 * @param unit the unit.
+	 * @return the bucket options for the unit or that for {@code default}.
+	 */
 	public BucketOptions bucketOptions(@Nonnull MetricType type, @Nonnull String unit) {
-		BucketOptions options = this.bucketOptions.get(entry(type, unit));
+		var options = this.bucketOptions.get(entry(type, unit));
 		if (options == null) {
 			options = this.bucketOptions.get(entry(type, "default"));
 		}
-		return options;
+		return requireNonNull(options);
 	}
 
-	public Optional<String> labelDescription(String key) {
+	/**
+	 * @param key the label key.
+	 * @return the value.
+	 */
+	public Optional<String> labelDescription(@Nonnull String key) {
 		return Optional.ofNullable(this.labelDescriptions.get(key));
 	}
 
+	/**
+	 * @return a new builder.
+	 */
 	public static Builder builder() {
 		return new Builder();
-	}
-
-	private static Map<Entry<MetricType, String>, BucketOptions> defaultBucketOptions() {
-		final Map<Entry<MetricType, String>, BucketOptions> map = new HashMap<>();
-		map.put(entry(HISTOGRAM, "default"), bucketOptions(20, 1, 2));
-		map.put(entry(TIMER, "default"), bucketOptions(20, 1_000_000, 2));
-		map.put(entry(TIMER, "ns"), bucketOptions(20, 1_000_000, 2));
-		map.put(entry(TIMER, "us"), bucketOptions(20, 1_000, 2));
-		map.put(entry(TIMER, "ms"), bucketOptions(20, 1, 2));
-		return map;
-	}
-
-	private static Map<String, String> defaultLabelDescriptions() {
-		final Map<String, String> map = new HashMap<>();
-		map.put("response_code", "The HTTP response (status) code.");
-		map.put("path", "The HTTP request path.");
-		map.put("target_host", "The name of the target host.");
-		return map;
 	}
 
 	private static BucketOptions bucketOptions(int numBuckets, double scale, double growthFactor) {
@@ -101,13 +96,52 @@ public class Config {
 		private Builder() {
 		}
 
-		public Builder set(@Nonnull MetricType type, @Nonnull String unit, @Nonnull BucketOptions options) {
-			this.bucketOptions.put(entry(type, unit), requireNonNull(options));
+		/**
+		 * Puts a bucket options for the given type and unit.
+		 *
+		 * @param type the metric type.
+		 * @param unit the metric unit.
+		 * @param options the bucket options.
+		 * @return this builder.
+		 */
+		public Builder put(@Nonnull MetricType type, @Nonnull String unit, @Nonnull BucketOptions options) {
+			this.bucketOptions.put(entry(type, unit), options);
 			return this;
 		}
 
+		/**
+		 * Puts a label.
+		 *
+		 * @param key label key.
+		 * @param value label value.
+		 * @return this builder.
+		 */
+		public Builder labelDescription(@Nonnull String key, @Nonnull String value) {
+			this.labelDescriptions.put(key, value);
+			return this;
+		}
+
+		/**
+		 * @return a new config instance.
+		 */
 		public Config build() {
 			return new Config(this);
+		}
+
+		private static Map<Entry<MetricType, String>, BucketOptions> defaultBucketOptions() {
+			return Map.of(
+				entry(HISTOGRAM, "default"), bucketOptions(20, 1, 2),
+				entry(TIMER, "default"), bucketOptions(20, 1_000_000, 2),
+				entry(TIMER, "ns"), bucketOptions(20, 1_000_000, 2),
+				entry(TIMER, "us"), bucketOptions(20, 1_000, 2),
+				entry(TIMER, "ms"), bucketOptions(20, 1, 2));
+		}
+
+		private static Map<String, String> defaultLabelDescriptions() {
+			return Map.of(
+				"response_code", "The HTTP response (status) code.",
+				"path", "The HTTP request path.",
+				"target_host", "The name of the target host.");
 		}
 	}
 }

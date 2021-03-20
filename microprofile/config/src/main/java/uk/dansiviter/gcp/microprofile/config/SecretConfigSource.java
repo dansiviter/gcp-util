@@ -61,12 +61,27 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 
 	private final String projectId;
 
+	/**
+	 * Creates a new instance with auto-detected {@link MonitoredResource} and default
+	 * {@link SecretManagerServiceSettings}.
+	 *
+	 * @throws IOException
+	 */
 	public SecretConfigSource() throws IOException {
 		this(ResourceType.monitoredResource(), SecretManagerServiceSettings.newBuilder().build());
 	}
 
-	public SecretConfigSource(MonitoredResource resource, SecretManagerServiceSettings settings) {
-		this.projectId = PROJECT_ID.get(resource).get();
+	/**
+	 * Creates a new instance.
+	 *
+	 * @param resource the monitored resource.
+	 * @param settings the settings.
+	 */
+	public SecretConfigSource(
+		@Nonnull MonitoredResource resource,
+		@Nonnull SecretManagerServiceSettings settings)
+	{
+		this.projectId = PROJECT_ID.get(resource).orElseThrow();
 		this.client = new AtomicInit<>(() -> {
 			try {
 				return SecretManagerServiceClient.create(settings);

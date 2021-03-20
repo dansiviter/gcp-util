@@ -15,6 +15,8 @@
  */
 package uk.dansiviter.gcp.log.log4j2;
 
+import static uk.dansiviter.gcp.log.EntryDecorator.mdc;
+
 import java.util.Map;
 
 import com.google.cloud.logging.LogEntry.Builder;
@@ -31,7 +33,7 @@ import uk.dansiviter.gcp.log.EntryDecorator;
  * @since v1.0 [30 Oct 2020]
  */
 public class ThreadContextDecorator implements EntryDecorator {
-	private static final EntryDecorator DELEGATE = EntryDecorator.mdc(ThreadContext::getContext);
+	private static final EntryDecorator DELEGATE = mdc(ThreadContext::getContext);
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {

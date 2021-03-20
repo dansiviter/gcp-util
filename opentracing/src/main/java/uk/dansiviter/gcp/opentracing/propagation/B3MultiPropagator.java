@@ -25,10 +25,15 @@ import uk.dansiviter.gcp.opentracing.CloudTraceSpanContext;
  * @since v1.0 [15 Dec 2019]
  */
 public class B3MultiPropagator implements TextMapPropagator {
+	/** Trace ID header */
 	protected static final String TRACE_ID = "x-b3-traceid";
+	/** Span ID header */
 	protected static final String SPAN_ID = "x-b3-spanid";
+	/** Parent Span ID header */
 	protected static final String PARENT_SPAN_ID = "x-b3-parentSpanid";
+	/** Sampled header */
 	protected static final String SAMPLED = "x-b3-sampled";
+	/** Flags header */
 	protected static final String FLAGS = "x-b3-flags";
 
 	@Override
@@ -41,7 +46,6 @@ public class B3MultiPropagator implements TextMapPropagator {
 		carrier.put(SPAN_ID, spanContext.toSpanId());
 		spanContext.parentSpanId().ifPresent(v -> carrier.put(PARENT_SPAN_ID, Long.toHexString(v).toLowerCase()));
 		carrier.put(SAMPLED, spanContext.sampled() ? "1" : "0");
-		// carrier.put(FLAGS, spanContext.flags());
 	}
 
 	@Override

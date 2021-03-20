@@ -16,21 +16,19 @@
 package uk.dansiviter.gcp.log;
 
 import static java.util.Collections.emptyList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
-import static org.hamcrest.MatcherAssert.*;
-
-import static org.hamcrest.Matchers.*;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Payload.JsonPayload;
 import com.google.cloud.logging.Severity;
 
@@ -45,13 +43,13 @@ import uk.dansiviter.gcp.log.Entry.Source;
  * Unit test for {@link Factory}.
  */
 @ExtendWith(MockitoExtension.class)
-public class FactoryTest {
+class FactoryTest {
 	@Test
-	public void logEntry(@Mock Entry entry) {
+	void logEntry(@Mock Entry entry) {
 		when(entry.severity()).thenReturn(Severity.INFO);
 		when(entry.message()).thenReturn(Optional.of("foo"));
 
-		LogEntry logEntry = Factory.logEntry(entry, emptyList());
+		var logEntry = Factory.logEntry(entry, emptyList());
 
 		JsonPayload payload = logEntry.getPayload();
 
@@ -62,7 +60,7 @@ public class FactoryTest {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	public void logEntry_context_reportLocation(@Mock Entry entry, @Mock Source source) {
+	void logEntry_context_reportLocation(@Mock Entry entry, @Mock Source source) {
 		when(entry.severity()).thenReturn(Severity.WARNING);
 		when(entry.thrown()).thenReturn(Optional.empty());
 		when(entry.source()).thenReturn(Optional.of(source));
@@ -83,14 +81,14 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void toCharSequence_throwable() {
+	void toCharSequence_throwable() {
 		var actual = Factory.toCharSequence(new Throwable("Oh no!")).toString();
 		assertThat(actual, startsWith("java.lang.Throwable: Oh no!\n" +
 				"\tat uk.dansiviter.gcp.log.FactoryTest.toCharSequence_throwable(FactoryTest.java:"));
 	}
 
 	@Test
-	public void instance() {
+	void instance() {
 		var actual = Factory.instance(MyTestClass.class.getName());
 		assertNotNull(actual);
 

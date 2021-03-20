@@ -22,7 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +33,6 @@ import com.google.cloud.logging.LoggingOptions;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.message.SimpleMessage;
@@ -46,43 +44,43 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class Log4j2AppenderTest {
-    private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
+class Log4j2AppenderTest {
+	private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
 
 	@Mock
 	private LoggingOptions loggingOptions;
 	@Mock
 	private Logging logging;
 
-    private Log4j2Appender appender;
+	private Log4j2Appender appender;
 
 	@BeforeEach
-	public void before() {
+	void before() {
 		this.appender = Log4j2Appender.newBuilder()
-                .setName("test")
-                .setLoggingOptions(this.loggingOptions)
-                .setMonitoredResource(this.monitoredResource)
-                .build();
+			.setName("test")
+			.setLoggingOptions(this.loggingOptions)
+			.setMonitoredResource(this.monitoredResource)
+			.build();
 		when(this.loggingOptions.getService()).thenReturn(this.logging);
-        this.appender.start();
+		this.appender.start();
 	}
 
-    @Test @Disabled // no way of preventing connection to GCP yet!
-    public void config() throws IOException {
-        // System.setProperty("log4j2.debug", "true");
-        LoggerContext ctx = new LoggerContext("test");
-        URL url = getClass().getResource("Log4j2AppenderTest.xml");
-        ConfigurationSource source = new ConfigurationSource(url.openStream(), url);
-        Configuration configuration = ConfigurationFactory.getInstance().getConfiguration(ctx, source);
-        configuration.start();
-        Log4j2Appender appender = (Log4j2Appender) configuration.getAppender("cloud");
-        assertEquals(1, appender.getDecorators().size());
-    }
+	@Test @Disabled("no way of preventing connection to GCP yet!")
+	void config() throws IOException {
+		// System.setProperty("log4j2.debug", "true");
+		var ctx = new LoggerContext("test");
+		var url = getClass().getResource("Log4j2AppenderTest.xml");
+		var source = new ConfigurationSource(url.openStream(), url);
+		var configuration = ConfigurationFactory.getInstance().getConfiguration(ctx, source);
+		configuration.start();
+		var appender = (Log4j2Appender) configuration.getAppender("cloud");
+		assertEquals(1, appender.getDecorators().size());
+	}
 
-    @Test
-	public void append(@Mock LogEvent event) {
+		@Test
+	void append(@Mock LogEvent event) {
 		when(event.getLevel()).thenReturn(Level.INFO);
-        when(event.getMessage()).thenReturn(new SimpleMessage("foo"));
+		when(event.getMessage()).thenReturn(new SimpleMessage("foo"));
 
 		appender.append(event);
 

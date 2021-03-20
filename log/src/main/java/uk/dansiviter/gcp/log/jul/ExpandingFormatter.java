@@ -15,12 +15,15 @@
  */
 package uk.dansiviter.gcp.log.jul;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
+import javax.annotation.Nonnull;
+
 /**
- * A formatter that will expand {@link Supplier} instances.
+ * A formatter that will expand {@link Supplier} and {@link Optional} instances.
  *
  * @author Daniel Siviter
  * @since v1.0 [6 Dec 2019]
@@ -35,10 +38,19 @@ public abstract class ExpandingFormatter extends Formatter {
 				if (params[i] instanceof Supplier) {
 					params[i] = ((Supplier<?>) params[i]).get();
 				}
+				if (params[i] instanceof Optional) {
+					params[i] = ((Optional<?>) params[i]).orElse(null);
+				}
 			}
 		}
 		return doFormat(record);
 	}
 
-	protected abstract String doFormat(LogRecord record);
+	/**
+	 * Perform the underlying log record formatting.
+	 *
+	 * @param record the record to format.
+	 * @return the formatted string.
+	 */
+	protected abstract String doFormat(@Nonnull LogRecord record);
 }

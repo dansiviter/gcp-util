@@ -79,6 +79,9 @@ public class B3SinglePropagator implements TextMapPropagator {
 
 	// --- Static Methods ---
 
+	/**
+	 * @return B3 single header propagator instance.
+	 */
 	public static B3SinglePropagator b3SinglePropagator() {
 		return INSTANCE;
 	}

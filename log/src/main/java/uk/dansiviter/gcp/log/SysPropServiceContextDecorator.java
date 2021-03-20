@@ -31,6 +31,9 @@ import com.google.cloud.logging.LogEntry.Builder;
 public class SysPropServiceContextDecorator implements EntryDecorator {
 	private final EntryDecorator delegate;
 
+	/**
+	 * Creates a new instance.
+	 */
 	public SysPropServiceContextDecorator() {
 		this.delegate = EntryDecorator.serviceContext(
 			getProperty("serviceContext.service"),
@@ -39,6 +42,6 @@ public class SysPropServiceContextDecorator implements EntryDecorator {
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		delegate.decorate(b, e, payload);
+		this.delegate.decorate(b, e, payload);
 	}
 }

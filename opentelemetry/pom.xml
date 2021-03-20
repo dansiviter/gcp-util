@@ -8,10 +8,6 @@
 	</parent>
 	<artifactId>opentelemetry</artifactId>
 
-	<properties>
-		<module.name>uk.dansiviter.gcp.opentelemetry</module.name>
-	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

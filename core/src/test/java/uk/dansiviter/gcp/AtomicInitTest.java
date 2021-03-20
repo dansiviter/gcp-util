@@ -27,23 +27,23 @@ import org.junit.jupiter.api.Test;
 /**
  * Unit test for {@link AtomicInit};
  */
-public class AtomicInitTest {
+class AtomicInitTest {
 	@Test
-	public void get() {
+	void get() {
 		var init = AtomicInit.atomic(() -> "Hello!");
 
 		assertEquals("Hello!", init.get());
 	}
 
 	@Test
-	public void get_null() {
+	void get_null() {
 		var init = AtomicInit.atomic(() -> null);
 
 		assertThrows(IllegalStateException.class, () -> init.get());
 	}
 
 	@Test
-	public void get_multi() {
+	void get_multi() {
 		var init = AtomicInit.atomic(() -> {
 			sleep(100);
 			return "Hello!";
@@ -57,7 +57,7 @@ public class AtomicInitTest {
 	}
 
 	@Test
-	public void get_multi_null() {
+	void get_multi_null() {
 		var init = AtomicInit.atomic(() -> {
 			sleep(100);
 			return null;

@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log;
+package uk.dansiviter.gcp;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import java.util.HashMap;
-
-import com.google.cloud.logging.LogEntry.Builder;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,25 +28,28 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Unit test for {@link MessageMaskingDecorator}
+ * Tests for {@link Util}.
  */
 @ExtendWith(MockitoExtension.class)
-class MessageMaskingDecoratorTest {
+class UtilTest {
 	@Test
-	void decorate(@Mock Builder b, @Mock Entry e) {
-		var decorator = new MessageMaskingDecorator("foo");
+	void threadLocal(@Mock Function<?, ?> function) {
+		var threadLocal = Util.threadLocal(() -> function);
 
-		var payload = new HashMap<String, Object>();
-		payload.put("message", "hello");
-		decorator.decorate(b, e, payload);
-		assertEquals("hello", payload.get("message"));
+		threadLocal.get();
+		threadLocal.get();
 
-		payload.put("message", "hello foo");
-		decorator.decorate(b, e, payload);
-		assertEquals("hello **REDACTED**", payload.get("message"));
+		verifyNoInteractions(function);
+	}
 
-		payload.put("message", "foo hello");
-		decorator.decorate(b, e, payload);
-		assertEquals("**REDACTED** hello", payload.get("message"));
+	@Test
+	void threadLocal_reset(@Mock Function<?, ?> function) {
+		var threadLocal = Util.threadLocal(() -> function, f -> { f.apply(null); return f; });
+
+		threadLocal.get();
+		threadLocal.get();
+
+		verify(function, times(2)).apply(null);
+		verifyNoMoreInteractions(function);
 	}
 }

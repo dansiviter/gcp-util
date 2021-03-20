@@ -25,11 +25,11 @@ import uk.dansiviter.gcp.opentracing.CloudTraceSpanContext;
  * @since v1.0 [15 Dec 2019]
  */
 public class B3SinglePropagator implements TextMapPropagator {
+	/** B3 header name */
 	protected static final String B3 = "B3";
 
 	/**
-	 *
-	 * @return
+	 * @return header name.
 	 */
 	protected String header() {
 		return B3;

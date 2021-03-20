@@ -22,11 +22,18 @@ import uk.dansiviter.gcp.opentracing.CloudTraceSpanContext;
 /**
  * @author Daniel Siviter
  * @since v1.0 [15 Dec 2019]
- * @param <C>
+ * @param <C> carrier type.
  */
 public interface Propagator<C> {
-
+	/**
+	 * @param spanContext context.
+	 * @param carrier carrier.
+	 */
 	void inject(CloudTraceSpanContext spanContext, @Nonnull C carrier);
 
+	/**
+	 * @param carrier carrier.
+	 * @return context.
+	 */
 	CloudTraceSpanContext extract(@Nonnull C carrier);
 }

@@ -15,14 +15,14 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
-import static java.time.ZoneOffset.UTC;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.microprofile.metrics.RegistryTypeLiteral.registryType;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -32,9 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
@@ -49,9 +48,7 @@ import com.google.cloud.monitoring.v3.MetricServiceClient;
 import com.google.cloud.monitoring.v3.MetricServiceSettings;
 import com.google.monitoring.v3.CreateTimeSeriesRequest;
 import com.google.monitoring.v3.ProjectName;
-import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
-import com.google.protobuf.Timestamp;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.Metric;
@@ -59,7 +56,6 @@ import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 
 import uk.dansiviter.gcp.GaxUtil;
-import uk.dansiviter.gcp.ResourceType;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Context;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 
@@ -72,8 +68,9 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 @ApplicationScoped
 public class CloudMonitoringExporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
-	protected final Logger log;
 
+	@Inject
+	private Logger log;
 	@Inject
 	@ConfigProperty(name = "stackdriver.samplingRate", defaultValue = "STANDARD")
 	private SamplingRate samplingRate;
@@ -83,20 +80,16 @@ public class CloudMonitoringExporter {
 	@Inject @Any
 	private Instance<MetricRegistry> registries;
 	@Inject
-	private MonitoredResource monitoredResource;
+	private MonitoredResource resource;
 	@Inject
 	private Config config;
 
-	private ZonedDateTime startDateTime;
-	private ZonedDateTime previousIntervalEndTime;
+	private Instant startDateTime;
+	private Instant previousIntervalEndTime;
 
 	private ProjectName projectName;
 	private MetricServiceClient client;
 	private ScheduledFuture<?> future;
-
-	public CloudMonitoringExporter() {
-		this.log = Logger.getLogger(getClass().getName());
-	}
 
 	/**
 	 *
@@ -104,45 +97,41 @@ public class CloudMonitoringExporter {
 	 * @throws IOException
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) throws IOException {
-		this.startDateTime = ZonedDateTime.now(UTC);
-		this.projectName = ProjectName.of(ResourceType.get(this.monitoredResource, PROJECT_ID).orElseThrow());
-		final MetricServiceSettings.Builder builder = MetricServiceSettings.newBuilder();
+		this.startDateTime = Instant.now();
+		this.projectName = ProjectName.of(PROJECT_ID.get(this.resource).orElseThrow());
+		var builder = MetricServiceSettings.newBuilder();
 		this.client = MetricServiceClient.create(builder.build());
 		this.future = this.executor.scheduleAtFixedRate(this::run, 0, samplingRate.duration.getSeconds(), SECONDS);
 	}
 
-	/**
-	 *
-	 */
 	private void run() {
-		final ZonedDateTime intervalStartTime = this.previousIntervalEndTime == null ? this.startDateTime : this.previousIntervalEndTime;
-		final ZonedDateTime intervalEndTime = ZonedDateTime.now(UTC);
-		this.log.log(Level.FINE, "Starting metrics collection... [start={0},end={1}]",
-				new Object[] { intervalStartTime, intervalEndTime });
+		final var intervalStartTime = this.previousIntervalEndTime == null ? this.startDateTime : this.previousIntervalEndTime;
+		final var intervalEndTime = Instant.now();
+		this.log.startCollection(intervalStartTime, intervalEndTime);
 		try {
-			final Timestamp startTimestamp = Factory.toTimestamp(this.startDateTime);
-			final TimeInterval interval = Factory.toInterval(intervalEndTime, intervalEndTime);
+			var startTimestamp = Factory.toTimestamp(this.startDateTime);
+			var interval = Factory.toInterval(intervalEndTime, intervalEndTime);
 
 			// collect as fast as possible. storage can take a little longer
-			final Map<MetricID, Snapshot> snapshots = new ConcurrentHashMap<>();
-			for (MetricRegistry.Type type : MetricRegistry.Type.values()) {
-				final MetricRegistry registry = this.registries.select(Factory.registryType(type)).get();
+			var snapshots = new ConcurrentHashMap<MetricID, Snapshot>();
+			for (var type : MetricRegistry.Type.values()) {
+				var registry = this.registries.select(registryType(type)).get();
 				registry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
 			}
-			final Context ctx = new Context(this.config, monitoredResource, startTimestamp, interval);
-			final List<TimeSeries> timeSeries = new ArrayList<>();
+			var ctx = new Context(this.config, this.resource, startTimestamp, interval);
+			var timeSeries = new ArrayList<TimeSeries>();
 
-			for (MetricRegistry.Type type : MetricRegistry.Type.values()) {
-				final MetricRegistry registry = this.registries.select(Factory.registryType(type)).get();
-				registry.getMetrics().forEach((k, v) -> {
-					timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts));
-				});
+			for (var type : MetricRegistry.Type.values()) {
+				var registry = this.registries.select(registryType(type)).get();
+				registry.getMetrics().forEach((k, v) ->
+					timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
+				);
 			}
 
 			// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
-			for (List<TimeSeries> chunk : partition(timeSeries, 200)) {
-				this.log.log(Level.FINE, "Persisting time series. [size={0}]", chunk.size());
-				final CreateTimeSeriesRequest request = CreateTimeSeriesRequest.newBuilder()
+			for (var chunk : partition(timeSeries, 200)) {
+				this.log.persist(chunk.size());
+				var request = CreateTimeSeriesRequest.newBuilder()
 						.setName(this.projectName.toString())
 						.addAllTimeSeries(chunk)
 						.build();
@@ -150,32 +139,28 @@ public class CloudMonitoringExporter {
 			}
 			this.previousIntervalEndTime = intervalEndTime;
 		} catch (RuntimeException e) {
-			this.log.log(Level.WARNING, "Unable to collect metrics!", e);
+			this.log.collectionFail(e);
 		}
 	}
 
 	private static void add(List<TimeSeries> timeSeries, TimeSeries ts) {
 		if (ts.getPointsCount() != 1) {
-			throw new IllegalStateException("Naugty! " + ts);
+			throw new IllegalStateException("Naughty! " + ts);
 		}
 		timeSeries.add(ts);
 	}
 
-	/**
-	 *
-	 * @param registry
-	 * @param snapshots
-	 * @param id
-	 * @param metric
-	 */
 	private void collect(Map<MetricID, Snapshot> snapshots, MetricID id, Metric metric) {
 		try {
 			Factory.toSnapshot(metric).ifPresent(s -> snapshots.put(id, s));
 		} catch (RuntimeException e) {
-			this.log.log(Level.WARNING, "Unable to snapshot!", e);
+			this.log.snapshotFail(e);
 		}
 	}
 
+	/**
+	 * Destroy this exporter.
+	 */
 	@PreDestroy
 	public void destroy() {
 		if (this.future != null) {
@@ -187,17 +172,6 @@ public class CloudMonitoringExporter {
 
 	// --- Static Methods ---
 
-	/**
-	 *
-	 * @param registry
-	 * @param type
-	 * @param snapshots
-	 * @param startTime
-	 * @param interval
-	 * @param id
-	 * @param metric
-	 * @return
-	 */
 	private Optional<TimeSeries> timeSeries(
 			Context ctx,
 			MetricRegistry registry,
@@ -205,28 +179,22 @@ public class CloudMonitoringExporter {
 			Map<MetricID, Snapshot> snapshots,
 			MetricID id)
 	{
-		final Snapshot snapshot = snapshots.get(id);
+		var snapshot = snapshots.get(id);
 		if (snapshot == null) {
 			return Optional.empty(); // we either couldn't snapshot or don't know how
 		}
 
 		// on first run create metric view data as we have no other way of knowing if it's a Double or Int64
-		final MetricDescriptor descriptor = this.descriptors.computeIfAbsent(id, k -> {
-			final MetricDescriptor created = Factory.toDescriptor(this.config, registry, type, id, snapshot);
+		var descriptor = this.descriptors.computeIfAbsent(id, k -> {
+			var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
 			return this.client.createMetricDescriptor(this.projectName, created);
 		});
 
 		return Optional.of(snapshot.timeseries(ctx, id, descriptor).build());
 	}
 
-	/**
-	 *
-	 * @param in
-	 * @param chunk
-	 * @return
-	 */
-	private static Collection<List<TimeSeries>> partition(List<TimeSeries> in, int chunk) {
-		final AtomicInteger counter = new AtomicInteger();
+	private static Collection<List<TimeSeries>> partition(@Nonnull List<TimeSeries> in, int chunk) {
+		var counter = new AtomicInteger();
 		return in.stream().collect(groupingBy(it -> counter.getAndIncrement() / chunk)).values();
 	}
 
@@ -234,10 +202,12 @@ public class CloudMonitoringExporter {
 	// --- Inner Classes ---
 
 	/**
-	 * @see https://cloud.google.com/blog/products/management-tools/cloud-monitoring-metrics-get-10-second-resolution
+	 * @see <a href="https://cloud.google.com/blog/products/management-tools/cloud-monitoring-metrics-get-10-second-resolution">High-resolution user-defined metrics</a>
 	 */
 	public enum SamplingRate {
+		/** Standard sampling rate */
 		STANDARD(Duration.parse("PT1M")),
+		/** High resolution sampling rate */
 		HIGH_RESOLUTION(Duration.parse("PT10S"));
 
 		private final Duration duration;

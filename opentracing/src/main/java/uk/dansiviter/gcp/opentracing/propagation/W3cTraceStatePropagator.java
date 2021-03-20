@@ -20,7 +20,7 @@ package uk.dansiviter.gcp.opentracing.propagation;
  * @since v1.0 [16 Dec 2019]
  */
 public class W3cTraceStatePropagator extends B3SinglePropagator {
-	private final String TRACE_STATE = "tracestate";
+	private static final String TRACE_STATE = "tracestate";
 
 	@Override
 	protected String header() {

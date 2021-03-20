@@ -35,7 +35,6 @@ import javax.ws.rs.container.PreMatching;
 
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.Tag;
-import org.eclipse.microprofile.metrics.Timer;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 /**
@@ -63,8 +62,8 @@ class ContainerMetricsFilter implements ContainerRequestFilter, ContainerRespons
 
 	@Override
 	public void filter(ContainerRequestContext req, ContainerResponseContext res) {
-		final Tag[] tags = { KIND, path(req.getUriInfo().getRequestUri()), status(res.getStatus()) };
-		final Timer timer = this.registry.timer(RESPONSE_LATENCY, tags);
+		Tag[] tags = { KIND, path(req.getUriInfo().getRequestUri()), status(res.getStatus()) };
+		var timer = this.registry.timer(RESPONSE_LATENCY, tags);
 		req.setProperty(RESPONSE_LATENCY.getName(), timer);
 		this.registry.counter(RESPONSE_COUNT, tags).inc();
 	}

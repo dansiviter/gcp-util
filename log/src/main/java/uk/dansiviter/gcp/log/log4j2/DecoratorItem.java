@@ -24,48 +24,37 @@ import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 import org.apache.logging.log4j.core.config.plugins.validation.constraints.Required;
 
 /**
- *
+ * Decorator item.
  */
 @Plugin(name = "Decorator", category = Node.CATEGORY, printObject = true)
 public final class DecoratorItem {
-    private final String clazz;
+    private final String className;
 
     /**
-     *
-     * @param clazz
+     * @param builder the builder instance.
      */
-    public DecoratorItem(String clazz) {
-        this.clazz = clazz;
+    public DecoratorItem(Builder builder) {
+        this.className = builder.className;
     }
 
-    public String getClazz() {
-        return clazz;
+    /**
+     * @return the class name.
+     */
+    public String getClassName() {
+        return this.className;
     }
 
+    /**
+     * @return new builder instance.
+     */
     @PluginBuilderFactory
     public static Builder newBuilder() {
         return new Builder();
     }
 
-    public static class Builder implements org.apache.logging.log4j.core.util.Builder<DecoratorItem> {
-        @PluginBuilderAttribute(value = "class")
-        @Required(message = "Class must be provided")
-        private String clazz;
-
-        public Builder setClazz(String clazz) {
-            this.clazz = clazz;
-            return this;
-        }
-
-        @Override
-        public DecoratorItem build() {
-            return new DecoratorItem(clazz);
-        }
-    }
-
     @Override
     public int hashCode() {
-        return Objects.hash(clazz);
+        return Objects.hash(this.className);
     }
 
     @Override
@@ -73,9 +62,35 @@ public final class DecoratorItem {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
+        if (obj == null || this.getClass() != obj.getClass()) {
             return false;
         }
-        return Objects.equals(clazz, ((DecoratorItem) obj).clazz);
+        return Objects.equals(this.className, ((DecoratorItem) obj).className);
+    }
+
+
+    // --- Inner Classes ---
+
+    /**
+     * Decorator item builder.
+     */
+    public static class Builder implements org.apache.logging.log4j.core.util.Builder<DecoratorItem> {
+        @PluginBuilderAttribute(value = "class")
+        @Required(message = "Class must be provided")
+        private String className;
+
+        /**
+         * @param className the name of the class.
+         * @return this builder instance.
+         */
+        public Builder setClassName(String className) {
+            this.className = className;
+            return this;
+        }
+
+        @Override
+        public DecoratorItem build() {
+            return new DecoratorItem(this);
+        }
     }
 }

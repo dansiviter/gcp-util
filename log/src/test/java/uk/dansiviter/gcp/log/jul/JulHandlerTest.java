@@ -41,7 +41,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Unit test for {@link JulHandler}.
  */
 @ExtendWith(MockitoExtension.class)
-public class JulHandlerTest {
+class JulHandlerTest {
 	private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
 
 	@Mock
@@ -52,13 +52,13 @@ public class JulHandlerTest {
 	private JulHandler handler;
 
 	@BeforeEach
-	public void before() {
+	void before() {
 		this.handler = JulHandler.julHandler(this.loggingOptions, this.monitoredResource);
 		when(this.loggingOptions.getService()).thenReturn(this.logging);
 	}
 
 	@Test
-	public void publish(@Mock LogRecord record) {
+	void publish(@Mock LogRecord record) {
 		when(record.getLevel()).thenReturn(Level.INFO);
 
 		handler.publish(record);

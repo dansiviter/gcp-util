@@ -80,6 +80,9 @@ public class CloudTraceContextPropagator implements TextMapPropagator {
 
 	// --- Static Methods ---
 
+	/**
+	 * @return cloud trace propagator instance.
+	 */
 	public static CloudTraceContextPropagator cloudTraceContextPropagator() {
 		return INSTANCE;
 	}

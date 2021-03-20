@@ -46,13 +46,12 @@ import com.google.cloud.ServiceOptions;
  * Utility to create a {@link MonitoredResource} based on the Cloud Operations
  * Suite documentation. It will attempt to load the data from the environment
  * but all values can be overriden via Microprofile Config. This is inspired by
- * {@link com.google.cloud.logging.MonitoredResourceUtil} but more flexible.
+ * {@code com.google.cloud.logging.MonitoredResourceUtil} but more flexible.
  *
  * @author Daniel Siviter
  * @since v1.0 [6 Dec 2019]
- * @see https://cloud.google.com/monitoring
- * @see https://cloud.google.com/logging
- * @see com.google.cloud.logging.MonitoredResourceUtil
+ * @see <a href="https://cloud.google.com/monitoring">Cloud Monitoring</a>
+ * @see <a href="https://cloud.google.com/logging">Cloud Logging</a>
  */
 public enum ResourceType {
 	/**
@@ -69,7 +68,7 @@ public enum ResourceType {
 	GAE_APP_FLEX("gae_app_flex", PROJECT_ID, MODULE_ID, VERSION_ID, ZONE),
 	/**
 	 * A Kubernetes container instance.
-	 * </p>
+	 * <p>
 	 * This has replaced 'container' for logs and 'gke_container' for metrics:
 	 * https://cloud.google.com/monitoring/kubernetes-engine/migration#what-is-changing
 	 */
@@ -95,13 +94,13 @@ public enum ResourceType {
 	// --- Static Methods ---
 
 	/**
-	 *
-	 * @param name
-	 * @return
+	 * @param name name of resource type.
+	 * @return the found resource.
+	 * @throws IllegalArgumentException if resource not found.
 	 */
 	public static ResourceType fromString(@Nonnull String name) {
 		for (var type : values()) {
-			if (name.equalsIgnoreCase(type.name)) {
+			if (type.name.equalsIgnoreCase(name)) {
 				return type;
 			}
 		}
@@ -109,8 +108,9 @@ public enum ResourceType {
 	}
 
 	/**
+	 * Attempts to auto-detect resource type.
 	 *
-	 * @return
+	 * @return the found resource type or {@code global} type.
 	 */
 	public static ResourceType autoDetect() {
 		if (getenv("K_SERVICE") != null
@@ -147,24 +147,25 @@ public enum ResourceType {
 	 * @return the created monitored instance.
 	 */
 	public static MonitoredResource monitoredResource(@Nonnull Function<String, Optional<String>> override) {
-		ResourceType type = autoDetect();
+		var type = autoDetect();
 		var builder = MonitoredResource.newBuilder(type.name);
 		Arrays.asList(type.labels).forEach(l -> {
 			var value = override.apply(l.name);
-			value.ifPresentOrElse(v -> builder.addLabel(l.name, v), () -> {
-				l.get().ifPresent(v -> builder.addLabel(l.name, v));
-			});
+			value.ifPresentOrElse(
+				v -> builder.addLabel(l.name, v),
+				() -> l.get().ifPresent(v -> builder.addLabel(l.name, v)));
 		});
 		return builder.build();
 	}
 
 	/**
+	 * Extracts the value for the monitored resource label.
 	 *
-	 * @param resource
-	 * @param key
-	 * @return
+	 * @param resource the resource to use.
+	 * @param key the key of the label.
+	 * @return the value.
 	 */
-	public static Optional<String> get(MonitoredResource resource, Label key) {
+	public static Optional<String> label(@Nonnull MonitoredResource resource, Label key) {
 		return Optional.of(resource.getLabels().get(key.name));
 	}
 
@@ -176,7 +177,7 @@ public enum ResourceType {
 	// --- Inner Classes ---
 
 	/**
-	 * @see https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gke_mds
+	 * @see <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#gke_mds">GKE MDS</a>
 	 */
 	public enum Label {
 		/**
@@ -202,7 +203,7 @@ public enum ResourceType {
 		VERSION_ID("version_id", env("GAE_VERSION")),
 		/**
 		 * The physical location of the cluster that contains the container.
-		 * </p>
+		 * <p>
 		 * This relates to the master node rather than the pod.
 		 * https://cloud.google.com/monitoring/kubernetes-engine/migration#resource_type_changes
 		 */
@@ -242,7 +243,7 @@ public enum ResourceType {
 		}
 
 		/**
-		 * @return
+		 * @return the value of the label.
 		 */
 		public Optional<String> get() {
 			var value = Optional.ofNullable(getenv(this.name.toUpperCase()));
@@ -262,8 +263,12 @@ public enum ResourceType {
 			return Optional.empty();
 		}
 
-		public  Optional<String> get(MonitoredResource resource) {
-			return ResourceType.get(resource, this);
+		/**
+		 * @param resource the resource to extract from.
+		 * @return the value.
+		 */
+		public Optional<String> get(@Nonnull MonitoredResource resource) {
+			return ResourceType.label(resource, this);
 		}
 
 		private static String getLocation() {

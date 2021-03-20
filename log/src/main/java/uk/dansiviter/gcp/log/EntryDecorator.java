@@ -15,6 +15,8 @@
  */
 package uk.dansiviter.gcp.log;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -40,11 +42,13 @@ public interface EntryDecorator {
 	void decorate(Builder b, Entry e, Map<String, Object> payload);
 
 	/**
+	 * Wraps a {@link LoggingEnhancer} as a {@link EntryDecorator}.
 	 *
-	 * @param enhancer
-	 * @return
+	 * @param enhancer the enhancer to wrap.
+	 * @return the wrapped enhancer.
 	 */
-	public static EntryDecorator decorator(LoggingEnhancer enhancer) {
+	public static EntryDecorator decorator(@Nonnull LoggingEnhancer enhancer) {
+		requireNonNull(enhancer);
 		return (b, e, p) -> enhancer.enhanceLogEntry(b);
 	}
 
@@ -79,7 +83,7 @@ public interface EntryDecorator {
 	 * @return a new decorator.
 	 */
 	public static EntryDecorator serviceContext(String service, String version) {
-		final Map<String, Object> serviceContext = Map.of(
+		var serviceContext = Map.of(
 						"service", service,
 						"version", version);
 		return (b, e, p) -> p.put("serviceContext", serviceContext);
@@ -89,27 +93,27 @@ public interface EntryDecorator {
 	 * Appends {@code mdc} using given {@link Map}.
 	 *
 	 * @param mdcSupplier the supplier.
-	 * @return
+	 * @return a decorator instance.
 	 */
-	public static EntryDecorator mdc(Supplier<Map<String, ?>> mdcSupplier) {
+	public static EntryDecorator mdc(@Nonnull Supplier<Map<String, ?>> mdcSupplier) {
 		return (b, e, p) -> {
-			Map<String, ?> mdc = mdcSupplier.get();
+			var mdc = mdcSupplier.get();
 			if (mdc.isEmpty()) {
 				return;
 			}
 			@SuppressWarnings("unchecked")
-			Map<String, Object> map = (Map<String, Object>) p.computeIfAbsent("mdc", k -> new HashMap<>());
+			var map = (Map<String, Object>) p.computeIfAbsent("mdc", k -> new HashMap<>());
 			mdc.forEach((k, v) -> map.put(k, Objects.toString(v)));
 		};
 	}
 
 	/**
 	 *
-	 * @param decorator
-	 * @param decorators
-	 * @return
+	 * @param decorator the first decorator.
+	 * @param decorators subsequent decorators.
+	 * @return a decorator that wraps the others.
 	 */
-	public static EntryDecorator all(EntryDecorator decorator, EntryDecorator... decorators) {
+	public static EntryDecorator all(@Nonnull EntryDecorator decorator, EntryDecorator... decorators) {
 		return (b, e, p) -> {
 			decorator.decorate(b, e, p);
 			for (EntryDecorator d : decorators) {

@@ -57,7 +57,7 @@ public interface Entry {
 	/**
 	 * @return stacktrace as a string.
 	 */
-	default Optional<Supplier<? super CharSequence>> thrown(){
+	default Optional<Supplier<CharSequence>> thrown(){
 		return Optional.empty();
 	}
 
@@ -75,17 +75,33 @@ public interface Entry {
 		return Optional.empty();
 	}
 
+	/**
+	 * The source of the log entry.
+	 */
 	public interface Source {
-		String className();
+		/**
+		 * @return the class name.
+		 */
+		@Nonnull String className();
 
+		/**
+		 * @return the line of the code, if available.
+		 */
 		default OptionalInt line() {
 			return OptionalInt.empty();
 		}
 
-		String method();
+		/**
+		 * @return the method name.
+		 */
+		@Nonnull String method();
 
+		/**
+		 * @return the values as a map.
+		 * @see <a href="https://cloud.google.com/error-reporting/docs/formatting-error-messages#json_representation">JSON Representation</a>
+		 */
 		default Map<String, Object> asMap() {
-			final Map<String, Object> map = new HashMap<>();
+			var map = new HashMap<String, Object>();
 			map.put("filePath", className());
 			map.put("functionName", method());
 			line().ifPresent(i -> map.put("lineNumber", i));
