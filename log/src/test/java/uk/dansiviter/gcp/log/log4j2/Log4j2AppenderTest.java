@@ -44,7 +44,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class Log4j2AppenderTest {
+class Log4j2AppenderTest {
 	private final MonitoredResource monitoredResource = MonitoredResource.of("global", Map.of());
 
 	@Mock
@@ -55,7 +55,7 @@ public class Log4j2AppenderTest {
 	private Log4j2Appender appender;
 
 	@BeforeEach
-	public void before() {
+	void before() {
 		this.appender = Log4j2Appender.newBuilder()
 			.setName("test")
 			.setLoggingOptions(this.loggingOptions)
@@ -65,8 +65,8 @@ public class Log4j2AppenderTest {
 		this.appender.start();
 	}
 
-	@Test @Disabled // no way of preventing connection to GCP yet!
-	public void config() throws IOException {
+	@Test @Disabled("no way of preventing connection to GCP yet!")
+	void config() throws IOException {
 		// System.setProperty("log4j2.debug", "true");
 		var ctx = new LoggerContext("test");
 		var url = getClass().getResource("Log4j2AppenderTest.xml");
@@ -78,7 +78,7 @@ public class Log4j2AppenderTest {
 	}
 
 		@Test
-	public void append(@Mock LogEvent event) {
+	void append(@Mock LogEvent event) {
 		when(event.getLevel()).thenReturn(Level.INFO);
 		when(event.getMessage()).thenReturn(new SimpleMessage("foo"));
 

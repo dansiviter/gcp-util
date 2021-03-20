@@ -37,9 +37,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Tests for {@link GaxUtil}.
  */
 @ExtendWith(MockitoExtension.class)
-public class GaxUtilTest {
+class GaxUtilTest {
 	@Test
-	public void close(@Mock BackgroundResource resource) throws Exception {
+	void close(@Mock BackgroundResource resource) throws Exception {
 		when(resource.awaitTermination(anyLong(), any())).thenReturn(true);
 
 		GaxUtil.close(resource);
@@ -53,7 +53,7 @@ public class GaxUtilTest {
 	}
 
 	@Test
-	public void close_timeout(@Mock BackgroundResource resource) throws Exception {
+	void close_timeout(@Mock BackgroundResource resource) throws Exception {
 		GaxUtil.close(resource);
 
 		verify(resource).shutdown();
@@ -66,7 +66,7 @@ public class GaxUtilTest {
 	}
 
 	@Test
-	public void close_throwInterrupt(@Mock BackgroundResource resource) throws Exception {
+	void close_throwInterrupt(@Mock BackgroundResource resource) throws Exception {
 		when(resource.awaitTermination(anyLong(), any())).thenThrow(new InterruptedException());
 
 		GaxUtil.close(resource);

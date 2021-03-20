@@ -63,11 +63,11 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
  * @since v1.0 [18 Dec 2019]
  */
 @ExtendWith(MockitoExtension.class)
-public class FactoryTest {
+class FactoryTest {
 	private static final long[] VALUES = new long[] { 0, 1, 3, 9, 15, 5_000, 50_000 };
 
 	@Test
-	public void toDescriptor(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock GaugeSnapshot snapshot, @Mock Metadata metadata) {
+	void toDescriptor(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock GaugeSnapshot snapshot, @Mock Metadata metadata) {
 		var resource = MonitoredResource.newBuilder("global").build();
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
@@ -81,7 +81,7 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void toDescriptor_unknownType(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock Snapshot snapshot, @Mock Metadata metadata) {
+	void toDescriptor_unknownType(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock Snapshot snapshot, @Mock Metadata metadata) {
 		var resource = MonitoredResource.newBuilder("global").build();
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
@@ -94,7 +94,7 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void toInterval() {
+	void toInterval() {
 		var start = ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 6, ZoneOffset.UTC).toInstant();
 		var end = ZonedDateTime.of(1970, 3, 4, 5, 6, 7, 8, ZoneOffset.UTC).toInstant();
 
@@ -106,14 +106,14 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void toSnapshot(@Mock Metric metric) {
+	void toSnapshot(@Mock Metric metric) {
 		var snapshot = Factory.toSnapshot(metric);
 
 		assertTrue(snapshot.isEmpty());
 	}
 
 	@Test
-	public void toSnapshot_gauge(@Mock Gauge<?> metric) {
+	void toSnapshot_gauge(@Mock Gauge<?> metric) {
 		var snapshot = Factory.toSnapshot(metric);
 
 		assertFalse(snapshot.isEmpty());
@@ -121,7 +121,7 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void toSnapshot(@Mock ConcurrentGauge metric) {
+	void toSnapshot(@Mock ConcurrentGauge metric) {
 		var snapshot = Factory.toSnapshot(metric);
 
 		assertFalse(snapshot.isEmpty());
@@ -129,7 +129,7 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void guageSnapshot_timeseries(
+	void guageSnapshot_timeseries(
 			@Mock Gauge<Long> gauge,
 			@Mock Config config,
 			@Mock MetricID id)
@@ -153,7 +153,7 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void buckets_exponential(
+	void buckets_exponential(
 			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
 	{
 		var builder = Distribution.newBuilder();
@@ -173,7 +173,7 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void buckets_linear(
+	void buckets_linear(
 			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
 	{
 		var builder = Distribution.newBuilder();
@@ -193,7 +193,7 @@ public class FactoryTest {
 	}
 
 	@Test
-	public void buckets_explicit(
+	void buckets_explicit(
 			@Mock org.eclipse.microprofile.metrics.Snapshot snapshot)
 	{
 		var builder = Distribution.newBuilder();

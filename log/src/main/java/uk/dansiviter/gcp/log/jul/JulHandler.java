@@ -218,7 +218,6 @@ public class JulHandler extends AsyncHandler {
 			logging().write(Collections.singleton(logEntry(entry, this.decorators)), this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
-			return;
 		}
 	}
 
@@ -354,7 +353,7 @@ public class JulHandler extends AsyncHandler {
 		}
 
 		@Override
-		public Optional<Supplier<? super CharSequence>> thrown() {
+		public Optional<Supplier<CharSequence>> thrown() {
 			var t = this.delegate.getThrown();
 			if (t == null) {
 				return Optional.empty();

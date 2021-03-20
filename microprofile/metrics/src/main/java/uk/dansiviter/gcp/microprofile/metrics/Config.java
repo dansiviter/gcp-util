@@ -75,22 +75,6 @@ public class Config {
 		return new Builder();
 	}
 
-	private static Map<Entry<MetricType, String>, BucketOptions> defaultBucketOptions() {
-		return Map.of(
-			entry(HISTOGRAM, "default"), bucketOptions(20, 1, 2),
-			entry(TIMER, "default"), bucketOptions(20, 1_000_000, 2),
-			entry(TIMER, "ns"), bucketOptions(20, 1_000_000, 2),
-			entry(TIMER, "us"), bucketOptions(20, 1_000, 2),
-			entry(TIMER, "ms"), bucketOptions(20, 1, 2));
-	}
-
-	private static Map<String, String> defaultLabelDescriptions() {
-		return Map.of(
-			"response_code", "The HTTP response (status) code.",
-			"path", "The HTTP request path.",
-			"target_host", "The name of the target host.");
-	}
-
 	private static BucketOptions bucketOptions(int numBuckets, double scale, double growthFactor) {
 		return BucketOptions.newBuilder()
 				.setExponentialBuckets(
@@ -121,7 +105,19 @@ public class Config {
 		 * @return this builder.
 		 */
 		public Builder put(@Nonnull MetricType type, @Nonnull String unit, @Nonnull BucketOptions options) {
-			this.bucketOptions.put(entry(type, unit), requireNonNull(options));
+			this.bucketOptions.put(entry(type, unit), options);
+			return this;
+		}
+
+		/**
+		 * Puts a label.
+		 *
+		 * @param key label key.
+		 * @param value label value.
+		 * @return this builder.
+		 */
+		public Builder labelDescription(@Nonnull String key, @Nonnull String value) {
+			this.labelDescriptions.put(key, value);
 			return this;
 		}
 
@@ -130,6 +126,22 @@ public class Config {
 		 */
 		public Config build() {
 			return new Config(this);
+		}
+
+		private static Map<Entry<MetricType, String>, BucketOptions> defaultBucketOptions() {
+			return Map.of(
+				entry(HISTOGRAM, "default"), bucketOptions(20, 1, 2),
+				entry(TIMER, "default"), bucketOptions(20, 1_000_000, 2),
+				entry(TIMER, "ns"), bucketOptions(20, 1_000_000, 2),
+				entry(TIMER, "us"), bucketOptions(20, 1_000, 2),
+				entry(TIMER, "ms"), bucketOptions(20, 1, 2));
+		}
+
+		private static Map<String, String> defaultLabelDescriptions() {
+			return Map.of(
+				"response_code", "The HTTP response (status) code.",
+				"path", "The HTTP request path.",
+				"target_host", "The name of the target host.");
 		}
 	}
 }

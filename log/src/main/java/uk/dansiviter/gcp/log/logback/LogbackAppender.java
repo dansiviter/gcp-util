@@ -288,7 +288,7 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 		}
 
 		@Override
-		public Optional<Supplier<? super CharSequence>> thrown() {
+		public Optional<Supplier<CharSequence>> thrown() {
 			final var t = this.delegate.getThrowableProxy();
 			if (t == null) {
 				return Optional.empty();

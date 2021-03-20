@@ -5,6 +5,8 @@ An implementation of `io.opentracing.Tracer` that sends it's data to Cloud Trace
 Limitations:
 * No performance testing.
 
+> :warning: This implementation is deprecated. It's recommended you use [OpenTelemetry](../opentelemetry/README.md) in preference to this and use the Shim to bind between the two.
+
 ## Usage ##
 
 Some helpers to get you started.

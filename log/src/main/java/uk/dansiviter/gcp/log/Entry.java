@@ -57,7 +57,7 @@ public interface Entry {
 	/**
 	 * @return stacktrace as a string.
 	 */
-	default Optional<Supplier<? super CharSequence>> thrown(){
+	default Optional<Supplier<CharSequence>> thrown(){
 		return Optional.empty();
 	}
 

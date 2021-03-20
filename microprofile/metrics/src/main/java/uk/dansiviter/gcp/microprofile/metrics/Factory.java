@@ -396,19 +396,6 @@ public enum Factory { ;
 		return new Tag(name, value);
 	}
 
-	private static Optional<TimeUnit> timeUnit(@Nonnull String unit) {
-		switch (unit.toLowerCase()) {
-		case "ms":
-			return Optional.of(MILLISECONDS);
-		case "us":
-			return Optional.of(MICROSECONDS);
-		case "ns":
-			return Optional.of(NANOSECONDS);
-		default:
-			return Optional.empty();
-		}
-	}
-
 
 	// --- Inner Classes ---
 
@@ -570,6 +557,19 @@ public enum Factory { ;
 					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).clearStartTime().build())
 					.setValue(TYPED_VALUE_BUILDER.get().setDistributionValue(distribution).build()).build();
 			return builder.addPoints(point);
+		}
+
+		private static Optional<TimeUnit> timeUnit(@Nonnull String unit) {
+			switch (unit.toLowerCase()) {
+			case "ms":
+				return Optional.of(MILLISECONDS);
+			case "us":
+				return Optional.of(MICROSECONDS);
+			case "ns":
+				return Optional.of(NANOSECONDS);
+			default:
+				return Optional.empty();
+			}
 		}
 	}
 

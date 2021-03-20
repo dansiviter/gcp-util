@@ -123,9 +123,9 @@ public class CloudMonitoringExporter {
 
 			for (var type : MetricRegistry.Type.values()) {
 				var registry = this.registries.select(registryType(type)).get();
-				registry.getMetrics().forEach((k, v) -> {
-					timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts));
-				});
+				registry.getMetrics().forEach((k, v) ->
+					timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
+				);
 			}
 
 			// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create

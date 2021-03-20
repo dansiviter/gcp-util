@@ -31,9 +31,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Tests for {@link Util}.
  */
 @ExtendWith(MockitoExtension.class)
-public class UtilTest {
+class UtilTest {
 	@Test
-	public void threadLocal(@Mock Function<?, ?> function) {
+	void threadLocal(@Mock Function<?, ?> function) {
 		var threadLocal = Util.threadLocal(() -> function);
 
 		threadLocal.get();
@@ -43,7 +43,7 @@ public class UtilTest {
 	}
 
 	@Test
-	public void threadLocal_reset(@Mock Function<?, ?> function) {
+	void threadLocal_reset(@Mock Function<?, ?> function) {
 		var threadLocal = Util.threadLocal(() -> function, f -> { f.apply(null); return f; });
 
 		threadLocal.get();

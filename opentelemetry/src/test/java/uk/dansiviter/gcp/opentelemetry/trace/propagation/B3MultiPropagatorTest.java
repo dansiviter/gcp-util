@@ -33,9 +33,9 @@ import io.opentelemetry.context.Context;
 /**
  * Unit test for {@link B3MultiPropagator}.
  */
-public class B3MultiPropagatorTest {
+class B3MultiPropagatorTest {
     @Test
-    public void inject() {
+    void inject() {
         var map = new HashMap<String, String>();
 
         var spanContext = SpanContext.createFromRemoteParent("1c8b8459a164de3b2d4e82ce09f49bfa", "3d7dacabb375a261", TraceFlags.getSampled(), TraceState.getDefault());
@@ -48,7 +48,7 @@ public class B3MultiPropagatorTest {
     }
 
     @Test
-    public void extract() {
+    void extract() {
         var map = new HashMap<String, String>();
         map.put(B3MultiPropagator.TRACE_ID, "1c8b8459a164de3b2d4e82ce09f49bfa");
         map.put(B3MultiPropagator.SPAN_ID, "3d7dacabb375a261");

@@ -4,7 +4,7 @@ An implementation of OpenTelemetry that sends it's data to Cloud Trace or Cloud 
 
 Limitations:
 * No performance testing,
-* Currently no Metrics.
+* No Metrics implementation.
 
 ## Usage ##
 
@@ -20,3 +20,7 @@ Limitations:
 ```
 
 > :information_source: avoid the `SimpleSpanProcessor` as this will force persistence when the span completes potentially slowing down processing. Use `BatchSpanProcessor` instead.
+
+### OpenTracing Shim ###
+
+If you're still limited to using OpenTracing, you can use the [Shim](https://github.com/open-telemetry/opentelemetry-java/tree/main/opentracing-shim) to link between the two.

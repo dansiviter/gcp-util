@@ -33,9 +33,9 @@ import io.opentelemetry.context.Context;
 /**
  * Unit test for {@link B3SinglePropegator}.
  */
-public class B3SinglePropagatorTest {
+class B3SinglePropagatorTest {
     @Test
-    public void inject() {
+    void inject() {
         var map = new HashMap<String, String>();
 
         var spanContext = SpanContext.createFromRemoteParent("1c8b8459a164de3b2d4e82ce09f49bfa", "3d7dacabb375a261", TraceFlags.getSampled(), TraceState.getDefault());
@@ -46,7 +46,7 @@ public class B3SinglePropagatorTest {
     }
 
     @Test
-    public void extract() {
+    void extract() {
         var map = new HashMap<String, String>();
         map.put(B3SinglePropagator.B3, "1c8b8459a164de3b2d4e82ce09f49bfa-3d7dacabb375a261-1");
 

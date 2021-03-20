@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link HexUtil}.
  */
-public class HexUtilTest {
+class HexUtilTest {
 	@Test
 	void toHex() {
 		var actual = HexUtil.toHex(123);

@@ -273,7 +273,7 @@ public class Log4j2Appender extends AbstractAppender {
 		}
 
 		@Override
-		public Optional<Supplier<? super CharSequence>> thrown() {
+		public Optional<Supplier<CharSequence>> thrown() {
 			var t = this.delegate.getThrown();
 			if (t == null) {
 				return Optional.empty();

@@ -27,9 +27,9 @@ import org.junit.jupiter.api.Test;
 /**
  * Unit test for {@link Factory}.
  */
-public class FactoryTest {
+class FactoryTest {
     @Test
-    public void toTimestamp() {
+    void toTimestamp() {
         Instant i = Instant.now();
         long epochNanos = TimeUnit.SECONDS.toNanos(i.getEpochSecond()) + i.getNano();
         Timestamp timestamp = Factory.toTimestamp(epochNanos);

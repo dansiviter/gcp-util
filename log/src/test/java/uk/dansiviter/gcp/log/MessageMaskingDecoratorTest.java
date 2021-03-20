@@ -30,9 +30,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Unit test for {@link MessageMaskingDecorator}
  */
 @ExtendWith(MockitoExtension.class)
-public class MessageMaskingDecoratorTest {
+class MessageMaskingDecoratorTest {
 	@Test
-	public void decorate(@Mock Builder b, @Mock Entry e) {
+	void decorate(@Mock Builder b, @Mock Entry e) {
 		var decorator = new MessageMaskingDecorator("foo");
 
 		var payload = new HashMap<String, Object>();

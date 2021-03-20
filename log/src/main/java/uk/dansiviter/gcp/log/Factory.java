@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2019-2021 Daniel Siviter
  *
@@ -115,19 +114,15 @@ public enum Factory { ;
 	private static @Nonnull Map<String, Object> payload(@Nonnull Entry entry) {
 		var data = new HashMap<String, Object>();
 
-		entry.message().ifPresent(m -> {
-			// doesn't support CharSequence or even the protobuf ByteString
-			data.put("message", m instanceof String ? m : m.toString());
-		});
+		// doesn't support CharSequence or even the protobuf ByteString
+		entry.message().ifPresent(m -> data.put("message", m instanceof String ? m : m.toString()));
 
 		var context = new HashMap<String, Object>();
 		if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {
 			data.put("@type", TYPE);  // an Error may not have a stacktrace, force it in regardless
 		}
 		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && !entry.thrown().isPresent()) {
-			entry.source().ifPresent(s -> {
-				context.put("reportLocation", s.asMap());
-			});
+			entry.source().ifPresent(s -> context.put("reportLocation", s.asMap()));
 		}
 		entry.thrown().ifPresent(t -> data.put("stack_trace", t.get().toString()));
 

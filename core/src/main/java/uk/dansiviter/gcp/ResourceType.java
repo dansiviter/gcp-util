@@ -151,9 +151,9 @@ public enum ResourceType {
 		var builder = MonitoredResource.newBuilder(type.name);
 		Arrays.asList(type.labels).forEach(l -> {
 			var value = override.apply(l.name);
-			value.ifPresentOrElse(v -> builder.addLabel(l.name, v), () -> {
-				l.get().ifPresent(v -> builder.addLabel(l.name, v));
-			});
+			value.ifPresentOrElse(
+				v -> builder.addLabel(l.name, v),
+				() -> l.get().ifPresent(v -> builder.addLabel(l.name, v)));
 		});
 		return builder.build();
 	}
