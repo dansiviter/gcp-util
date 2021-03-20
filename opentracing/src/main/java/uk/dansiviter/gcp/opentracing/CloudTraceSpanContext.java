@@ -38,7 +38,8 @@ public class CloudTraceSpanContext implements SpanContext {
 	private static final byte SAMPLED = 0x1;
 	private static final SecureRandom RAND = new SecureRandom();
 
-	private final long traceIdLow, spanId;
+	private final long traceIdLow;
+	private final long spanId;
 	private final OptionalLong traceIdHigh;
 	private final Map<String, String> baggage;
 	private final int flags;
@@ -176,7 +177,8 @@ public class CloudTraceSpanContext implements SpanContext {
 	 *
 	 */
 	public static class Builder {
-		private final long traceIdLow, spanId;
+		private final long traceIdLow;
+		private final long spanId;
 		private final OptionalLong traceIdHigh;
 		private final Map<String, String> baggage = new HashMap<>();
 		private OptionalLong parentSpanId = OptionalLong.empty();

@@ -46,7 +46,7 @@ public class Exporter implements SpanExporter {
 	private final Factory factory;
 
 	Exporter(final Builder builder) {
-		this.resource = builder.resource.orElseGet(() -> ResourceType.monitoredResource());
+		this.resource = builder.resource.orElseGet(ResourceType::monitoredResource);
 		this.projectName = ProjectName.of(builder.projectId.orElseGet(() -> PROJECT_ID.get(this.resource).get()));
 		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);
         this.factory = new Factory(this.resource, this.projectName);

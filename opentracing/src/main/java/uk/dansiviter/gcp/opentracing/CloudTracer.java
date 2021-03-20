@@ -72,7 +72,7 @@ public class CloudTracer implements Tracer {
 	private final ScheduledExecutorService executor;
 
 	CloudTracer(final Builder builder) {
-		this.resource = builder.resource.orElseGet(() -> ResourceType.monitoredResource());
+		this.resource = builder.resource.orElseGet(ResourceType::monitoredResource);
 		this.projectName = ProjectName.of(builder.projectId.orElse(PROJECT_ID.get(this.resource).orElseThrow()));
 		this.client = builder.client.orElseGet(CloudTracer::defaultTraceServiceClient);
 		this.propagators = Map.copyOf(builder.propegators);
@@ -184,14 +184,6 @@ public class CloudTracer implements Tracer {
 		return new Builder();
 	}
 
-	/**
-	 *
-	 * @return
-	 */
-	private static Map<Format<?>, Propagator<?>> defaultPropagators() {
-		return Map.of(Format.Builtin.HTTP_HEADERS, new B3MultiPropagator());
-	}
-
 
 	// --- Inner Classes ---
 
@@ -279,6 +271,17 @@ public class CloudTracer implements Tracer {
 		 */
 		public CloudTracer build() {
 			return new CloudTracer(this);
+		}
+
+
+		// --- Static Methods ---
+
+		/**
+		 *
+		 * @return
+		 */
+		private static Map<Format<?>, Propagator<?>> defaultPropagators() {
+			return Map.of(Format.Builtin.HTTP_HEADERS, new B3MultiPropagator());
 		}
 	}
 }

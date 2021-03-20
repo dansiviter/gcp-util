@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
  */
 class CloudTraceSpanContextTest {
 	@Test
-	public void builder_str() {
+	void builder_str() {
 		var builder = CloudTraceSpanContext.builder("463ac35c9f6413ad48485a3953bb6124", "05e3ac9a4f6e3b90");
 
 		var ctx = builder.build();

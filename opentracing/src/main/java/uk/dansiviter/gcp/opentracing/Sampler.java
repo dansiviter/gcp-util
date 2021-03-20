@@ -78,7 +78,7 @@ public interface Sampler extends Predicate<Optional<CloudTraceSpanContext>> {
 	 * @return a sampler that uses the parent context to decide.
 	 */
 	public static Sampler parent() {
-		return p -> p.isPresent() ? p.get().sampled() : false;
+		return p -> p.map(CloudTraceSpanContext::sampled).orElse(false);
 	}
 
 	/**
