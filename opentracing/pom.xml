@@ -10,6 +10,15 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>processor</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>core</artifactId>
 			<version>${project.version}</version>
