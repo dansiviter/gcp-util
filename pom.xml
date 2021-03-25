@@ -160,15 +160,6 @@
 			<artifactId>jsr305</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>processor</artifactId>
-		</dependency>
-
 
 		<!-- Test Dependencies -->
 

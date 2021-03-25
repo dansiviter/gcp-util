@@ -17,6 +17,7 @@ package uk.dansiviter.gcp.log.jul;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
+import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.empty;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
@@ -24,7 +25,6 @@ import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +38,7 @@ import java.util.logging.LogRecord;
 import javax.annotation.Nonnull;
 
 import com.google.cloud.MonitoredResource;
+import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
 import com.google.cloud.logging.Logging.WriteOption;
 import com.google.cloud.logging.LoggingEnhancer;
@@ -107,7 +108,7 @@ import uk.dansiviter.juli.AsyncHandler;
  * @since v1.0 [6 Dec 2019]
  * @see com.google.cloud.logging.LoggingHandler
  */
-public class JulHandler extends AsyncHandler {
+public class JulHandler extends AsyncHandler<LogEntry> {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
 	private final LoggingOptions loggingOptions;
 	private final AtomicInit<Logging> logging;
@@ -211,11 +212,15 @@ public class JulHandler extends AsyncHandler {
 	}
 
 	@Override
-	protected void doPublish(LogRecord record) {
+	protected LogEntry transform(LogRecord record) {
 		var entry = new JulEntry(record);
+		return logEntry(entry, this.decorators);
+	}
 
+	@Override
+	protected void doPublish(LogEntry record) {
 		try {
-			logging().write(Collections.singleton(logEntry(entry, this.decorators)), this.defaultWriteOptions);
+			logging().write(singleton(record), this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
 		}

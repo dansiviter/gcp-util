@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
-import io.grpc.Context;
 import io.opentelemetry.api.trace.Span;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
@@ -53,11 +52,6 @@ public class Decorator implements EntryDecorator {
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		var current = Context.current();
-		if (current == null) {
-			return;
-		}
-
 		var span = Span.current();
 		if (!span.getSpanContext().isValid()) {
 			return;

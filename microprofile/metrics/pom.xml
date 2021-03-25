@@ -19,6 +19,15 @@
 		</dependency>
 
 		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>processor</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>jakarta.enterprise</groupId>
 			<artifactId>jakarta.enterprise.cdi-api</artifactId>
 			<version>2.0.2</version>
