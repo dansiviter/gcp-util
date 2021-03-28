@@ -166,7 +166,7 @@ public enum ResourceType {
 	 * @return the value.
 	 */
 	public static Optional<String> label(@Nonnull MonitoredResource resource, Label key) {
-		return Optional.of(resource.getLabels().get(key.name));
+		return Optional.ofNullable(resource.getLabels().get(key.name));
 	}
 
 	private static Supplier<String> env(String name) {
