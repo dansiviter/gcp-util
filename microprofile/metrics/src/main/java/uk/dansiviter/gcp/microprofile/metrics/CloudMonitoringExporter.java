@@ -55,6 +55,7 @@ import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 
+import uk.dansiviter.gcp.AtomicInit;
 import uk.dansiviter.gcp.GaxUtil;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Context;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
@@ -88,19 +89,15 @@ public class CloudMonitoringExporter {
 	private Instant previousIntervalEndTime;
 
 	private ProjectName projectName;
-	private MetricServiceClient client;
+	private AtomicInit<MetricServiceClient> client = new AtomicInit<>(this::createClient);
 	private ScheduledFuture<?> future;
 
 	/**
-	 *
 	 * @param init simply here to force initialisation.
-	 * @throws IOException
 	 */
-	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) throws IOException {
+	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
 		this.startDateTime = Instant.now();
 		this.projectName = ProjectName.of(PROJECT_ID.get(this.resource).orElseThrow());
-		var builder = MetricServiceSettings.newBuilder();
-		this.client = MetricServiceClient.create(builder.build());
 		this.future = this.executor.scheduleAtFixedRate(this::run, 0, samplingRate.duration.getSeconds(), SECONDS);
 	}
 
@@ -135,7 +132,7 @@ public class CloudMonitoringExporter {
 						.setName(this.projectName.toString())
 						.addAllTimeSeries(chunk)
 						.build();
-				this.client.createTimeSeries(request);
+				this.client.get().createTimeSeries(request);
 			}
 			this.previousIntervalEndTime = intervalEndTime;
 		} catch (RuntimeException e) {
@@ -158,6 +155,15 @@ public class CloudMonitoringExporter {
 		}
 	}
 
+	private MetricServiceClient createClient() {
+		try {
+			var builder = MetricServiceSettings.newBuilder();
+			return MetricServiceClient.create(builder.build());
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
 	/**
 	 * Destroy this exporter.
 	 */
@@ -166,7 +172,7 @@ public class CloudMonitoringExporter {
 		if (this.future != null) {
 			this.future.cancel(false);
 		}
-		GaxUtil.close(this.client);
+		this.client.closeIfInitialised(GaxUtil::close);
 	}
 
 
@@ -187,7 +193,7 @@ public class CloudMonitoringExporter {
 		// on first run create metric view data as we have no other way of knowing if it's a Double or Int64
 		var descriptor = this.descriptors.computeIfAbsent(id, k -> {
 			var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
-			return this.client.createMetricDescriptor(this.projectName, created);
+			return this.client.get().createMetricDescriptor(this.projectName, created);
 		});
 
 		return Optional.of(snapshot.timeseries(ctx, id, descriptor).build());
