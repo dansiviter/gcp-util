@@ -33,9 +33,12 @@ public interface Logger {
   @Message(value = "Persisting time series. [size={0}]", level = DEBUG)
   void persist(int size);
 
-  @Message(value = "Unable to collect metrics!", level = WARN)
+  @Message(value = "Metric collection failure!", level = WARN)
   void collectionFail(RuntimeException e);
 
-  @Message(value = "Unable to snapshot!", level = WARN)
+  @Message(value = "Snapshot failure!", level = WARN)
   void snapshotFail(RuntimeException e);
+
+	@Message(value = "Unable to find projectId! Unable to export metrics.", level = WARN)
+  void projectIdNotFound();
 }

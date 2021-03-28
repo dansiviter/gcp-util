@@ -100,6 +100,11 @@ public class CloudMonitoringExporter {
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
 		this.startDateTime = Instant.now();
+		var projectId = PROJECT_ID.get(this.resource);
+		if (!projectId.isPresent()) {
+			log.projectIdNotFound();
+			return;
+		}
 		this.projectName = ProjectName.of(PROJECT_ID.get(this.resource).orElseThrow());
 		this.future = this.executor.scheduleAtFixedRate(this::run, 0, samplingRate.duration.getSeconds(), SECONDS);
 	}
