@@ -27,9 +27,10 @@ import org.eclipse.microprofile.metrics.annotation.RegistryType;
  * @author Daniel Siviter
  * @since v1.0 [6 Nov 2019]
  */
-@SuppressWarnings("all")
-public class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> implements RegistryType {
-  private static final RegistryTypeLiteral BASE_TYPE = new RegistryTypeLiteral(Type.BASE);
+public final class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> implements RegistryType {
+  private static final long serialVersionUID = 1L;
+
+	private static final RegistryTypeLiteral BASE_TYPE = new RegistryTypeLiteral(Type.BASE);
 	private static final RegistryTypeLiteral VENDOR_TYPE = new RegistryTypeLiteral(Type.VENDOR);
 	private static final RegistryTypeLiteral APPLICATION_TYPE = new RegistryTypeLiteral(Type.APPLICATION);
 

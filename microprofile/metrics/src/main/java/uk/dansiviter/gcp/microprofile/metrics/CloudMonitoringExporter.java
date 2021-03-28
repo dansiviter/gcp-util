@@ -18,7 +18,6 @@ package uk.dansiviter.gcp.microprofile.metrics;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
-import static uk.dansiviter.gcp.microprofile.metrics.RegistryTypeLiteral.registryType;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -38,8 +37,6 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import com.google.api.MetricDescriptor;
@@ -54,6 +51,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
+import org.eclipse.microprofile.metrics.MetricRegistry.Type;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 import uk.dansiviter.gcp.AtomicInit;
 import uk.dansiviter.gcp.GaxUtil;
@@ -78,8 +77,12 @@ public class CloudMonitoringExporter {
 	@Inject
 	private ScheduledExecutorService executor;
 	// Annoyingly you can't get the type directly from the registry
-	@Inject @Any
-	private Instance<MetricRegistry> registries;
+	@Inject @RegistryType(type = Type.BASE)
+	private MetricRegistry baseRegistry;
+	@Inject @RegistryType(type = Type.VENDOR)
+	private MetricRegistry vendorRegistry;
+	@Inject @RegistryType(type = Type.APPLICATION)
+	private MetricRegistry appRegistry;
 	@Inject
 	private MonitoredResource resource;
 	@Inject
@@ -111,19 +114,22 @@ public class CloudMonitoringExporter {
 
 			// collect as fast as possible. storage can take a little longer
 			var snapshots = new ConcurrentHashMap<MetricID, Snapshot>();
-			for (var type : MetricRegistry.Type.values()) {
-				var registry = this.registries.select(registryType(type)).get();
-				registry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
-			}
+			this.baseRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
+			this.vendorRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
+			this.appRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
+
 			var ctx = new Context(this.config, this.resource, startTimestamp, interval);
 			var timeSeries = new ArrayList<TimeSeries>();
 
-			for (var type : MetricRegistry.Type.values()) {
-				var registry = this.registries.select(registryType(type)).get();
-				registry.getMetrics().forEach((k, v) ->
-					timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
-				);
-			}
+			this.baseRegistry.getMetrics().forEach((k, v) ->
+				timeSeries(ctx, this.baseRegistry, Type.BASE, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
+			);
+			this.vendorRegistry.getMetrics().forEach((k, v) ->
+				timeSeries(ctx, this.vendorRegistry, Type.BASE, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
+			);
+			this.appRegistry.getMetrics().forEach((k, v) ->
+				timeSeries(ctx, this.appRegistry, Type.APPLICATION, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
+			);
 
 			// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
 			for (var chunk : partition(timeSeries, 200)) {
