@@ -18,7 +18,6 @@ package uk.dansiviter.gcp;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
 
-import java.io.Closeable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -101,19 +100,35 @@ public class AtomicInit<T> implements AutoCloseable {
 
 	/**
 	 * Closes removed the reference to the underlying instance if this has been
-	 * initialised and, if it is an instance of {@link Closeable}, will also close
+	 * initialised and, if it is an instance of {@link AutoCloseable}, will also close
 	 * it.
 	 */
 	@Override
-	public void close() throws Exception {
+	public void close() {
+		closeIfInitialised(v -> {
+			if (v instanceof AutoCloseable) {
+				try {
+					((AutoCloseable) v).close();
+				} catch (Exception e) {
+					throw new IllegalStateException(e);
+				}
+			}
+		});
+	}
+
+	/**
+	 * Closes the underlying object according to the given action.
+	 *
+	 * @param action the close action.
+	 */
+	public void closeIfInitialised(Consumer<T> action) {
 		if (!isInitialised()) {
 			return;
 		}
-		while (this.ref.get() != null) {
+		T value;
+		while ((value = this.ref.get()) != null) {
 			if (this.closed.compareAndSet(false, true)) {
-				if (this.ref.get() instanceof AutoCloseable) {
-					((AutoCloseable) this.ref.get()).close();
-				}
+				action.accept(value);
 				this.ref.set(null);
 			}
 		}
