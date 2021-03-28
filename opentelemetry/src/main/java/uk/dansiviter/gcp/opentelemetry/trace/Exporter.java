@@ -20,6 +20,7 @@ import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
@@ -45,33 +46,34 @@ public class Exporter implements SpanExporter {
 	private final TraceServiceClient client;
 	private final Factory factory;
 
-	Exporter(final Builder builder) {
+	Exporter(Builder builder) {
 		this.resource = builder.resource.orElseGet(ResourceType::monitoredResource);
-		this.projectName = ProjectName.of(builder.projectId.orElseGet(() -> PROJECT_ID.get(this.resource).get()));
+		var projectId = builder.projectId.or(() -> PROJECT_ID.get(this.resource));
+		this.projectName = ProjectName.of(projectId.orElseThrow());
 		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);
-        this.factory = new Factory(this.resource, this.projectName);
-    }
+		this.factory = new Factory(this.resource, this.projectName);
+	}
 
-    @Override
-    public CompletableResultCode export(Collection<SpanData> spans) {
-        this.client.batchWriteSpans(projectName, spans.stream().map(factory::toSpan).collect(toList()));
-        return CompletableResultCode.ofSuccess();
-    }
+	@Override
+	public CompletableResultCode export(Collection<SpanData> spans) {
+		this.client.batchWriteSpans(projectName, spans.stream().map(factory::toSpan).collect(toList()));
+		return CompletableResultCode.ofSuccess();
+	}
 
-    @Override
-    public CompletableResultCode flush() {
-        // client doesn't have a flush method
-        return CompletableResultCode.ofFailure();
-    }
+	@Override
+	public CompletableResultCode flush() {
+		// client doesn't have a flush method
+		return CompletableResultCode.ofFailure();
+	}
 
-    @Override
-    public CompletableResultCode shutdown() {
-        this.client.shutdown();
-        return CompletableResultCode.ofSuccess();
-    }
+	@Override
+	public CompletableResultCode shutdown() {
+		this.client.shutdown();
+		return CompletableResultCode.ofSuccess();
+	}
 
 
-    // --- Static Methods ---
+	// --- Static Methods ---
 
 	/**
 	 * @return a new builder instance.
@@ -92,7 +94,7 @@ public class Exporter implements SpanExporter {
 		}
 	}
 
-    // --- Inner Classes ---
+		// --- Inner Classes ---
 
 	/**
 	 *
@@ -133,6 +135,7 @@ public class Exporter implements SpanExporter {
 
 		/**
 		 * @return build new exporter.
+		 * @throws NoSuchElementException if a required value is missing.
 		 */
 		public Exporter build() {
 			return new Exporter(this);
