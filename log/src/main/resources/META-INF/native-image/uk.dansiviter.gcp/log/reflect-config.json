@@ -3,5 +3,15 @@
     "name": "uk.dansiviter.gcp.log.jul.JulHandler",
     "allDeclaredConstructors": true,
     "allPublicMethods": true
+  },
+  {
+    "name": "uk.dansiviter.gcp.log.opentelemetry.Decorator",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "uk.dansiviter.gcp.log.opentracing.Decorator",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
   }
 ]
