@@ -93,11 +93,9 @@ public class CloudMonitoringExporter {
 	private ScheduledFuture<?> future;
 
 	/**
-	 *
 	 * @param init simply here to force initialisation.
-	 * @throws IOException
 	 */
-	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) throws IOException {
+	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
 		this.startDateTime = Instant.now();
 		this.projectName = ProjectName.of(PROJECT_ID.get(this.resource).orElseThrow());
 		this.future = this.executor.scheduleAtFixedRate(this::run, 0, samplingRate.duration.getSeconds(), SECONDS);
