@@ -36,7 +36,7 @@ import com.google.cloud.secretmanager.v1.SecretVersionName;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import uk.dansiviter.gcp.AtomicInit;
-import uk.dansiviter.gcp.ResourceType;
+import uk.dansiviter.gcp.MonitoredResourceProvider;
 
 /**
  * Supports 3 formats of secret name:
@@ -68,7 +68,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 	 * @throws IOException
 	 */
 	public SecretConfigSource() throws IOException {
-		this(ResourceType.monitoredResource(), SecretManagerServiceSettings.newBuilder().build());
+		this(MonitoredResourceProvider.monitoredResource(), SecretManagerServiceSettings.newBuilder().build());
 	}
 
 	/**

@@ -27,6 +27,7 @@ import static uk.dansiviter.gcp.Util.threadLocal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;
+import java.time.temporal.ChronoField;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -95,8 +96,17 @@ public enum Factory { ;
 	 * @return the new instance.
 	 */
 	public static TimeInterval toInterval(@Nonnull Instant start, @Nonnull Instant end) {
+		if (start.compareTo(end) > 0) {
+			throw new IllegalArgumentException(format("Start time cannot be after end! [start=%s,end=%s]", start, end));
+		}
 		final TimeInterval.Builder b = INTERVAL_BUILDER.get();
-		b.setStartTime(toTimestamp(start));
+
+		// gap must be at least one
+		if (start.getEpochSecond() != end.getEpochSecond() ||
+			start.get(ChronoField.MILLI_OF_SECOND) > end.get(ChronoField.MILLI_OF_SECOND))
+		{
+			b.setStartTime(toTimestamp(start));
+		}
 		b.setEndTime(toTimestamp(end));
 		return b.build();
 	}
@@ -396,6 +406,22 @@ public enum Factory { ;
 		return new Tag(name, value);
 	}
 
+	private static TimeInterval timeInterval(@Nonnull Context ctx, @Nonnull MetricKind kind) {
+		switch (kind) {
+			case GAUGE:
+				return INTERVAL_BUILDER.get()
+					.setEndTime(ctx.interval.getEndTime())
+					.build();
+			case CUMULATIVE:
+				return INTERVAL_BUILDER.get()
+				  .setStartTime(ctx.startTime)
+					.setEndTime(ctx.interval.getEndTime())
+					.build();
+			default:
+					return ctx.interval;
+			}
+	}
+
 
 	// --- Inner Classes ---
 
@@ -478,8 +504,8 @@ public enum Factory { ;
 				MetricDescriptor descriptor)
 		{
 			var point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().setEndTime(ctx.interval.getEndTime()).build())
-					.setValue(value(descriptor)).build();
+				.setInterval(timeInterval(ctx, descriptor.getMetricKind()))
+				.setValue(value(descriptor)).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}
@@ -501,8 +527,8 @@ public enum Factory { ;
 				MetricDescriptor descriptor)
 		{
 			var point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().setEndTime(ctx.interval.getEndTime()).build())
-					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
+				.setInterval(timeInterval(ctx, descriptor.getMetricKind()))
+				.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}
@@ -513,7 +539,7 @@ public enum Factory { ;
 	static class CounterSnapshot implements Snapshot {
 		private final long value;
 
-		private CounterSnapshot(Counter counter) {
+		CounterSnapshot(Counter counter) {
 			this.value = counter.getCount();
 		}
 
@@ -524,8 +550,8 @@ public enum Factory { ;
 				MetricDescriptor descriptor)
 		{
 			var point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).setStartTime(ctx.startTime).build())
-					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
+				.setInterval(timeInterval(ctx, descriptor.getMetricKind()))
+				.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.value).build()).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}
@@ -554,8 +580,8 @@ public enum Factory { ;
 
 			var builder = Snapshot.super.timeseries(ctx, id, descriptor);
 			var point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).clearStartTime().build())
-					.setValue(TYPED_VALUE_BUILDER.get().setDistributionValue(distribution).build()).build();
+				.setInterval(timeInterval(ctx, descriptor.getMetricKind()))
+				.setValue(TYPED_VALUE_BUILDER.get().setDistributionValue(distribution).build()).build();
 			return builder.addPoints(point);
 		}
 
@@ -587,8 +613,8 @@ public enum Factory { ;
 				MetricDescriptor descriptor)
 		{
 			var point = POINT_BUILDER.get()
-					.setInterval(INTERVAL_BUILDER.get().mergeFrom(ctx.interval).clearStartTime().build())
-					.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.count).build()).build();
+				.setInterval(timeInterval(ctx, descriptor.getMetricKind()))
+				.setValue(TYPED_VALUE_BUILDER.get().setInt64Value(this.count).build()).build();
 			return Snapshot.super.timeseries(ctx, id, descriptor).addPoints(point);
 		}
 	}

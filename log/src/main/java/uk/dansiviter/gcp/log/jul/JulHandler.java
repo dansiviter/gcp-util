@@ -48,7 +48,7 @@ import com.google.cloud.logging.Severity;
 import com.google.cloud.logging.Synchronicity;
 
 import uk.dansiviter.gcp.AtomicInit;
-import uk.dansiviter.gcp.ResourceType;
+import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
@@ -150,9 +150,10 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 			setSynchronicity(synchronicity);
 			property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
+			var resource = monitoredResource.orElseGet(MonitoredResourceProvider::monitoredResource);
 			this.defaultWriteOptions = new WriteOption[] {
 				WriteOption.logName(logName.orElse("java.log")),
-				WriteOption.resource(monitoredResource.orElseGet(ResourceType::monitoredResource))
+				WriteOption.resource(resource)
 			};
 		} catch (RuntimeException e) {
 			reportError(null, e, ErrorManager.OPEN_FAILURE);

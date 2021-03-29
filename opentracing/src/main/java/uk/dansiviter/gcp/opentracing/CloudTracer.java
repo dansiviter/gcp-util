@@ -46,7 +46,7 @@ import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.util.ThreadLocalScopeManager;
 import uk.dansiviter.gcp.GaxUtil;
-import uk.dansiviter.gcp.ResourceType;
+import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.opentracing.propagation.B3MultiPropagator;
 import uk.dansiviter.gcp.opentracing.propagation.Propagator;
 import uk.dansiviter.juli.LogProducer;
@@ -72,7 +72,7 @@ public class CloudTracer implements Tracer {
 	private final ScheduledExecutorService executor;
 
 	CloudTracer(final Builder builder) {
-		this.resource = builder.resource.orElseGet(ResourceType::monitoredResource);
+		this.resource = builder.resource.orElseGet(MonitoredResourceProvider::monitoredResource);
 		this.projectName = ProjectName.of(builder.projectId.orElse(PROJECT_ID.get(this.resource).orElseThrow()));
 		this.client = builder.client.orElseGet(CloudTracer::defaultTraceServiceClient);
 		this.propagators = Map.copyOf(builder.propegators);
