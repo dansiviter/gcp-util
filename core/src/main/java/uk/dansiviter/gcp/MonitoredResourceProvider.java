@@ -38,7 +38,7 @@ public interface MonitoredResourceProvider {
 			.findFirst()
 			.orElseGet(ResourceType::monitoredResource);
 
-		System.out.printf("### Using %s ###\n", resource);
+		System.out.printf("### Using %s ###%n", resource);
 		return resource;
 	}
 
