@@ -32,7 +32,7 @@ import com.google.devtools.cloudtrace.v2.ProjectName;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
-import uk.dansiviter.gcp.ResourceType;
+import uk.dansiviter.gcp.MonitoredResourceProvider;
 
 /**
  * A OpenTelemetry {@link SpanExporter exporter} that pushes the traces to Cloud Trace.
@@ -47,7 +47,7 @@ public class Exporter implements SpanExporter {
 	private final Factory factory;
 
 	Exporter(Builder builder) {
-		this.resource = builder.resource.orElseGet(ResourceType::monitoredResource);
+		this.resource = builder.resource.orElseGet(MonitoredResourceProvider::monitoredResource);
 		var projectId = builder.projectId.or(() -> PROJECT_ID.get(this.resource));
 		this.projectName = ProjectName.of(projectId.orElseThrow());
 		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);

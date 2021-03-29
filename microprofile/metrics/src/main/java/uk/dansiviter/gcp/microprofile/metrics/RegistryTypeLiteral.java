@@ -27,6 +27,7 @@ import org.eclipse.microprofile.metrics.annotation.RegistryType;
  * @author Daniel Siviter
  * @since v1.0 [6 Nov 2019]
  */
+@SuppressWarnings("all")
 public final class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> implements RegistryType {
   private static final long serialVersionUID = 1L;
 

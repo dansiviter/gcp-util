@@ -18,6 +18,8 @@ package uk.dansiviter.gcp.microprofile.metrics;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.microprofile.metrics.Factory.toInterval;
+import static uk.dansiviter.gcp.microprofile.metrics.Factory.toTimestamp;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -56,6 +58,7 @@ import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 import uk.dansiviter.gcp.AtomicInit;
 import uk.dansiviter.gcp.GaxUtil;
+import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Context;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 
@@ -68,6 +71,8 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 @ApplicationScoped
 public class CloudMonitoringExporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
+
+	private final MonitoredResource resource;
 
 	@Inject
 	private Logger log;
@@ -84,38 +89,44 @@ public class CloudMonitoringExporter {
 	@Inject @RegistryType(type = Type.APPLICATION)
 	private MetricRegistry appRegistry;
 	@Inject
-	private MonitoredResource resource;
-	@Inject
 	private Config config;
 
-	private Instant startDateTime;
-	private Instant previousIntervalEndTime;
+	private Instant startInstant;
+	private Instant previousInstant;
 
 	private ProjectName projectName;
 	private AtomicInit<MetricServiceClient> client = new AtomicInit<>(this::createClient);
 	private ScheduledFuture<?> future;
 
+	public CloudMonitoringExporter() {
+		this.resource = MonitoredResourceProvider.monitoredResource();
+	}
+
 	/**
 	 * @param init simply here to force initialisation.
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
-		this.startDateTime = Instant.now();
+		this.startInstant = Instant.now();
 		var projectId = PROJECT_ID.get(this.resource);
 		if (!projectId.isPresent()) {
 			log.projectIdNotFound();
 			return;
 		}
 		this.projectName = ProjectName.of(PROJECT_ID.get(this.resource).orElseThrow());
-		this.future = this.executor.scheduleAtFixedRate(this::run, 0, samplingRate.duration.getSeconds(), SECONDS);
+		// Ensure small diff. in start > end time
+		// https://cloud.google.com/monitoring/api/ref_v3/rest/v3/TimeInterval
+		this.future = this.executor.scheduleAtFixedRate(this::flush, 10, samplingRate.duration.getSeconds(), SECONDS);
 	}
 
-	private void run() {
-		final var intervalStartTime = this.previousIntervalEndTime == null ? this.startDateTime : this.previousIntervalEndTime;
-		final var intervalEndTime = Instant.now();
-		this.log.startCollection(intervalStartTime, intervalEndTime);
+	private void flush() {
+		final var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
+		flush(start, Instant.now());
+	}
+
+	private void flush(Instant start, Instant end) {
+		this.log.startCollection(start, end);
 		try {
-			var startTimestamp = Factory.toTimestamp(this.startDateTime);
-			var interval = Factory.toInterval(intervalEndTime, intervalEndTime);
+			var interval = toInterval(start, end);
 
 			// collect as fast as possible. storage can take a little longer
 			var snapshots = new ConcurrentHashMap<MetricID, Snapshot>();
@@ -123,7 +134,7 @@ public class CloudMonitoringExporter {
 			this.vendorRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
 			this.appRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
 
-			var ctx = new Context(this.config, this.resource, startTimestamp, interval);
+			var ctx = new Context(this.config, this.resource, toTimestamp(this.startInstant), interval);
 			var timeSeries = new ArrayList<TimeSeries>();
 
 			this.baseRegistry.getMetrics().forEach((k, v) ->
@@ -145,7 +156,8 @@ public class CloudMonitoringExporter {
 						.build();
 				this.client.get().createTimeSeries(request);
 			}
-			this.previousIntervalEndTime = intervalEndTime;
+			// prevent overlap by incrementing by 1 millisecond
+			this.previousInstant = end.plusMillis(1);
 		} catch (RuntimeException e) {
 			this.log.collectionFail(e);
 		}
@@ -182,6 +194,9 @@ public class CloudMonitoringExporter {
 	public void destroy() {
 		if (this.future != null) {
 			this.future.cancel(false);
+		}
+		if (this.previousInstant != null) {
+			flush(this.previousInstant, this.previousInstant.plusSeconds(samplingRate.duration.getSeconds()));
 		}
 		this.client.closeIfInitialised(GaxUtil::close);
 	}

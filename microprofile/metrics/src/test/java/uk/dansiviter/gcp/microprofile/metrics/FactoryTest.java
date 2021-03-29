@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,7 @@ import com.google.api.Distribution.BucketOptions.Explicit;
 import com.google.api.Distribution.BucketOptions.Exponential;
 import com.google.api.Distribution.BucketOptions.Linear;
 import com.google.api.MetricDescriptor;
+import com.google.api.MetricDescriptor.MetricKind;
 import com.google.api.MetricDescriptor.ValueType;
 import com.google.cloud.MonitoredResource;
 import com.google.monitoring.v3.TimeInterval;
@@ -42,6 +44,7 @@ import com.google.monitoring.v3.TypedValue.ValueCase;
 import com.google.protobuf.Timestamp;
 
 import org.eclipse.microprofile.metrics.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.Counter;
 import org.eclipse.microprofile.metrics.Gauge;
 import org.eclipse.microprofile.metrics.Metadata;
 import org.eclipse.microprofile.metrics.Metric;
@@ -54,6 +57,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Context;
+import uk.dansiviter.gcp.microprofile.metrics.Factory.CounterSnapshot;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.GaugeSnapshot;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 
@@ -64,7 +68,7 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
  */
 @ExtendWith(MockitoExtension.class)
 class FactoryTest {
-	private static final long[] VALUES = new long[] { 0, 1, 3, 9, 15, 5_000, 50_000 };
+	private static final long[] VALUES = { 0, 1, 3, 9, 15, 5_000, 50_000 };
 
 	@Test
 	void toDescriptor(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock GaugeSnapshot snapshot, @Mock Metadata metadata) {
@@ -99,10 +103,32 @@ class FactoryTest {
 		var end = ZonedDateTime.of(1970, 3, 4, 5, 6, 7, 8, ZoneOffset.UTC).toInstant();
 
 		var actual = Factory.toInterval(start, end);
-		assertEquals(97445L, actual.getStartTime().getSeconds());
+		assertEquals(97_445L, actual.getStartTime().getSeconds());
 		assertEquals(6, actual.getStartTime().getNanos());
+		assertEquals(5_375_167L, actual.getEndTime().getSeconds());
+		assertEquals(8, actual.getEndTime().getNanos());
+
+		actual = Factory.toInterval(  // milliseconds truncation
+			ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 600_000, ZoneOffset.UTC).toInstant(),
+			ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 800_000, ZoneOffset.UTC).toInstant());
+		assertEquals(Timestamp.getDefaultInstance(), actual.getStartTime());
+		assertEquals(97_445L, actual.getEndTime().getSeconds());
+		assertEquals(800_000, actual.getEndTime().getNanos());
+
+		actual = Factory.toInterval(  // milliseconds truncation
+			ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 659964000, ZoneOffset.UTC).toInstant(),
+			ZonedDateTime.of(1970, 1, 2, 3, 4, 5, 659964000, ZoneOffset.UTC).toInstant());
+		assertEquals(Timestamp.getDefaultInstance(), actual.getStartTime());
+		assertEquals(97_445L, actual.getEndTime().getSeconds());
+		assertEquals(659964000, actual.getEndTime().getNanos());
+
+		actual = Factory.toInterval(end, end);
+		assertEquals(Timestamp.getDefaultInstance(), actual.getStartTime());
 		assertEquals(5375167L, actual.getEndTime().getSeconds());
 		assertEquals(8, actual.getEndTime().getNanos());
+
+		var ex = assertThrows(IllegalArgumentException.class, () -> Factory.toInterval(end, start));
+		assertEquals("Start time cannot be after end! [start=1970-03-04T05:06:07.000000008Z,end=1970-01-02T03:04:05.000000006Z]", ex.getMessage());
 	}
 
 	@Test
@@ -129,24 +155,56 @@ class FactoryTest {
 	}
 
 	@Test
-	void guageSnapshot_timeseries(
+	void gaugeSnapshot_timeseries(
 			@Mock Gauge<Long> gauge,
 			@Mock Config config,
 			@Mock MetricID id)
 	{
-		var descriptor = MetricDescriptor.newBuilder().setValueType(ValueType.INT64).build();
+		var descriptor = MetricDescriptor.newBuilder()
+			.setValueType(ValueType.INT64)
+			.setMetricKind(MetricKind.GAUGE)
+			.build();
 		var resource = MonitoredResource.newBuilder("global").build();
-		var interval = TimeInterval.newBuilder().build();
+		var startTime = Timestamp.newBuilder().setSeconds(321).build();
+		var interval = timeInterval();
 
 		when(gauge.getValue()).thenReturn(123L);
 		var gaugeSnapshot = new GaugeSnapshot(gauge);
-		var ctx = new Context(config, resource, Timestamp.getDefaultInstance(), interval);
+		var ctx = new Context(config, resource, startTime, interval);
 		var builder = gaugeSnapshot.timeseries(ctx, id, descriptor);
 		var timeSeries = builder.build();
 		assertEquals(1, timeSeries.getPointsCount());
 
 		var point = timeSeries.getPoints(0);
 		assertEquals(Timestamp.getDefaultInstance(), point.getInterval().getStartTime());
+		assertEquals(interval.getEndTime(), point.getInterval().getEndTime());
+		assertEquals(ValueCase.INT64_VALUE, point.getValue().getValueCase());
+		assertEquals(123L, point.getValue().getInt64Value());
+	}
+
+	@Test
+	void counterSnapshot_timeseries(
+			@Mock Counter counter,
+			@Mock Config config,
+			@Mock MetricID id)
+	{
+		var descriptor = MetricDescriptor.newBuilder()
+			.setValueType(ValueType.INT64)
+			.setMetricKind(MetricKind.CUMULATIVE)
+			.build();
+		var resource = MonitoredResource.newBuilder("global").build();
+		var startTime = Timestamp.newBuilder().setSeconds(321).build();
+		var interval = timeInterval();
+
+		when(counter.getCount()).thenReturn(123L);
+		var counterSnapshot = new CounterSnapshot(counter);
+		var ctx = new Context(config, resource, startTime, interval);
+		var builder = counterSnapshot.timeseries(ctx, id, descriptor);
+		var timeSeries = builder.build();
+		assertEquals(1, timeSeries.getPointsCount());
+
+		var point = timeSeries.getPoints(0);
+		assertEquals(startTime, point.getInterval().getStartTime());
 		assertEquals(interval.getEndTime(), point.getInterval().getEndTime());
 		assertEquals(ValueCase.INT64_VALUE, point.getValue().getValueCase());
 		assertEquals(123L, point.getValue().getInt64Value());
@@ -211,5 +269,13 @@ class FactoryTest {
 		var distribution = builder.build();
 		assertEquals(5, distribution.getBucketCountsCount());
 		assertEquals(List.of(2L, 1L, 2L, 0L, 2L), distribution.getBucketCountsList());
+	}
+
+	private static TimeInterval timeInterval() {
+		return TimeInterval
+			.newBuilder()
+			.setStartTime(Timestamp.newBuilder().setSeconds(123))
+			.setEndTime(Timestamp.newBuilder().setSeconds(124))
+			.build();
 	}
 }
