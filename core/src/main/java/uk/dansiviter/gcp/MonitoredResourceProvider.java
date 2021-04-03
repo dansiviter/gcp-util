@@ -20,7 +20,8 @@ import java.util.ServiceLoader;
 import com.google.cloud.MonitoredResource;
 
 /**
- * Provides the {@link MonitoredResource} via {@link ServiceLoader}.
+ * Provides the {@link MonitoredResource} via {@link ServiceLoader} mechanism. If no concrete implementation is found
+ * this delegates to {@link ResourceType#autoDetect()}.
  */
 public interface MonitoredResourceProvider {
 	static AtomicInit<MonitoredResource> MONITORED_RESOURCE = new AtomicInit<>(MonitoredResourceProvider::load);

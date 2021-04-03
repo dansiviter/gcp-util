@@ -17,6 +17,9 @@ package uk.dansiviter.gcp.microprofile.metrics;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.BASE;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.VENDOR;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toInterval;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toTimestamp;
@@ -69,7 +72,7 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
  * @since v1.0 [6 Nov 2019]
  */
 @ApplicationScoped
-public class CloudMonitoringExporter {
+public class Exporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
 
 	private final MonitoredResource resource;
@@ -77,7 +80,7 @@ public class CloudMonitoringExporter {
 	@Inject
 	private Logger log;
 	@Inject
-	@ConfigProperty(name = "stackdriver.samplingRate", defaultValue = "STANDARD")
+	@ConfigProperty(name = "cloudMonitoring.samplingRate", defaultValue = "STANDARD")
 	private SamplingRate samplingRate;
 	@Inject
 	private ScheduledExecutorService executor;
@@ -98,7 +101,7 @@ public class CloudMonitoringExporter {
 	private AtomicInit<MetricServiceClient> client = new AtomicInit<>(this::createClient);
 	private ScheduledFuture<?> future;
 
-	public CloudMonitoringExporter() {
+	public Exporter() {
 		this.resource = MonitoredResourceProvider.monitoredResource();
 	}
 
@@ -119,11 +122,8 @@ public class CloudMonitoringExporter {
 	}
 
 	private void flush() {
-		final var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
-		flush(start, Instant.now());
-	}
-
-	private void flush(Instant start, Instant end) {
+		var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
+		var end = Instant.now();
 		this.log.startCollection(start, end);
 		try {
 			var interval = toInterval(start, end);
@@ -136,16 +136,9 @@ public class CloudMonitoringExporter {
 
 			var ctx = new Context(this.config, this.resource, toTimestamp(this.startInstant), interval);
 			var timeSeries = new ArrayList<TimeSeries>();
-
-			this.baseRegistry.getMetrics().forEach((k, v) ->
-				timeSeries(ctx, this.baseRegistry, Type.BASE, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
-			);
-			this.vendorRegistry.getMetrics().forEach((k, v) ->
-				timeSeries(ctx, this.vendorRegistry, Type.BASE, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
-			);
-			this.appRegistry.getMetrics().forEach((k, v) ->
-				timeSeries(ctx, this.appRegistry, Type.APPLICATION, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
-			);
+			collect(ctx, this.baseRegistry, BASE, snapshots, timeSeries);
+			collect(ctx, this.vendorRegistry, VENDOR, snapshots, timeSeries);
+			collect(ctx, this.appRegistry, APPLICATION, snapshots, timeSeries);
 
 			// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
 			for (var chunk : partition(timeSeries, 200)) {
@@ -161,6 +154,18 @@ public class CloudMonitoringExporter {
 		} catch (RuntimeException e) {
 			this.log.collectionFail(e);
 		}
+	}
+
+	private void collect(
+		Context ctx,
+		MetricRegistry registry,
+		Type type,
+		Map<MetricID, Snapshot> snapshots,
+		List<TimeSeries> timeSeries)
+	{
+		registry.getMetrics().forEach((k, v) ->
+			timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
+		);
 	}
 
 	private static void add(List<TimeSeries> timeSeries, TimeSeries ts) {
@@ -196,7 +201,7 @@ public class CloudMonitoringExporter {
 			this.future.cancel(false);
 		}
 		if (this.previousInstant != null) {
-			flush(this.previousInstant, this.previousInstant.plusSeconds(samplingRate.duration.getSeconds()));
+			flush();
 		}
 		this.client.closeIfInitialised(GaxUtil::close);
 	}
