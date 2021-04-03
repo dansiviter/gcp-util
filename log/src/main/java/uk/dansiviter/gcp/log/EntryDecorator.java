@@ -53,43 +53,6 @@ public interface EntryDecorator {
 	}
 
 	/**
-	 * Append the {@code serviceContext} element using {@link Class}.
-	 *
-	 * @param cls the class to use.
-	 * @return a new decorator.
-	 */
-	public static EntryDecorator serviceContext(@Nonnull Class<?> cls) {
-		return serviceContext(cls.getPackage());
-	}
-
-	/**
-	 * Append the {@code serviceContext} element using {@link Package}.
-	 *
-	 * @param pkg the package to use.
-	 * @return a new decorator.
-	 */
-	public static EntryDecorator serviceContext(@Nonnull Package pkg) {
-		if (pkg.getImplementationTitle() == null || pkg.getImplementationVersion() == null) {
-			return (b, e, p) -> { };
-		}
-		return serviceContext(pkg.getImplementationTitle(), pkg.getImplementationVersion());
-	}
-
-	/**
-	 * Append the {@code serviceContext} using given values.
-	 *
-	 * @param service the service.
-	 * @param version the version of the service.
-	 * @return a new decorator.
-	 */
-	public static EntryDecorator serviceContext(String service, String version) {
-		var serviceContext = Map.of(
-						"service", service,
-						"version", version);
-		return (b, e, p) -> p.put("serviceContext", serviceContext);
-	}
-
-	/**
 	 * Appends {@code mdc} using given {@link Map}.
 	 *
 	 * @param mdcSupplier the supplier.
