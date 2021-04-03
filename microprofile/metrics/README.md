@@ -19,24 +19,19 @@ Limitations:
 * Performance testing - No idea of the runtime impact of this library underload.
 
 
+> :information_source: Repeat quick start/stop of instances may result in a `INVALID_ARGUMENT: ... One or more points were written more frequently than the maximum sampling period configured for the metric.` error. This is especially true for local development as it will tend to use the `global` monitored resource type. This will not appear when running in GKE or GCE as the hostname has sufficient entropy to avoid conflicts.
+
+
 ## Usage ##
 
-It needs a `java.util.concurrent.ScheduledExecutorService` to be able to run which not often given by default, so ensure one is supplied. e.g.:
-
-	@ApplicationScoped
-	public static class ExecutorProvider {
-		@javax.enterprise.inject.Produces @ApplicationScoped
-		public ScheduledExecutorService scheduler() {
-			return Executors.newSingleThreadScheduledExecutor();
-		}
-	}
+By simply adding this as a dependency is sufficient for it to start exporting metrics to Cloud Monitoring.
 
 
 ### Settings ###
 
-| Key                            | Description                                | Value             | Default |
-|--------------------------------|--------------------------------------------|-------------------|---------|
-| `cloudMonitoring.pollDuration` | The duration between collection of metrics | ISO-8601 Duration | `PT1M`  |
+| Key                            | Description                                | Value             | Default | Notes |
+|--------------------------------|--------------------------------------------|-------------------|---------|-----|
+| `cloudMonitoring.samplingRate` | The duration between collection of metrics | `STANDARD\|HIGH_RESOLUTION` | `STANDARD`  | For more info see [here](https://cloud.google.com/blog/products/management-tools/cloud-monitoring-metrics-get-10-second-resolution). |
 
 
 ### JAX-RS ###

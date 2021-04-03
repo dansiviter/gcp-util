@@ -80,7 +80,7 @@ public class Exporter {
 	@Inject
 	private Logger log;
 	@Inject
-	@ConfigProperty(name = "stackdriver.samplingRate", defaultValue = "STANDARD")
+	@ConfigProperty(name = "cloudMonitoring.samplingRate", defaultValue = "STANDARD")
 	private SamplingRate samplingRate;
 	@Inject
 	private ScheduledExecutorService executor;
@@ -122,11 +122,8 @@ public class Exporter {
 	}
 
 	private void flush() {
-		final var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
-		flush(start, Instant.now());
-	}
-
-	private void flush(Instant start, Instant end) {
+		var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
+		var end = Instant.now();
 		this.log.startCollection(start, end);
 		try {
 			var interval = toInterval(start, end);
@@ -204,7 +201,7 @@ public class Exporter {
 			this.future.cancel(false);
 		}
 		if (this.previousInstant != null) {
-			flush(this.previousInstant, this.previousInstant.plusSeconds(samplingRate.duration.getSeconds()));
+			flush();
 		}
 		this.client.closeIfInitialised(GaxUtil::close);
 	}
