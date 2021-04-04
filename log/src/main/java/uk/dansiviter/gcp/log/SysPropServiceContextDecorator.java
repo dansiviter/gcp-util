@@ -17,10 +17,6 @@ package uk.dansiviter.gcp.log;
 
 import static java.lang.System.getProperty;
 
-import java.util.Map;
-
-import com.google.cloud.logging.LogEntry.Builder;
-
 /**
  * A {@link EntryDecorator} that uses {@code serviceContext.service} and {@code serviceContext.version} System
  * Properties to decorate the log messages for {@code serviceContext}.
@@ -28,20 +24,13 @@ import com.google.cloud.logging.LogEntry.Builder;
  * @author Daniel Siviter
  * @since v1.0 [16 Jan 2020]
  */
-public class SysPropServiceContextDecorator implements EntryDecorator {
-	private final EntryDecorator delegate;
-
+public class SysPropServiceContextDecorator extends ServiceContextDecorator {
 	/**
 	 * Creates a new instance.
 	 */
 	public SysPropServiceContextDecorator() {
-		this.delegate = EntryDecorator.serviceContext(
+		super(
 			getProperty("serviceContext.service"),
 			getProperty("serviceContext.version"));
-	}
-
-	@Override
-	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		this.delegate.decorate(b, e, payload);
 	}
 }
