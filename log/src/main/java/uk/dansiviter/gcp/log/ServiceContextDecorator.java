@@ -15,9 +15,7 @@
  */
 package uk.dansiviter.gcp.log;
 
-import static java.lang.Thread.currentThread;
 import static java.util.Collections.emptyMap;
-import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
 
@@ -35,7 +33,7 @@ public class ServiceContextDecorator implements EntryDecorator {
 	 * @param pkg the package to extract `Implementation-Title` and `Implementation-Version` from.
 	 */
 	public ServiceContextDecorator(@Nonnull String pkg) {
-		this(currentThread().getContextClassLoader().getDefinedPackage(pkg));
+		this(Package.getPackage(pkg));  // ClassLoader#getDefinedPackage not supported by GraalVM yet
 	}
 
 	/**
