@@ -17,17 +17,19 @@ package uk.dansiviter.gcp.microprofile.metrics;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
-import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
-import static org.eclipse.microprofile.metrics.MetricRegistry.Type.BASE;
-import static org.eclipse.microprofile.metrics.MetricRegistry.Type.VENDOR;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toInterval;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toTimestamp;
+import static uk.dansiviter.gcp.microprofile.metrics.RegistryTypeLiteral.registryType;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,12 +38,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import com.google.api.MetricDescriptor;
@@ -57,7 +61,6 @@ import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.MetricRegistry.Type;
-import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 import uk.dansiviter.gcp.AtomicInit;
 import uk.dansiviter.gcp.GaxUtil;
@@ -74,8 +77,7 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 @ApplicationScoped
 public class Exporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
-
-	private final MonitoredResource resource;
+	private final MonitoredResource resource = MonitoredResourceProvider.monitoredResource();
 
 	@Inject
 	private Logger log;
@@ -84,15 +86,12 @@ public class Exporter {
 	private SamplingRate samplingRate;
 	@Inject
 	private ScheduledExecutorService executor;
-	// Annoyingly you can't get the type directly from the registry
-	@Inject @RegistryType(type = Type.BASE)
-	private MetricRegistry baseRegistry;
-	@Inject @RegistryType(type = Type.VENDOR)
-	private MetricRegistry vendorRegistry;
-	@Inject @RegistryType(type = Type.APPLICATION)
-	private MetricRegistry appRegistry;
+	@Inject
+	private Instance<MetricRegistry> registries;
 	@Inject
 	private Config config;
+	@Inject @Filter
+	private Instance<Predicate<MetricID>> filters;
 
 	private Instant startInstant;
 	private Instant previousInstant;
@@ -100,10 +99,6 @@ public class Exporter {
 	private ProjectName projectName;
 	private AtomicInit<MetricServiceClient> client = new AtomicInit<>(this::createClient);
 	private ScheduledFuture<?> future;
-
-	public Exporter() {
-		this.resource = MonitoredResourceProvider.monitoredResource();
-	}
 
 	/**
 	 * @param init simply here to force initialisation.
@@ -122,41 +117,46 @@ public class Exporter {
 	}
 
 	private void flush() {
-		var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
-		var end = Instant.now();
-		this.log.startCollection(start, end);
 		try {
-			var interval = toInterval(start, end);
-
-			// collect as fast as possible. storage can take a little longer
-			var snapshots = new ConcurrentHashMap<MetricID, Snapshot>();
-			this.baseRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
-			this.vendorRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
-			this.appRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
-
-			var ctx = new Context(this.config, this.resource, toTimestamp(this.startInstant), interval);
-			var timeSeries = new ArrayList<TimeSeries>();
-			collect(ctx, this.baseRegistry, BASE, snapshots, timeSeries);
-			collect(ctx, this.vendorRegistry, VENDOR, snapshots, timeSeries);
-			collect(ctx, this.appRegistry, APPLICATION, snapshots, timeSeries);
-
-			// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
-			for (var chunk : partition(timeSeries, 200)) {
-				this.log.persist(chunk.size());
-				var request = CreateTimeSeriesRequest.newBuilder()
-						.setName(this.projectName.toString())
-						.addAllTimeSeries(chunk)
-						.build();
-				this.client.get().createTimeSeries(request);
-			}
-			// prevent overlap by incrementing by 1 millisecond
-			this.previousInstant = end.plusMillis(1);
+			doFlush();
 		} catch (RuntimeException e) {
 			this.log.collectionFail(e);
 		}
 	}
 
-	private void collect(
+	private void doFlush() {
+		var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
+		var end = Instant.now();
+		this.log.startCollection(start, end);
+		var interval = toInterval(start, end);
+
+		// collect snapshots quickly
+		var snapshots = new ConcurrentHashMap<MetricID, Snapshot>();
+		for (var type : Type.values()) {
+			metricRegistry(type).getMetrics().forEach((k, v) -> collect(snapshots, k, v));
+		}
+
+		// convert to time-series
+		var ctx = new Context(this.config, this.resource, toTimestamp(this.startInstant), interval);
+		var timeSeries = new ArrayList<TimeSeries>();
+		for (var type : Type.values()) {
+			convert(ctx, metricRegistry(type), type, snapshots, timeSeries);
+		}
+
+		// persist
+		// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
+		for (var chunk : partition(timeSeries, 200)) {
+			this.log.persist(chunk.size());
+			var request = CreateTimeSeriesRequest.newBuilder()
+					.setName(this.projectName.toString())
+					.addAllTimeSeries(chunk)
+					.build();
+			this.client.get().createTimeSeries(request);
+		}
+		this.previousInstant = end.plusMillis(1);  // prevent overlap
+	}
+
+	private void convert(
 		Context ctx,
 		MetricRegistry registry,
 		Type type,
@@ -176,6 +176,12 @@ public class Exporter {
 	}
 
 	private void collect(Map<MetricID, Snapshot> snapshots, MetricID id, Metric metric) {
+		for (Predicate<MetricID> p : this.filters) {
+			if (!p.test(id)) {
+				return;
+			}
+		}
+
 		try {
 			Factory.toSnapshot(metric).ifPresent(s -> snapshots.put(id, s));
 		} catch (RuntimeException e) {
@@ -192,6 +198,10 @@ public class Exporter {
 		}
 	}
 
+	private MetricRegistry metricRegistry(Type type) {
+		return this.registries.select(registryType(type)).get();
+	}
+
 	/**
 	 * Destroy this exporter.
 	 */
@@ -205,9 +215,6 @@ public class Exporter {
 		}
 		this.client.closeIfInitialised(GaxUtil::close);
 	}
-
-
-	// --- Static Methods ---
 
 	private Optional<TimeSeries> timeSeries(
 			Context ctx,
@@ -229,6 +236,9 @@ public class Exporter {
 
 		return Optional.of(snapshot.timeseries(ctx, id, descriptor).build());
 	}
+
+	// --- Static Methods ---
+
 
 	private static Collection<List<TimeSeries>> partition(@Nonnull List<TimeSeries> in, int chunk) {
 		var counter = new AtomicInteger();
@@ -252,5 +262,49 @@ public class Exporter {
 		SamplingRate(Duration duration) {
 			this.duration = duration;
 		}
+	}
+
+
+	public static void main(String... args) {
+		var count = 500;
+		var buckets = new long[12];
+
+		var mean = BigDecimal.valueOf(count).divide(BigDecimal.valueOf(buckets.length), MathContext.DECIMAL128);
+		var sum = 0L;
+
+		for (int i = 0; i < buckets.length; i++) {
+			var current = mean.multiply(BigDecimal.valueOf(i + 1));
+			buckets[i] = current.setScale(0, RoundingMode.FLOOR).longValueExact();
+			if (i > 0) {
+//				buckets[i] -= sum;
+			}
+			sum += buckets[i];
+		}
+
+		System.out.printf("Buckets: %s\n", Arrays.toString(buckets));
+		if (count != sum) {
+			throw new IllegalStateException("Count and sum not equal! [c=" + count + ",s=" + sum + "]");
+		}
+		System.out.printf("Sum: %d\n", sum);
+	}
+
+	public static void primitives() {
+		var count = 239487293847293874L;
+		var buckets = new long[12];
+
+		var mean = ((double) count) / buckets.length;
+		var sum = 0L;
+		for (int i = 0; i < buckets.length; i++) {
+			var current = mean * (double) (i + 1);
+			var v = current - sum;
+			buckets[i] = Math.round(Math.floor(v));
+			sum += buckets[i];
+		}
+
+		System.out.printf("Prim. Buckets: %s\n", Arrays.toString(buckets));
+		if (count != sum) {
+			throw new IllegalStateException("Count and sum not equal! [c=" + count + ",s=" + sum + "]");
+		}
+		System.out.printf("Prim. Sum: %d\n", sum);
 	}
 }
