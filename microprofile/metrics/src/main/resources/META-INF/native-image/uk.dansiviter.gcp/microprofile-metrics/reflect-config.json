@@ -1,8 +1,6 @@
 [
-  {
+	{
 		"name":"org.eclipse.microprofile.metrics.annotation.RegistryType",
-		"allDeclaredFields":true,
-		"allDeclaredMethods":true,
-		"allDeclaredConstructors":true
+		"allDeclaredMethods":true
 	}
 ]
