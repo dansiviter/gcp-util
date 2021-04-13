@@ -17,10 +17,12 @@ package uk.dansiviter.gcp.microprofile.metrics;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.BASE;
+import static org.eclipse.microprofile.metrics.MetricRegistry.Type.VENDOR;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toInterval;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toTimestamp;
-import static uk.dansiviter.gcp.microprofile.metrics.RegistryTypeLiteral.registryType;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -61,6 +63,7 @@ import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.MetricRegistry.Type;
+import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
 import uk.dansiviter.gcp.AtomicInit;
 import uk.dansiviter.gcp.GaxUtil;
@@ -86,8 +89,12 @@ public class Exporter {
 	private SamplingRate samplingRate;
 	@Inject
 	private ScheduledExecutorService executor;
-	@Inject
-	private Instance<MetricRegistry> registries;
+	@Inject @RegistryType(type = Type.BASE)
+	private MetricRegistry baseRegistry;
+	@Inject @RegistryType(type = Type.VENDOR)
+	private MetricRegistry vendorRegistry;
+	@Inject @RegistryType(type = Type.APPLICATION)
+	private MetricRegistry appRegistry;
 	@Inject
 	private Config config;
 	@Inject @Filter
@@ -132,16 +139,16 @@ public class Exporter {
 
 		// collect snapshots quickly
 		var snapshots = new ConcurrentHashMap<MetricID, Snapshot>();
-		for (var type : Type.values()) {
-			metricRegistry(type).getMetrics().forEach((k, v) -> collect(snapshots, k, v));
-		}
+		this.baseRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
+		this.vendorRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
+		this.appRegistry.getMetrics().forEach((k, v) -> collect(snapshots, k, v));
 
 		// convert to time-series
 		var ctx = new Context(this.config, this.resource, toTimestamp(this.startInstant), interval);
 		var timeSeries = new ArrayList<TimeSeries>();
-		for (var type : Type.values()) {
-			convert(ctx, metricRegistry(type), type, snapshots, timeSeries);
-		}
+		convert(ctx, this.baseRegistry, BASE, snapshots, timeSeries);
+		convert(ctx, this.vendorRegistry, VENDOR, snapshots, timeSeries);
+		convert(ctx, this.appRegistry, APPLICATION, snapshots, timeSeries);
 
 		// persist
 		// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
@@ -196,10 +203,6 @@ public class Exporter {
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
-	}
-
-	private MetricRegistry metricRegistry(Type type) {
-		return this.registries.select(registryType(type)).get();
 	}
 
 	/**
