@@ -32,8 +32,9 @@ public class ServiceContextDecorator implements EntryDecorator {
 	/**
 	 * @param pkg the package to extract `Implementation-Title` and `Implementation-Version` from.
 	 */
+	@SuppressWarnings("deprecation")  // ClassLoader#getDefinedPackage not supported by GraalVM yet
 	public ServiceContextDecorator(@Nonnull String pkg) {
-		this(Package.getPackage(pkg));  // ClassLoader#getDefinedPackage not supported by GraalVM yet
+		this(Package.getPackage(pkg));
 	}
 
 	/**

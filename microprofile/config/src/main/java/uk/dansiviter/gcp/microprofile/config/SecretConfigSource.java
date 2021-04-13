@@ -82,18 +82,20 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		@Nonnull SecretManagerServiceSettings settings)
 	{
 		this.projectId = PROJECT_ID.get(resource).orElseThrow();
-		this.client = new AtomicInit<>(() -> {
-			try {
-				return SecretManagerServiceClient.create(settings);
-			} catch (IOException e) {
-				throw new IllegalStateException(e);
-			}
-		});
+		this.client = new AtomicInit<SecretManagerServiceClient>(() -> createClient(settings));
+	}
+
+	SecretManagerServiceClient createClient(@Nonnull SecretManagerServiceSettings settings) {
+		try {
+			return SecretManagerServiceClient.create(settings);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Override
 	public Map<String, String> getProperties() {
-		return emptyMap(); // avoid to prevent accidental logging of values
+		return emptyMap();  // avoid to prevent accidental logging of values
 	}
 
 	@Override
@@ -113,7 +115,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 			return null;
 		}
 		var version = client().getSecretVersion(name);
-		if (version.getState() == State.ENABLED) { // not sure this is required
+		if (version.getState() == State.ENABLED) {  // not sure this is required
 			var response = client().accessSecretVersion(name);
 			return response.getPayload().getData().toStringUtf8();
 		}

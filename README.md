@@ -9,7 +9,8 @@ A collection of utilities and experiments for integrating into Google Cloud Plat
 * [`microprofile/config`](/microprofile/config) - Integration for Google Secrets Manager within config,
 * [`microprofile/metrics`](/microprofile/metrics) - Extracts and sends Microprofile Metrics to Cloud Monitoring,
 * [`opentelemetry`](/opentelemetry) - [OpenTelemetry](https://opentelemetry.io) implementation that sends trace and metrics informtaion to Cloud Tracing.
-* [`opentracing`](/opentracing) - [OpenTracing](https://opentracing.io) implementation that sends trace information to Cloud Tracing. Also useful for Microprofile Trace.
+
+> :information_source: OpenTracing implementation has been replaced by a combination of the [OpenTelemetry tracer](/opentelemetry) exporter and [OpenTracing shim](https://github.com/open-telemetry/opentelemetry-java/tree/main/opentracing-shim).
 
 > :warning: These utilities are not suitable for production environments. They are simply experiments.
 
