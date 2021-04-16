@@ -25,13 +25,9 @@ import static uk.dansiviter.gcp.microprofile.metrics.Factory.toInterval;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toTimestamp;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -220,25 +216,39 @@ public class Exporter {
 	}
 
 	private Optional<TimeSeries> timeSeries(
-			Context ctx,
-			MetricRegistry registry,
-			MetricRegistry.Type type,
-			Map<MetricID, Snapshot> snapshots,
-			MetricID id)
+			@Nonnull Context ctx,
+			@Nonnull MetricRegistry registry,
+			@Nonnull MetricRegistry.Type type,
+			@Nonnull Map<MetricID, Snapshot> snapshots,
+			@Nonnull MetricID id)
 	{
 		var snapshot = snapshots.get(id);
 		if (snapshot == null) {
 			return Optional.empty(); // we either couldn't snapshot or don't know how
 		}
 
-		// on first run create metric view data as we have no other way of knowing if it's a Double or Int64
-		var descriptor = this.descriptors.computeIfAbsent(id, k -> {
-			var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
-			return this.client.get().createMetricDescriptor(this.projectName, created);
-		});
+		var descriptor = this.descriptors.computeIfAbsent(id, k -> metricDescriptor(registry, type, snapshot, id));
 
 		return Optional.of(snapshot.timeseries(ctx, id, descriptor).build());
 	}
+
+	private MetricDescriptor metricDescriptor(
+		@Nonnull MetricRegistry registry,
+		@Nonnull MetricRegistry.Type type,
+		@Nonnull Snapshot snapshot,
+		@Nonnull MetricID id)
+	{
+		// to save churn for no reason (especially in audit log), first load the existing metric and only create if
+		// different
+		var name = Factory.toDescriptorName(this.resource, type, id);
+		var found = this.client.get().getMetricDescriptor(name);
+		var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
+		if (!created.equals(found)) {
+			return this.client.get().createMetricDescriptor(this.projectName, created);
+		}
+		return found;
+	}
+
 
 	// --- Static Methods ---
 
@@ -265,49 +275,5 @@ public class Exporter {
 		SamplingRate(Duration duration) {
 			this.duration = duration;
 		}
-	}
-
-
-	public static void main(String... args) {
-		var count = 500;
-		var buckets = new long[12];
-
-		var mean = BigDecimal.valueOf(count).divide(BigDecimal.valueOf(buckets.length), MathContext.DECIMAL128);
-		var sum = 0L;
-
-		for (int i = 0; i < buckets.length; i++) {
-			var current = mean.multiply(BigDecimal.valueOf(i + 1));
-			buckets[i] = current.setScale(0, RoundingMode.FLOOR).longValueExact();
-			if (i > 0) {
-//				buckets[i] -= sum;
-			}
-			sum += buckets[i];
-		}
-
-		System.out.printf("Buckets: %s\n", Arrays.toString(buckets));
-		if (count != sum) {
-			throw new IllegalStateException("Count and sum not equal! [c=" + count + ",s=" + sum + "]");
-		}
-		System.out.printf("Sum: %d\n", sum);
-	}
-
-	public static void primitives() {
-		var count = 239487293847293874L;
-		var buckets = new long[12];
-
-		var mean = ((double) count) / buckets.length;
-		var sum = 0L;
-		for (int i = 0; i < buckets.length; i++) {
-			var current = mean * (double) (i + 1);
-			var v = current - sum;
-			buckets[i] = Math.round(Math.floor(v));
-			sum += buckets[i];
-		}
-
-		System.out.printf("Prim. Buckets: %s\n", Arrays.toString(buckets));
-		if (count != sum) {
-			throw new IllegalStateException("Count and sum not equal! [c=" + count + ",s=" + sum + "]");
-		}
-		System.out.printf("Prim. Sum: %d\n", sum);
 	}
 }
