@@ -47,6 +47,7 @@ import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import com.google.api.MetricDescriptor;
+import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.monitoring.v3.MetricServiceClient;
 import com.google.cloud.monitoring.v3.MetricServiceSettings;
@@ -241,9 +242,14 @@ public class Exporter {
 		// to save churn for no reason (especially in audit log), first load the existing metric and only create if
 		// different
 		var name = Factory.toDescriptorName(this.resource, type, id);
-		var found = this.client.get().getMetricDescriptor(name);
+		MetricDescriptor found;
+		try {
+			found = this.client.get().getMetricDescriptor(name);
+		} catch (NotFoundException e) {
+			found = null;
+		}
 		var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
-		if (!created.equals(found)) {
+		if (!like(found, created)) {
 			return this.client.get().createMetricDescriptor(this.projectName, created);
 		}
 		return found;
@@ -256,6 +262,24 @@ public class Exporter {
 	private static Collection<List<TimeSeries>> partition(@Nonnull List<TimeSeries> in, int chunk) {
 		var counter = new AtomicInteger();
 		return in.stream().collect(groupingBy(it -> counter.getAndIncrement() / chunk)).values();
+	}
+
+	static boolean like(MetricDescriptor base, MetricDescriptor test) {
+		if (base == null) {
+			return false;
+		}
+		// verifies if 'base' contains [is like] everything in 'test'
+		return base.getName().equals(test.getName()) &&
+			base.getType().equals(test.getType()) &&
+			base.getLabelsList().containsAll(test.getLabelsList()) &&
+			base.getMetricKind() == test.getMetricKind() &&
+			base.getValueType() == test.getValueType() &&
+			base.getUnit().equals(test.getUnit()) &&
+			base.getDescription().equals(test.getDescription()) &&
+			base.getDisplayName().equals(test.getDisplayName()) &&
+			base.getType().equals(test.getType()) &&
+			base.getLaunchStage() == test.getLaunchStage() &&
+			base.getMonitoredResourceTypesList().containsAll(test.getMonitoredResourceTypesList());
 	}
 
 

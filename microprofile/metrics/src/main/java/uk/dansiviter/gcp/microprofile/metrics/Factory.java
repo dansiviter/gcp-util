@@ -137,12 +137,12 @@ public enum Factory { ;
 		@Nonnull MetricID id,
 		@Nonnull Snapshot snapshot)
 	{
-		var name = id.getName();
-		var metricType = format("custom.googleapis.com/microprofile/%s/%s", type.getName(), name);
-		var metadata = registry.getMetadata().get(name);
+		var name = toDescriptorName(resource, type, id);
+		var metadata = registry.getMetadata().get(id.getName());
 		var descriptor = METRIC_DESC_BUILDER.get()
-			.setType(metricType)
-			.setMetricKind(metricKind(metadata.getTypeRaw())).setName(name)
+			.setName(name.toString())
+			.setType(name.getMetricDescriptor())
+			.setMetricKind(metricKind(metadata.getTypeRaw()))
 			.setDisplayName(metadata.getDisplayName())
 			.addMonitoredResourceTypes(resource.getType());
 		getValueType(snapshot).ifPresent(descriptor::setValueType);
@@ -169,7 +169,7 @@ public enum Factory { ;
 	{
 		return MetricDescriptorName.of(
 			PROJECT_ID.get(resource).orElseThrow(),
-			format("%s/%s", type.getName(), id.getName()));
+			format("custom.googleapis.com/microprofile/%s/%s", type.getName(), id.getName()));
 	}
 
 	/**
