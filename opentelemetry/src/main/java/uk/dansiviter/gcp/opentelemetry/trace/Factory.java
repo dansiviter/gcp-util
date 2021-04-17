@@ -321,13 +321,9 @@ public class Factory {
 
 	private static String agent() {
 		var pkg = Factory.class.getPackage();
-		if (pkg.getImplementationVendor() == null) {
-			return "uk.dansiviter:cloud-operations [develop.]";
-		}
 		return format(
-			"%s:%s [%s]",
-			pkg.getImplementationVendor(),
-			pkg.getImplementationTitle(),
-			pkg.getImplementationVersion());
+			"%s [%s]",
+			pkg.getName(),
+			pkg.getImplementationVersion() != null ? pkg.getImplementationVersion() : "develop.");
 	}
 }
