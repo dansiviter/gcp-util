@@ -277,7 +277,6 @@ public class Exporter {
 			base.getUnit().equals(test.getUnit()) &&
 			base.getDescription().equals(test.getDescription()) &&
 			base.getDisplayName().equals(test.getDisplayName()) &&
-			base.getType().equals(test.getType()) &&
 			base.getLaunchStage() == test.getLaunchStage() &&
 			base.getMonitoredResourceTypesList().containsAll(test.getMonitoredResourceTypesList());
 	}
