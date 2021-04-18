@@ -29,6 +29,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import com.google.api.Distribution;
 import com.google.api.Distribution.BucketOptions;
@@ -72,7 +73,7 @@ class FactoryTest {
 
 	@Test
 	void toDescriptor(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock GaugeSnapshot snapshot, @Mock Metadata metadata) {
-		var resource = MonitoredResource.newBuilder("global").build();
+		var resource = MonitoredResource.newBuilder("global").addLabel("project_id", "acme").build();
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
 		when(snapshot.value()).thenReturn(123L);
@@ -86,7 +87,7 @@ class FactoryTest {
 
 	@Test
 	void toDescriptor_unknownType(@Mock Config config, @Mock MetricRegistry registry, @Mock MetricID id, @Mock Snapshot snapshot, @Mock Metadata metadata) {
-		var resource = MonitoredResource.newBuilder("global").build();
+		var resource = MonitoredResource.newBuilder("global").addLabel("project_id", "acme").build();
 		when(id.getName()).thenReturn("id");
 		when(registry.getMetadata()).thenReturn(Map.of("id", metadata));
 		when(metadata.getDisplayName()).thenReturn("displayName");
@@ -95,6 +96,24 @@ class FactoryTest {
 		assertThat(actual.getDisplayName(), equalTo("displayName"));
 		assertThat(actual.getValueType(), equalTo(ValueType.VALUE_TYPE_UNSPECIFIED));
 		assertThat(actual.getMonitoredResourceTypesList(), hasItem("global"));
+	}
+
+	@Test
+	void toDescriptorName(@Mock MetricID id) {
+		var resource = MonitoredResource.newBuilder("global").addLabel("project_id", "acme").build();
+		when(id.getName()).thenReturn("foo");
+
+		var descriptorName = Factory.toDescriptorName(resource, Type.BASE, id);
+		assertThat(descriptorName.toString(), equalTo("projects/acme/metricDescriptors/custom.googleapis.com/microprofile/base/foo"));
+		assertThat(descriptorName.getMetricDescriptor(), equalTo("custom.googleapis.com/microprofile/base/foo"));
+		assertThat(descriptorName.getProject(), equalTo("acme"));
+	}
+
+	@Test
+	void toDescriptorName_noProjectId(@Mock MetricID id) {
+		var resource = MonitoredResource.newBuilder("global").build();
+
+		assertThrows(NoSuchElementException.class, () -> Factory.toDescriptorName(resource, Type.BASE, id));
 	}
 
 	@Test
