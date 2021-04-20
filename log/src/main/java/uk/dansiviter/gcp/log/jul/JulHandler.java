@@ -23,6 +23,7 @@ import static java.util.Optional.empty;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
 import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
+import static uk.dansiviter.gcp.MonitoredResourceProvider.monitoredResource;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
 import java.util.LinkedList;
@@ -48,7 +49,6 @@ import com.google.cloud.logging.Severity;
 import com.google.cloud.logging.Synchronicity;
 
 import uk.dansiviter.gcp.AtomicInit;
-import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
@@ -110,7 +110,6 @@ import uk.dansiviter.juli.AsyncHandler;
  */
 public class JulHandler extends AsyncHandler<LogEntry> {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
-	private final LoggingOptions loggingOptions;
 	private final AtomicInit<Logging> logging;
 	private final WriteOption[] defaultWriteOptions;
 
@@ -122,25 +121,18 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	 * {@link MonitoredResource}.
 	 */
 	public JulHandler() {
-		this(empty(), empty(), empty());
+		this(empty(), monitoredResource(), JulHandler::createClient);
 	}
 
-	private JulHandler(
-		Optional<String> logName,
-		Optional<LoggingOptions> loggingOptions,
-		Optional<MonitoredResource> monitoredResource)
-	{
+	JulHandler(Optional<String> logName, MonitoredResource resource, Supplier<Logging> loggingFunction) {
 		try {
 			var manager = requireNonNull(LogManager.getLogManager());
-			this.loggingOptions = loggingOptions.orElseGet(LoggingOptions::getDefaultInstance);
-			this.logging = new AtomicInit<>(() -> {
-				if (this.closed.get()) {
-					throw new IllegalStateException("Handler already closed!");
-				}
-				var instance = this.loggingOptions.getService();
-				instance.setFlushSeverity(this.flushSeverity);
-				instance.setWriteSynchronicity(this.synchronicity);
-				return instance;
+			this.logging = new AtomicInit<Logging>(() -> {
+				var logging = loggingFunction.get();
+				// ensure values are sync'ed
+				logging.setFlushSeverity(this.flushSeverity);
+				logging.setWriteSynchronicity(this.synchronicity);
+				return logging;
 			});
 			setFormatter(new BasicFormatter());
 			Severity flushSeverity = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
@@ -150,7 +142,6 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 			setSynchronicity(synchronicity);
 			property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
-			var resource = monitoredResource.orElseGet(MonitoredResourceProvider::monitoredResource);
 			this.defaultWriteOptions = new WriteOption[] {
 				WriteOption.logName(logName.orElse("java.log")),
 				WriteOption.resource(resource)
@@ -252,41 +243,8 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 	// --- Static Methods ---
 
-	/**
-	 * Create handler instance.
-	 *
-	 * @param resource the resource instance to use.
-	 * @return the handler instance.
-	 */
-	public static JulHandler julHandler(@Nonnull MonitoredResource resource) {
-		return new JulHandler(empty(), empty(), Optional.of(resource));
-	}
-
-	/**
-	 * Create handler instance.
-	 *
-	 * @param loggingOptions the logging options instance.
-	 * @param resource the resource instance to use.
-	 * @return the handler instance.
-	 */
-	public static JulHandler julHandler(@Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
-		return new JulHandler(empty(), Optional.of(loggingOptions), Optional.of(resource));
-	}
-
-	/**
-	 * Create handler instance.
-	 *
-	 * @param logName the log name.
-	 * @param loggingOptions the logging options instance.
-	 * @param resource the resource instance to use.
-	 * @return the handler instance.
-	 */
-	public static JulHandler julHandler(
-		@Nonnull String logName,
-		@Nonnull LoggingOptions loggingOptions,
-		@Nonnull MonitoredResource resource)
-	{
-		return new JulHandler(Optional.of(logName), Optional.of(loggingOptions), Optional.of(resource));
+	private static Logging createClient() {
+		return LoggingOptions.getDefaultInstance().getService();
 	}
 
 	/**

@@ -62,12 +62,7 @@ public class SecretConfigSourceTest {
 
 	@BeforeEach
 	public void before() {
-		this.source = new SecretConfigSource(this.resource, settings) {
-			@Override
-			SecretManagerServiceClient createClient(SecretManagerServiceSettings settings) {
-				return SecretManagerServiceClient.create(stub);
-			}
-		};
+		this.source = new SecretConfigSource(this.resource, () -> SecretManagerServiceClient.create(stub));
 	}
 
 	@Test
