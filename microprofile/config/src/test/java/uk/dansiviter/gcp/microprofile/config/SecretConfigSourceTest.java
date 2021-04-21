@@ -16,6 +16,8 @@
 package uk.dansiviter.gcp.microprofile.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,14 +25,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.api.gax.rpc.UnaryCallable;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionRequest;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
 import com.google.cloud.secretmanager.v1.GetSecretVersionRequest;
+import com.google.cloud.secretmanager.v1.ListSecretsRequest;
+import com.google.cloud.secretmanager.v1.Secret;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
+import com.google.cloud.secretmanager.v1.SecretManagerServiceClient.ListSecretsPagedResponse;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceSettings;
 import com.google.cloud.secretmanager.v1.SecretPayload;
 import com.google.cloud.secretmanager.v1.SecretVersion;
@@ -50,7 +57,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Unit tests for {@link SecretConfigSource}.
  */
 @ExtendWith(MockitoExtension.class)
-public class SecretConfigSourceTest {
+class SecretConfigSourceTest {
 	private final MonitoredResource resource = MonitoredResource.of("global", Map.of("project_id", "my_project"));
 
 	@Mock
@@ -61,22 +68,39 @@ public class SecretConfigSourceTest {
 	private SecretConfigSource source;
 
 	@BeforeEach
-	public void before() {
+	void before() {
 		this.source = new SecretConfigSource(this.resource, () -> SecretManagerServiceClient.create(stub));
 	}
 
 	@Test
-	public void getName() {
+	void getName() {
 		assertThat(this.source.getName(), equalTo("gcp-secrets"));
 	}
 
 	@Test
-	public void getOrdinal() {
+	void getOrdinal() {
 		assertThat(this.source.getOrdinal(), equalTo(100));
 	}
 
 	@Test
-	public void getValue(
+	void getProperties() {
+		assertThat(this.source.getProperties(), anEmptyMap());
+	}
+
+	@Test
+	void getPropertyNames(
+		@Mock UnaryCallable<ListSecretsRequest, ListSecretsPagedResponse> listCallable,
+		@Mock ListSecretsPagedResponse response)
+	{
+		when(this.stub.listSecretsPagedCallable()).thenReturn(listCallable);
+		when(listCallable.call(any())).thenReturn(response);
+		when(response.iterateAll()).thenReturn(Set.of(Secret.newBuilder().setName("projects/acme/secrets/foo").build()));
+
+		assertThat(this.source.getPropertyNames(), contains("secret:/foo"));
+	}
+
+	@Test
+	void getValue(
 		@Mock UnaryCallable<GetSecretVersionRequest, SecretVersion> versionCallable,
 		@Mock UnaryCallable<AccessSecretVersionRequest, AccessSecretVersionResponse> valueCallable)
 	throws InvalidProtocolBufferException
@@ -96,6 +120,14 @@ public class SecretConfigSourceTest {
 		verify(versionCallable, times(2)).call(request.capture());
 		assertThat(request.getAllValues().get(0).getName(), equalTo("projects/my_project/secrets/foo/versions/latest"));
 		assertThat(request.getAllValues().get(1).getName(), equalTo("projects/my_project/secrets/foo/versions/1"));
+	}
 
+	@Test
+	void close() throws IOException {
+		this.source.client();  // cause client creation
+
+		this.source.close();
+
+		verify(this.stub).close();
 	}
 }

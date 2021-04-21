@@ -146,7 +146,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		}
 	}
 
-	private SecretManagerServiceClient client() {
+	SecretManagerServiceClient client() {
 		return this.client.get();
 	}
 
