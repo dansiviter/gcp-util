@@ -42,7 +42,9 @@ class EntryDecoratorTest {
 		var payload = new HashMap<String, Object>();
 		decorator.decorate(b, e, payload);
 
-		assertThat((Map<String, Object>) payload.get("mdc"), hasEntry("Acme", "foo"));
+		@SuppressWarnings("unchecked")
+		var mdc = (Map<String, Object>) payload.get("mdc");
+		assertThat(mdc, hasEntry("Acme", "foo"));
 	}
 
 	@Test
@@ -51,7 +53,9 @@ class EntryDecoratorTest {
 		var payload = new HashMap<String, Object>();
 		decorator.decorate(b, e, payload);
 
-		assertThat((Map<String, Object>) payload.get("mdc"), nullValue());
+		@SuppressWarnings("unchecked")
+		var mdc = (Map<String, Object>) payload.get("mdc");
+		assertThat(mdc, nullValue());
 	}
 
 	@Test

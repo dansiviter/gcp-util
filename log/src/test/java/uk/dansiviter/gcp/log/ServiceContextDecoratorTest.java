@@ -29,14 +29,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-
 /**
  * Tests for {@link ServiceContextDecorator}.
  */
 @ExtendWith(MockitoExtension.class)
 class ServiceContextDecoratorTest {
 	@Test
-	void init(@Mock Builder b, @Mock Entry e) {
+	void decorate(@Mock Builder b, @Mock Entry e) {
 		var decorator = new ServiceContextDecorator("Acme", "foo");
 		var payload = new HashMap<String, Object>();
 		decorator.decorate(b, e, payload);
@@ -48,7 +47,7 @@ class ServiceContextDecoratorTest {
 	}
 
 	@Test
-	void init_class(@Mock Builder b, @Mock Entry e) {
+	void decorate_class(@Mock Builder b, @Mock Entry e) {
 		var decorator = new ServiceContextDecorator(getClass());
 		var payload = new HashMap<String, Object>();
 		decorator.decorate(b, e, payload);
@@ -57,7 +56,7 @@ class ServiceContextDecoratorTest {
 	}
 
 	@Test
-	void init_pkgString(@Mock Builder b, @Mock Entry e) {
+	void decorate_pkgString(@Mock Builder b, @Mock Entry e) {
 		var decorator = new ServiceContextDecorator(getClass().getPackage().getName());
 		var payload = new HashMap<String, Object>();
 		decorator.decorate(b, e, payload);
