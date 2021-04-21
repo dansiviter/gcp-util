@@ -253,7 +253,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	 * @param level the level to convert.
 	 * @return the severity equivalent or {@link Severity#DEFAULT} if not.
 	 */
-	private static Severity severity(@Nonnull Level level) {
+	static Severity severity(@Nonnull Level level) {
 		if (level instanceof LoggingLevel) {
 			return ((LoggingLevel) level).getSeverity();
 		}

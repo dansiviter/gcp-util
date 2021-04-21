@@ -45,7 +45,7 @@ class AtomicInitTest {
 	@Test
 	void get_multi() {
 		var init = AtomicInit.atomic(() -> {
-			sleep(100);
+			sleep(50);
 			return "Hello!";
 		});
 
@@ -59,7 +59,7 @@ class AtomicInitTest {
 	@Test
 	void get_multi_null() {
 		var init = AtomicInit.atomic(() -> {
-			sleep(100);
+			sleep(50);
 			return null;
 		});
 

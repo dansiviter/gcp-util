@@ -21,6 +21,11 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.verify;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +35,8 @@ import java.util.logging.LogRecord;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
+import com.google.cloud.logging.LoggingLevel;
+import com.google.cloud.logging.Severity;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,5 +69,24 @@ class JulHandlerTest {
 		handler.flush();
 
 		verify(this.logging, timeout(100)).write(argThat(c -> ((Collection<LogEntry>) c).size() == 1), any());
+	}
+
+	@Test
+	void close(@Mock LogRecord record) {
+		handler.close();
+
+		assertThat(handler.isClosed(), equalTo(true));
+	}
+
+	@Test
+	void severity() {
+		assertThat(JulHandler.severity(Level.SEVERE), equalTo(Severity.ERROR));
+		assertThat(JulHandler.severity(Level.WARNING), equalTo(Severity.WARNING));
+		assertThat(JulHandler.severity(Level.INFO), equalTo(Severity.INFO));
+		assertThat(JulHandler.severity(Level.FINE), equalTo(Severity.DEBUG));
+		assertThat(JulHandler.severity(Level.FINER), equalTo(Severity.DEBUG));
+		assertThat(JulHandler.severity(Level.FINEST), equalTo(Severity.DEBUG));
+
+		assertThat(JulHandler.severity(LoggingLevel.INFO), equalTo(Severity.INFO));
 	}
 }
