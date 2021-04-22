@@ -16,7 +16,7 @@
 package uk.dansiviter.gcp.log.jul;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.timeout;
@@ -72,18 +72,18 @@ class JulHandlerTest {
 	void close(@Mock LogRecord record) {
 		handler.close();
 
-		assertThat(handler.isClosed(), equalTo(true));
+		assertThat(handler.isClosed(), is(true));
 	}
 
 	@Test
 	void severity() {
-		assertThat(JulHandler.severity(Level.SEVERE), equalTo(Severity.ERROR));
-		assertThat(JulHandler.severity(Level.WARNING), equalTo(Severity.WARNING));
-		assertThat(JulHandler.severity(Level.INFO), equalTo(Severity.INFO));
-		assertThat(JulHandler.severity(Level.FINE), equalTo(Severity.DEBUG));
-		assertThat(JulHandler.severity(Level.FINER), equalTo(Severity.DEBUG));
-		assertThat(JulHandler.severity(Level.FINEST), equalTo(Severity.DEBUG));
+		assertThat(JulHandler.severity(Level.SEVERE), is(Severity.ERROR));
+		assertThat(JulHandler.severity(Level.WARNING), is(Severity.WARNING));
+		assertThat(JulHandler.severity(Level.INFO), is(Severity.INFO));
+		assertThat(JulHandler.severity(Level.FINE), is(Severity.DEBUG));
+		assertThat(JulHandler.severity(Level.FINER), is(Severity.DEBUG));
+		assertThat(JulHandler.severity(Level.FINEST), is(Severity.DEBUG));
 
-		assertThat(JulHandler.severity(LoggingLevel.INFO), equalTo(Severity.INFO));
+		assertThat(JulHandler.severity(LoggingLevel.INFO), is(Severity.INFO));
 	}
 }
