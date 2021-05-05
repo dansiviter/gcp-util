@@ -127,7 +127,8 @@ class FactoryTest {
 		assertThat(decorator, notNullValue());
 		assertThat(decorator, isA(EntryDecorator.class));
 
-		assertThrows(IllegalStateException.class, () -> Factory.decorator(MyTestClass.class.getName()));
+		var nonDecorator = MyTestClass.class.getName();
+		assertThrows(IllegalStateException.class, () -> Factory.decorator(nonDecorator));
 	}
 
 	@Test

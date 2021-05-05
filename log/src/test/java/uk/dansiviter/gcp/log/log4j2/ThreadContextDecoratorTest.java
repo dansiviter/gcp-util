@@ -35,7 +35,7 @@ import uk.dansiviter.gcp.log.Entry;
  * Tests for {@link ThreadContextDecorator}.
  */
 @ExtendWith(MockitoExtension.class)
-public class ThreadContextDecoratorTest {
+class ThreadContextDecoratorTest {
 	@Test
 	void decorate(@Mock Builder b, @Mock Entry e) {
 		var payload = new HashMap<String, Object>();

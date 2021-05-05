@@ -15,6 +15,7 @@
  */
 package uk.dansiviter.gcp.log.jul;
 
+import static com.google.cloud.logging.Synchronicity.ASYNC;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.singleton;
@@ -126,18 +127,17 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	JulHandler(Optional<String> logName, MonitoredResource resource, Supplier<Logging> loggingFunction) {
 		var manager = requireNonNull(LogManager.getLogManager());
 		this.logging = new AtomicInit<>(() -> {
-			var logging = loggingFunction.get();
+			var l = loggingFunction.get();
 			// ensure values are sync'ed
-			logging.setFlushSeverity(this.flushSeverity);
-			logging.setWriteSynchronicity(this.synchronicity);
-			return logging;
+			l.setFlushSeverity(this.flushSeverity);
+			l.setWriteSynchronicity(this.synchronicity);
+			return l;
 		});
 		setFormatter(new BasicFormatter());
-		var flushSeverity = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
-		setFlushSeverity(flushSeverity);
-		var synchronicity = property(manager, "synchronicity").map(Synchronicity::valueOf)
-				.orElse(Synchronicity.ASYNC);
-		setSynchronicity(synchronicity);
+		var flushSev = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
+		setFlushSeverity(flushSev);
+		var sync = property(manager, "synchronicity").map(Synchronicity::valueOf).orElse(ASYNC);
+		setSynchronicity(sync);
 		property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
 		this.defaultWriteOptions = new WriteOption[] {

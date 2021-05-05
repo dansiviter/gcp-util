@@ -92,7 +92,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		@Nonnull Supplier<SecretManagerServiceClient> clientSupplier)
 	{
 		this.projectId = PROJECT_ID.get(resource).orElseThrow();
-		this.client = new AtomicInit<SecretManagerServiceClient>(clientSupplier);
+		this.client = new AtomicInit<>(clientSupplier);
 	}
 
 	private static SecretManagerServiceClient createClient() {
