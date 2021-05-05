@@ -19,16 +19,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static uk.dansiviter.gcp.microprofile.metrics.ReflectionUtil.set;
 
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.google.api.MetricDescriptor;
+import com.google.cloud.MonitoredResource;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,15 +41,18 @@ import uk.dansiviter.gcp.microprofile.metrics.Exporter.SamplingRate;
  */
 @ExtendWith(MockitoExtension.class)
 class ExporterTest {
+	private final MonitoredResource resource = MonitoredResource.of("global", Map.of("project_id", "my_project"));
+
 	@Mock
 	private ScheduledExecutorService executor;
 
-	@InjectMocks
 	private Exporter exporter;
 
 	@BeforeEach
 	void before() {
-		ReflectionUtil.set(this.exporter, "samplingRate", SamplingRate.STANDARD);
+		this.exporter = new Exporter(resource);
+		set(this.exporter, "executor", executor);
+		set(this.exporter, "samplingRate", SamplingRate.STANDARD);
 	}
 
 	@Test

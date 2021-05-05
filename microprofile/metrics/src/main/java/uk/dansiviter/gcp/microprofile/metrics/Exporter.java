@@ -74,7 +74,7 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 @ApplicationScoped
 public class Exporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
-	private final MonitoredResource resource = MonitoredResourceProvider.monitoredResource();
+	private final MonitoredResource resource;
 
 	@Inject
 	private Logger log;
@@ -101,6 +101,17 @@ public class Exporter {
 
 	private ProjectName projectName;
 	private ScheduledFuture<?> future;
+
+	/**
+	 * Default constructor.
+	 */
+	public Exporter() {
+		this(MonitoredResourceProvider.monitoredResource());
+	}
+
+	Exporter(MonitoredResource resource) {
+		this.resource = resource;
+	}
 
 	/**
 	 * @param init simply here to force initialisation.
