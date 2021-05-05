@@ -15,7 +15,8 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
-import static uk.dansiviter.juli.annotations.Message.Level.*;
+import static uk.dansiviter.juli.annotations.Message.Level.DEBUG;
+import static uk.dansiviter.juli.annotations.Message.Level.WARN;
 
 import java.time.Instant;
 
