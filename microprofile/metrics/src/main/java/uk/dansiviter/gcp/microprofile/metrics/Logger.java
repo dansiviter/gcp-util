@@ -42,4 +42,7 @@ public interface Logger {
 
 	@Message(value = "Unable to find projectId! Unable to export metrics.", level = WARN)
   void projectIdNotFound();
+
+	@Message(value = "Unable to initialise client! [{0}]", level = WARN)
+	void clientInitError(String causeMessage);
 }

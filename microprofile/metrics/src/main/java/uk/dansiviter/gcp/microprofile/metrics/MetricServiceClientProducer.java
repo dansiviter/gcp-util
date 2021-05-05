@@ -23,6 +23,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
 import com.google.cloud.monitoring.v3.MetricServiceClient;
+import com.oracle.svm.core.annotate.Inject;
 
 import uk.dansiviter.gcp.GaxUtil;
 
@@ -33,6 +34,9 @@ import uk.dansiviter.gcp.GaxUtil;
  */
 @ApplicationScoped
 public class MetricServiceClientProducer {
+	@Inject
+	private Logger log;
+
 	@Produces
 	private MetricServiceClient client;
 
@@ -45,7 +49,8 @@ public class MetricServiceClientProducer {
 		try {
 			return MetricServiceClient.create();
 		} catch (IOException e) {
-			throw new IllegalStateException(e);
+			this.log.clientInitError(e.getMessage());
+			return null;
 		}
 	}
 
