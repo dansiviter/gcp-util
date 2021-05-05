@@ -16,15 +16,40 @@
 package uk.dansiviter.gcp.microprofile.metrics;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.google.api.MetricDescriptor;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import uk.dansiviter.gcp.microprofile.metrics.Exporter.SamplingRate;
 
 /**
- * Unit test for {@link Exporter}.
+ * Test for {@link Exporter}.
  */
+@ExtendWith(MockitoExtension.class)
 class ExporterTest {
+	@Mock
+	private ScheduledExecutorService executor;
+
+	@InjectMocks
+	private Exporter exporter;
+
+	@BeforeEach
+	void before() {
+		ReflectionUtil.set(this.exporter, "samplingRate", SamplingRate.STANDARD);
+	}
+
 	@Test
 	void like() {
 		var d0 = MetricDescriptor.newBuilder().build();
@@ -42,5 +67,17 @@ class ExporterTest {
 		d0 = MetricDescriptor.newBuilder().setName("foo").build();
 		d1 = MetricDescriptor.newBuilder().build();
 		assertThat("Are alike", !Exporter.like(d0, d1));
+	}
+
+	@Test
+	void init() {
+		this.exporter.init(null);
+
+		verify(this.executor).scheduleAtFixedRate(any(), eq(10L), eq(60L), eq(TimeUnit.SECONDS));
+	}
+
+	@Test
+	void destroy() {
+		this.exporter.destroy();
 	}
 }

@@ -20,7 +20,9 @@ import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -148,6 +150,17 @@ class SecretConfigSourceTest {
 		this.source.client();  // cause client creation
 
 		this.source.close();
+
+		verify(this.stub).close();
+	}
+
+	@Test
+	void close_exception() throws IOException {
+		doThrow(new RuntimeException()).when(this.stub).close();
+
+		this.source.client();  // cause client creation
+
+		assertThrows(IOException.class, () -> this.source.close());
 
 		verify(this.stub).close();
 	}
