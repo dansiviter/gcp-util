@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.api.MetricDescriptor;
 import com.google.cloud.MonitoredResource;
+import com.google.cloud.monitoring.v3.MetricServiceClient;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,7 +77,9 @@ class ExporterTest {
 	}
 
 	@Test
-	void init() {
+	void init(@Mock MetricServiceClient client) {
+		set(this.exporter, "client", client);
+
 		this.exporter.init(null);
 
 		verify(this.executor).scheduleAtFixedRate(any(), eq(10L), eq(60L), eq(TimeUnit.SECONDS));

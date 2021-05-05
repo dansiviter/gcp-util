@@ -117,6 +117,9 @@ public class Exporter {
 	 * @param init simply here to force initialisation.
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
+		if (this.client == null) {
+			return;  // no client available so don't initialise
+		}
 		this.startInstant = Instant.now();
 		var projectId = PROJECT_ID.get(this.resource);
 		if (!projectId.isPresent()) {
