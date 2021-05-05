@@ -23,6 +23,7 @@ import static uk.dansiviter.gcp.microprofile.metrics.ReflectionUtil.set;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.api.MetricDescriptor;
@@ -82,7 +83,11 @@ class ExporterTest {
 	}
 
 	@Test
-	void destroy() {
+	void destroy(@Mock ScheduledFuture<?> future) {
+		set(this.exporter, "future", future);
+
 		this.exporter.destroy();
+
+		verify(future).cancel(false);
 	}
 }
