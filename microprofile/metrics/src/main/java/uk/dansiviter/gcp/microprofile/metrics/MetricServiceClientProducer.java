@@ -50,7 +50,7 @@ public class MetricServiceClientProducer {
 	}
 
 	@PreDestroy
-	public void shutdown() {
+	public void destroy() {
 		GaxUtil.close(this.client);
 	}
 }

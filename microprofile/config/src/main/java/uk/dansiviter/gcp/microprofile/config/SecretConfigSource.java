@@ -125,7 +125,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 			return null;
 		}
 		var version = client().getSecretVersion(name);
-		if (version.getState() == State.ENABLED) {  // not sure this is required
+		if (version.getState() == State.ENABLED) {
 			var response = client().accessSecretVersion(name);
 			return response.getPayload().getData().toStringUtf8();
 		}

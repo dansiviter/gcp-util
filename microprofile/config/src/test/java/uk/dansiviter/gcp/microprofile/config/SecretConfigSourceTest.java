@@ -115,11 +115,32 @@ class SecretConfigSourceTest {
 
 		assertThat(this.source.getValue("secrets/foo"), equalTo("hello"));
 		assertThat(this.source.getValue("secrets/foo/versions/1"), equalTo("hello"));
+		assertThat(this.source.getValue("projects/my_project/secrets/foo/versions/2"), equalTo("hello"));
 
 		var request = ArgumentCaptor.forClass(GetSecretVersionRequest.class);
-		verify(versionCallable, times(2)).call(request.capture());
+		verify(versionCallable, times(3)).call(request.capture());
+		var itr = request.getAllValues().iterator();
+		assertThat(itr.next().getName(), equalTo("projects/my_project/secrets/foo/versions/latest"));
+		assertThat(itr.next().getName(), equalTo("projects/my_project/secrets/foo/versions/1"));
+		assertThat(itr.next().getName(), equalTo("projects/my_project/secrets/foo/versions/2"));
+	}
+
+	@Test
+	void getValue_disabled(
+		@Mock UnaryCallable<GetSecretVersionRequest, SecretVersion> versionCallable)
+	throws InvalidProtocolBufferException
+	{
+		assertThat(this.source.getValue("foo"), nullValue());
+
+		when(this.stub.getSecretVersionCallable()).thenReturn(versionCallable);
+		var version = SecretVersion.newBuilder().setName("myVersion").setState(State.DISABLED).build();
+		when(versionCallable.call(any())).thenReturn(version);
+
+		assertThat(this.source.getValue("secrets/foo/versions/latest"), nullValue());
+
+		var request = ArgumentCaptor.forClass(GetSecretVersionRequest.class);
+		verify(versionCallable).call(request.capture());
 		assertThat(request.getAllValues().get(0).getName(), equalTo("projects/my_project/secrets/foo/versions/latest"));
-		assertThat(request.getAllValues().get(1).getName(), equalTo("projects/my_project/secrets/foo/versions/1"));
 	}
 
 	@Test
