@@ -21,9 +21,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 
 import com.google.cloud.monitoring.v3.MetricServiceClient;
-import com.oracle.svm.core.annotate.Inject;
 
 import uk.dansiviter.gcp.GaxUtil;
 
