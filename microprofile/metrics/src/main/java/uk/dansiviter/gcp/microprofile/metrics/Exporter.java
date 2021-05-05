@@ -15,6 +15,7 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
@@ -154,7 +155,7 @@ public class Exporter {
 					.build();
 			this.client.createTimeSeries(request);
 		}
-		this.previousInstant = end.plusMillis(1);  // prevent overlap
+		this.previousInstant = end;
 	}
 
 	private void convert(
@@ -171,7 +172,7 @@ public class Exporter {
 
 	private static void add(List<TimeSeries> timeSeries, TimeSeries ts) {
 		if (ts.getPointsCount() != 1) {
-			throw new IllegalStateException("Naughty! " + ts);
+			throw new IllegalStateException(format("Must contain exactly one! [size=%d]", ts.getPointsCount()));
 		}
 		timeSeries.add(ts);
 	}
@@ -212,7 +213,7 @@ public class Exporter {
 	{
 		var snapshot = snapshots.get(id);
 		if (snapshot == null) {
-			return Optional.empty(); // we either couldn't snapshot or don't know how
+			return Optional.empty();  // we either couldn't snapshot or don't know how
 		}
 
 		var descriptor = this.descriptors.computeIfAbsent(id, k -> metricDescriptor(registry, type, snapshot, id));
