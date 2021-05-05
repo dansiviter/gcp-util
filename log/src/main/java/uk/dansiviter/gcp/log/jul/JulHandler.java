@@ -15,6 +15,7 @@
  */
 package uk.dansiviter.gcp.log.jul;
 
+import static com.google.cloud.logging.Synchronicity.ASYNC;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.singleton;
@@ -23,13 +24,13 @@ import static java.util.Optional.empty;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
 import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
+import static uk.dansiviter.gcp.MonitoredResourceProvider.monitoredResource;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.logging.ErrorManager;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -48,7 +49,6 @@ import com.google.cloud.logging.Severity;
 import com.google.cloud.logging.Synchronicity;
 
 import uk.dansiviter.gcp.AtomicInit;
-import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
@@ -110,7 +110,6 @@ import uk.dansiviter.juli.AsyncHandler;
  */
 public class JulHandler extends AsyncHandler<LogEntry> {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
-	private final LoggingOptions loggingOptions;
 	private final AtomicInit<Logging> logging;
 	private final WriteOption[] defaultWriteOptions;
 
@@ -122,43 +121,29 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	 * {@link MonitoredResource}.
 	 */
 	public JulHandler() {
-		this(empty(), empty(), empty());
+		this(empty(), monitoredResource(), JulHandler::createClient);
 	}
 
-	private JulHandler(
-		Optional<String> logName,
-		Optional<LoggingOptions> loggingOptions,
-		Optional<MonitoredResource> monitoredResource)
-	{
-		try {
-			var manager = requireNonNull(LogManager.getLogManager());
-			this.loggingOptions = loggingOptions.orElseGet(LoggingOptions::getDefaultInstance);
-			this.logging = new AtomicInit<>(() -> {
-				if (this.closed.get()) {
-					throw new IllegalStateException("Handler already closed!");
-				}
-				var instance = this.loggingOptions.getService();
-				instance.setFlushSeverity(this.flushSeverity);
-				instance.setWriteSynchronicity(this.synchronicity);
-				return instance;
-			});
-			setFormatter(new BasicFormatter());
-			Severity flushSeverity = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
-			setFlushSeverity(flushSeverity);
-			Synchronicity synchronicity = property(manager, "synchronicity").map(Synchronicity::valueOf)
-					.orElse(Synchronicity.ASYNC);
-			setSynchronicity(synchronicity);
-			property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
+	JulHandler(Optional<String> logName, MonitoredResource resource, Supplier<Logging> loggingFunction) {
+		var manager = requireNonNull(LogManager.getLogManager());
+		this.logging = new AtomicInit<>(() -> {
+			var l = loggingFunction.get();
+			// ensure values are sync'ed
+			l.setFlushSeverity(this.flushSeverity);
+			l.setWriteSynchronicity(this.synchronicity);
+			return l;
+		});
+		setFormatter(new BasicFormatter());
+		var flushSev = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
+		setFlushSeverity(flushSev);
+		var sync = property(manager, "synchronicity").map(Synchronicity::valueOf).orElse(ASYNC);
+		setSynchronicity(sync);
+		property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
-			var resource = monitoredResource.orElseGet(MonitoredResourceProvider::monitoredResource);
-			this.defaultWriteOptions = new WriteOption[] {
-				WriteOption.logName(logName.orElse("java.log")),
-				WriteOption.resource(resource)
-			};
-		} catch (RuntimeException e) {
-			reportError(null, e, ErrorManager.OPEN_FAILURE);
-			throw e;
-		}
+		this.defaultWriteOptions = new WriteOption[] {
+			WriteOption.logName(logName.orElse("java.log")),
+			WriteOption.resource(resource)
+		};
 	}
 
 	/**
@@ -213,15 +198,14 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	}
 
 	@Override
-	protected LogEntry transform(LogRecord record) {
-		var entry = new JulEntry(record);
-		return logEntry(entry, this.decorators);
+	protected LogEntry transform(LogRecord r) {
+		return logEntry(new JulEntry(r), this.decorators);
 	}
 
 	@Override
-	protected void doPublish(LogEntry record) {
+	protected void doPublish(LogEntry entry) {
 		try {
-			logging().write(singleton(record), this.defaultWriteOptions);
+			logging().write(singleton(entry), this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
 		}
@@ -252,41 +236,8 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 	// --- Static Methods ---
 
-	/**
-	 * Create handler instance.
-	 *
-	 * @param resource the resource instance to use.
-	 * @return the handler instance.
-	 */
-	public static JulHandler julHandler(@Nonnull MonitoredResource resource) {
-		return new JulHandler(empty(), empty(), Optional.of(resource));
-	}
-
-	/**
-	 * Create handler instance.
-	 *
-	 * @param loggingOptions the logging options instance.
-	 * @param resource the resource instance to use.
-	 * @return the handler instance.
-	 */
-	public static JulHandler julHandler(@Nonnull LoggingOptions loggingOptions, @Nonnull MonitoredResource resource) {
-		return new JulHandler(empty(), Optional.of(loggingOptions), Optional.of(resource));
-	}
-
-	/**
-	 * Create handler instance.
-	 *
-	 * @param logName the log name.
-	 * @param loggingOptions the logging options instance.
-	 * @param resource the resource instance to use.
-	 * @return the handler instance.
-	 */
-	public static JulHandler julHandler(
-		@Nonnull String logName,
-		@Nonnull LoggingOptions loggingOptions,
-		@Nonnull MonitoredResource resource)
-	{
-		return new JulHandler(Optional.of(logName), Optional.of(loggingOptions), Optional.of(resource));
+	private static Logging createClient() {
+		return LoggingOptions.getDefaultInstance().getService();
 	}
 
 	/**
@@ -295,7 +246,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	 * @param level the level to convert.
 	 * @return the severity equivalent or {@link Severity#DEFAULT} if not.
 	 */
-	private static Severity severity(@Nonnull Level level) {
+	static Severity severity(@Nonnull Level level) {
 		if (level instanceof LoggingLevel) {
 			return ((LoggingLevel) level).getSeverity();
 		}

@@ -15,6 +15,7 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.groupingBy;
 import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
@@ -24,7 +25,6 @@ import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toInterval;
 import static uk.dansiviter.gcp.microprofile.metrics.Factory.toTimestamp;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -50,7 +50,6 @@ import com.google.api.MetricDescriptor;
 import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.monitoring.v3.MetricServiceClient;
-import com.google.cloud.monitoring.v3.MetricServiceSettings;
 import com.google.monitoring.v3.CreateTimeSeriesRequest;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeSeries;
@@ -62,8 +61,6 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
-import uk.dansiviter.gcp.AtomicInit;
-import uk.dansiviter.gcp.GaxUtil;
 import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Context;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
@@ -77,7 +74,7 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 @ApplicationScoped
 public class Exporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
-	private final MonitoredResource resource = MonitoredResourceProvider.monitoredResource();
+	private final MonitoredResource resource;
 
 	@Inject
 	private Logger log;
@@ -96,13 +93,25 @@ public class Exporter {
 	private Config config;
 	@Inject @Filter
 	private Instance<Predicate<MetricID>> filters;
+	@Inject
+	private MetricServiceClient client;
 
 	private Instant startInstant;
 	private Instant previousInstant;
 
 	private ProjectName projectName;
-	private AtomicInit<MetricServiceClient> client = new AtomicInit<>(this::createClient);
 	private ScheduledFuture<?> future;
+
+	/**
+	 * Default constructor.
+	 */
+	public Exporter() {
+		this(MonitoredResourceProvider.monitoredResource());
+	}
+
+	Exporter(MonitoredResource resource) {
+		this.resource = resource;
+	}
 
 	/**
 	 * @param init simply here to force initialisation.
@@ -155,9 +164,9 @@ public class Exporter {
 					.setName(this.projectName.toString())
 					.addAllTimeSeries(chunk)
 					.build();
-			this.client.get().createTimeSeries(request);
+			this.client.createTimeSeries(request);
 		}
-		this.previousInstant = end.plusMillis(1);  // prevent overlap
+		this.previousInstant = end;
 	}
 
 	private void convert(
@@ -174,7 +183,7 @@ public class Exporter {
 
 	private static void add(List<TimeSeries> timeSeries, TimeSeries ts) {
 		if (ts.getPointsCount() != 1) {
-			throw new IllegalStateException("Naughty! " + ts);
+			throw new IllegalStateException(format("Must contain exactly one! [size=%d]", ts.getPointsCount()));
 		}
 		timeSeries.add(ts);
 	}
@@ -193,15 +202,6 @@ public class Exporter {
 		}
 	}
 
-	private MetricServiceClient createClient() {
-		try {
-			var builder = MetricServiceSettings.newBuilder();
-			return MetricServiceClient.create(builder.build());
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		}
-	}
-
 	/**
 	 * Destroy this exporter.
 	 */
@@ -213,7 +213,6 @@ public class Exporter {
 		if (this.previousInstant != null) {
 			flush();
 		}
-		this.client.closeIfInitialised(GaxUtil::close);
 	}
 
 	private Optional<TimeSeries> timeSeries(
@@ -225,7 +224,7 @@ public class Exporter {
 	{
 		var snapshot = snapshots.get(id);
 		if (snapshot == null) {
-			return Optional.empty(); // we either couldn't snapshot or don't know how
+			return Optional.empty();  // we either couldn't snapshot or don't know how
 		}
 
 		var descriptor = this.descriptors.computeIfAbsent(id, k -> metricDescriptor(registry, type, snapshot, id));
@@ -244,13 +243,13 @@ public class Exporter {
 		var name = Factory.toDescriptorName(this.resource, type, id);
 		MetricDescriptor found;
 		try {
-			found = this.client.get().getMetricDescriptor(name);
+			found = this.client.getMetricDescriptor(name);
 		} catch (NotFoundException e) {
 			found = null;
 		}
 		var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
 		if (!like(found, created)) {
-			return this.client.get().createMetricDescriptor(this.projectName, created);
+			return this.client.createMetricDescriptor(this.projectName, created);
 		}
 		return found;
 	}

@@ -183,7 +183,7 @@ public class Log4j2Appender extends AbstractAppender {
 	 * @param level the severity level.
 	 * @return the equivalent severity or {@link Severity#DEFAULT}.
 	 */
-	private static Severity severity(Level level) {
+	static Severity severity(Level level) {
 		if (Level.ERROR.equals(level)) {
 			return Severity.ERROR;
 		} else if (Level.WARN.equals(level)) {

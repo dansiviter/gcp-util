@@ -38,7 +38,6 @@ public interface MonitoredResourceProvider {
 		var resource = ServiceLoader.load(MonitoredResource.class)
 			.findFirst()
 			.orElseGet(ResourceType::monitoredResource);
-
 		System.out.printf("### Using %s ###%n", resource);
 		return resource;
 	}

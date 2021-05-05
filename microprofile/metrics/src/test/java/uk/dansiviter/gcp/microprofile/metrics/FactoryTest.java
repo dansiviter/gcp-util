@@ -63,9 +63,7 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.GaugeSnapshot;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 
 /**
- *
- * @author Daniel Siviter
- * @since v1.0 [18 Dec 2019]
+ * Tests for {@link Factory}.
  */
 @ExtendWith(MockitoExtension.class)
 class FactoryTest {

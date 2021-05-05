@@ -17,11 +17,14 @@ package uk.dansiviter.gcp.log;
 
 import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isA;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +32,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
+import com.google.cloud.logging.LogEntry.Builder;
+import com.google.cloud.logging.LoggingEnhancer;
 import com.google.cloud.logging.Payload.JsonPayload;
 import com.google.cloud.logging.Severity;
 
@@ -40,7 +45,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.dansiviter.gcp.log.Entry.Source;
 
 /**
- * Unit test for {@link Factory}.
+ * Tests for {@link Factory}.
  */
 @ExtendWith(MockitoExtension.class)
 class FactoryTest {
@@ -54,9 +59,24 @@ class FactoryTest {
 		JsonPayload payload = logEntry.getPayload();
 
 		var data = payload.getDataAsMap();
-		assertEquals("foo", data.get("message"));
-		assertNull(data.get("context"));
+		assertThat(data.get("message"), equalTo("foo"));
+		assertThat(data.get("context"), nullValue());
 	}
+
+	@Test
+	void logEntry_error(@Mock Entry entry) {
+		when(entry.severity()).thenReturn(Severity.ERROR);
+		when(entry.message()).thenReturn(Optional.of("foo"));
+		when(entry.thrown()).thenReturn(Optional.of(() -> "Exception"));
+
+		var logEntry = Factory.logEntry(entry, emptyList());
+
+		JsonPayload payload = logEntry.getPayload();
+
+		var data = payload.getDataAsMap();
+		assertThat(data.get("@type"), equalTo("type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent"));
+		assertThat(data.get("stack_trace"), equalTo("Exception"));
+}
 
 	@Test
 	@SuppressWarnings("unchecked")
@@ -75,9 +95,9 @@ class FactoryTest {
 		var data = payload.getDataAsMap();
 		var context = (Map<String, Object>) data.get("context");
 		var reportLocation = (Map<String, Object>) context.get("reportLocation");
-		assertEquals("fooClass", reportLocation.get("filePath"));
-		assertEquals("fooMethod", reportLocation.get("functionName"));
-		assertEquals(3d, reportLocation.get("lineNumber"));
+		assertThat(reportLocation.get("filePath"), equalTo("fooClass"));
+		assertThat(reportLocation.get("functionName"), equalTo("fooMethod"));
+		assertThat(reportLocation.get("lineNumber"), equalTo(3d));
 	}
 
 	@Test
@@ -93,8 +113,52 @@ class FactoryTest {
 		assertNotNull(actual);
 
 		var actual0 = Factory.instance(MyTestClass.class.getName());
-		assertNotEquals(actual, actual0);
+		assertThat(actual, not(equalTo(actual0)));
+
+		assertThrows(IllegalArgumentException.class, () -> Factory.instance("foo"));
+	}
+
+	@Test
+	void decorator() {
+		var decorator = Factory.decorator(TestDecorator.class.getName());
+		assertNotNull(decorator);
+
+		decorator = Factory.decorator(TestEnhancer.class.getName());
+		assertThat(decorator, notNullValue());
+		assertThat(decorator, isA(EntryDecorator.class));
+
+		var nonDecorator = MyTestClass.class.getName();
+		assertThrows(IllegalStateException.class, () -> Factory.decorator(nonDecorator));
+	}
+
+	@Test
+	void decorators() {
+		var decorators = Factory.decorators(TestDecorator.class.getName() + ',' + TestEnhancer.class.getName());
+		assertThat(decorators.get(0), isA(EntryDecorator.class));
+		assertThat(decorators.get(1), isA(EntryDecorator.class));
+	}
+
+	@Test
+	void decorators_empty() {
+		var decorators = Factory.decorators("");
+		assertThat(decorators.isEmpty(), equalTo(true));
 	}
 
 	public static class MyTestClass { }
+
+	public static class TestDecorator implements EntryDecorator {
+
+		@Override
+		public void decorate(Builder b, Entry e, Map<String, Object> payload) {
+			// nothing to see here
+		}
+	}
+
+	public static class TestEnhancer implements LoggingEnhancer {
+
+		@Override
+		public void enhanceLogEntry(Builder builder) {
+			// nothing to see here
+		}
+	}
 }

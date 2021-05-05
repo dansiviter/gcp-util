@@ -16,6 +16,7 @@
 package uk.dansiviter.gcp.microprofile.config;
 
 import static java.util.Collections.emptyMap;
+import static uk.dansiviter.gcp.MonitoredResourceProvider.monitoredResource;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 
 import java.io.Closeable;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
@@ -36,7 +38,6 @@ import com.google.cloud.secretmanager.v1.SecretVersionName;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import uk.dansiviter.gcp.AtomicInit;
-import uk.dansiviter.gcp.MonitoredResourceProvider;
 
 /**
  * Supports 3 formats of secret name:
@@ -68,7 +69,16 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 	 * @throws IOException
 	 */
 	public SecretConfigSource() throws IOException {
-		this(MonitoredResourceProvider.monitoredResource(), SecretManagerServiceSettings.newBuilder().build());
+		this(monitoredResource());
+	}
+
+	/**
+	 * Creates a new instance.
+	 *
+	 * @param resource the monitored resource.
+	 */
+	SecretConfigSource(@Nonnull MonitoredResource resource) {
+		this(resource, SecretConfigSource::createClient);
 	}
 
 	/**
@@ -77,17 +87,17 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 	 * @param resource the monitored resource.
 	 * @param settings the settings.
 	 */
-	public SecretConfigSource(
+	SecretConfigSource(
 		@Nonnull MonitoredResource resource,
-		@Nonnull SecretManagerServiceSettings settings)
+		@Nonnull Supplier<SecretManagerServiceClient> clientSupplier)
 	{
 		this.projectId = PROJECT_ID.get(resource).orElseThrow();
-		this.client = new AtomicInit<SecretManagerServiceClient>(() -> createClient(settings));
+		this.client = new AtomicInit<>(clientSupplier);
 	}
 
-	SecretManagerServiceClient createClient(@Nonnull SecretManagerServiceSettings settings) {
+	private static SecretManagerServiceClient createClient() {
 		try {
-			return SecretManagerServiceClient.create(settings);
+			return SecretManagerServiceClient.create();
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
@@ -115,7 +125,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 			return null;
 		}
 		var version = client().getSecretVersion(name);
-		if (version.getState() == State.ENABLED) {  // not sure this is required
+		if (version.getState() == State.ENABLED) {
 			var response = client().accessSecretVersion(name);
 			return response.getPayload().getData().toStringUtf8();
 		}
@@ -136,7 +146,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		}
 	}
 
-	private SecretManagerServiceClient client() {
+	SecretManagerServiceClient client() {
 		return this.client.get();
 	}
 

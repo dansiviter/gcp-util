@@ -52,11 +52,10 @@ public class Decorator implements EntryDecorator {
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		var span = Span.current();
-		if (!span.getSpanContext().isValid()) {
+		var spanCtx = Span.current().getSpanContext();
+		if (!spanCtx.isValid()) {
 			return;
 		}
-		var spanCtx = span.getSpanContext();
 		b.setSpanId(spanCtx.getSpanId());
 		b.setTrace(this.prefix.concat(spanCtx.getTraceId()));
 		b.setTraceSampled(spanCtx.isSampled());

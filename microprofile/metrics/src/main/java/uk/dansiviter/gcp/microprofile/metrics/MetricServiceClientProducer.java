@@ -15,28 +15,42 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import java.io.IOException;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
 
-import uk.dansiviter.gcp.Util;
+import com.google.cloud.monitoring.v3.MetricServiceClient;
+
+import uk.dansiviter.gcp.GaxUtil;
 
 /**
+ * Produces an instance of {@link MetricServiceClientProducer}.
+ * <p>
  * Override with the {@link javax.enterprise.inject.Specializes} mechanism if you need to override.
  */
-public class SchedulerProducer {
+@ApplicationScoped
+public class MetricServiceClientProducer {
 	@Produces
-	@ApplicationScoped
-	public ScheduledExecutorService scheduler() {
-		return Executors.newSingleThreadScheduledExecutor();
+	private MetricServiceClient client;
+
+	@PostConstruct
+	public void init() {
+		this.client = createClient();
 	}
 
-	public void shutdown(@Disposes ScheduledExecutorService scheduler) {
-		Util.shutdown(scheduler, 60, SECONDS);
+	protected MetricServiceClient createClient() {
+		try {
+			return MetricServiceClient.create();
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	@PreDestroy
+	public void destroy() {
+		GaxUtil.close(this.client);
 	}
 }

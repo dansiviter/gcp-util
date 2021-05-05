@@ -20,6 +20,11 @@ A collection of utilities and experiments for integrating into Google Cloud Plat
 Ensure `gcloud auth application-default login` is run to set the default credentials.
 
 
+## `MonitoredResource` Resolution ##
+
+By default auto-detection will be attempted via `uk.dansiviter.gcp.MonitoredResourceProvider#monitoredResource()`. However, if you wish to override this you can use the `java.util.ServiceLoader` mechanism via `MonitoredResourceProvider`.
+
+
 ## Java Platform Module System ##
 
 gRPC has some issues when it comes to JPMS as both context, api and core share packages. Fortunately, Helidon have helped workaround this with `io.helidon.grpc:io.grpc` which means excluding the others:
