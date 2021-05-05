@@ -30,7 +30,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.logging.ErrorManager;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -125,31 +124,26 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	}
 
 	JulHandler(Optional<String> logName, MonitoredResource resource, Supplier<Logging> loggingFunction) {
-		try {
-			var manager = requireNonNull(LogManager.getLogManager());
-			this.logging = new AtomicInit<Logging>(() -> {
-				var logging = loggingFunction.get();
-				// ensure values are sync'ed
-				logging.setFlushSeverity(this.flushSeverity);
-				logging.setWriteSynchronicity(this.synchronicity);
-				return logging;
-			});
-			setFormatter(new BasicFormatter());
-			Severity flushSeverity = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
-			setFlushSeverity(flushSeverity);
-			Synchronicity synchronicity = property(manager, "synchronicity").map(Synchronicity::valueOf)
-					.orElse(Synchronicity.ASYNC);
-			setSynchronicity(synchronicity);
-			property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
+		var manager = requireNonNull(LogManager.getLogManager());
+		this.logging = new AtomicInit<>(() -> {
+			var logging = loggingFunction.get();
+			// ensure values are sync'ed
+			logging.setFlushSeverity(this.flushSeverity);
+			logging.setWriteSynchronicity(this.synchronicity);
+			return logging;
+		});
+		setFormatter(new BasicFormatter());
+		var flushSeverity = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
+		setFlushSeverity(flushSeverity);
+		var synchronicity = property(manager, "synchronicity").map(Synchronicity::valueOf)
+				.orElse(Synchronicity.ASYNC);
+		setSynchronicity(synchronicity);
+		property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
-			this.defaultWriteOptions = new WriteOption[] {
-				WriteOption.logName(logName.orElse("java.log")),
-				WriteOption.resource(resource)
-			};
-		} catch (RuntimeException e) {
-			reportError(null, e, ErrorManager.OPEN_FAILURE);
-			throw e;
-		}
+		this.defaultWriteOptions = new WriteOption[] {
+			WriteOption.logName(logName.orElse("java.log")),
+			WriteOption.resource(resource)
+		};
 	}
 
 	/**
@@ -204,15 +198,14 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	}
 
 	@Override
-	protected LogEntry transform(LogRecord record) {
-		var entry = new JulEntry(record);
-		return logEntry(entry, this.decorators);
+	protected LogEntry transform(LogRecord r) {
+		return logEntry(new JulEntry(r), this.decorators);
 	}
 
 	@Override
-	protected void doPublish(LogEntry record) {
+	protected void doPublish(LogEntry entry) {
 		try {
-			logging().write(singleton(record), this.defaultWriteOptions);
+			logging().write(singleton(entry), this.defaultWriteOptions);
 		} catch (RuntimeException e) {
 			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
 		}
