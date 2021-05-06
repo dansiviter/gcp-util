@@ -19,7 +19,6 @@ import static com.google.cloud.logging.Synchronicity.ASYNC;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.singleton;
-import static java.util.Objects.requireNonNull;
 import static java.util.Optional.empty;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
 import static java.util.logging.ErrorManager.FLUSH_FAILURE;
@@ -33,7 +32,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 
 import javax.annotation.Nonnull;
@@ -125,7 +123,6 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	}
 
 	JulHandler(Optional<String> logName, MonitoredResource resource, Supplier<Logging> loggingFunction) {
-		var manager = requireNonNull(LogManager.getLogManager());
 		this.logging = new AtomicInit<>(() -> {
 			var l = loggingFunction.get();
 			// ensure values are sync'ed
@@ -134,11 +131,11 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 			return l;
 		});
 		setFormatter(new BasicFormatter());
-		var flushSev = property(manager, "flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
+		var flushSev = property("flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
 		setFlushSeverity(flushSev);
-		var sync = property(manager, "synchronicity").map(Synchronicity::valueOf).orElse(ASYNC);
+		var sync = property("synchronicity").map(Synchronicity::valueOf).orElse(ASYNC);
 		setSynchronicity(sync);
-		property(manager, "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
+		property("decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 
 		this.defaultWriteOptions = new WriteOption[] {
 			WriteOption.logName(logName.orElse("java.log")),

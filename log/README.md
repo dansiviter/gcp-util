@@ -4,11 +4,11 @@
 
 ### `java.util` Logger (JUL) ###
 
-> :information_source: Don't place the exception within the message. This will be appended separately within `stack_trace` property and Error Reporting will use that. For JBoss Logging that could be as simple as `%s`.
+Inspired by `com.google.cloud.logging.LoggingHandler` but one major limitation is it's use of `com.google.cloud.logging.Payload.StringPayload` which heavily limits the data that can be utilised by GCP. `uk.dansiviter.gcp.log.jul.JulHandler` uses `JsonPayload` to provide broader support to Cloud Logging's features.
+
+> :warning: The `java.util.logging.Formatter` for `uk.dansiviter.gcp.log.jul.JulHandler` is fixed as an contexual information is already provided. If you wish to add more information use `uk.dansiviter.gcp.log.EntryDecorator`.
 
 #### File Config ####
-
-Inspired by `com.google.cloud.logging.LoggingHandler` but one major limitation is it's use of `com.google.cloud.logging.Payload.StringPayload` which heavily limits the data that can be utilised by GCP. This implementation does not use that to give broader support to Cloud logging's features.
 
 Example `java.util.logging.config.file` file config:
 
@@ -20,6 +20,8 @@ uk.dansiviter.gcp.log.jul.JulHandler.level=INFO
 uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
 uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator
 ```
+
+> :information_source: It's highly recommended you use this in combination with `uk.dansiviter.juli.FallbackHandler`. As Cloud Logging is remote, in the unlikely event `JulHandler` cannot start or send data the log record will be sent to the fallback `Handler`.
 
 #### Class Config ####
 
