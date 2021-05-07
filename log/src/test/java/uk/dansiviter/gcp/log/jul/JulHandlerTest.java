@@ -55,7 +55,7 @@ class JulHandlerTest {
 
 	@BeforeEach
 	void before() {
-		this.handler = new JulHandler(Optional.empty(), this.monitoredResource, () -> this.logging);
+		this.handler = new JulHandler(Optional.empty(), () -> this.monitoredResource, () -> this.logging);
 	}
 
 	@Test

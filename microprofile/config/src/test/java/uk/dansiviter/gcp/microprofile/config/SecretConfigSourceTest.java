@@ -28,11 +28,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.google.api.gax.rpc.UnaryCallable;
-import com.google.cloud.MonitoredResource;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionRequest;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
 import com.google.cloud.secretmanager.v1.GetSecretVersionRequest;
@@ -60,8 +59,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @ExtendWith(MockitoExtension.class)
 class SecretConfigSourceTest {
-	private final MonitoredResource resource = MonitoredResource.of("global", Map.of("project_id", "my_project"));
-
 	@Mock
 	private SecretManagerServiceSettings settings;
 	@Mock
@@ -71,7 +68,7 @@ class SecretConfigSourceTest {
 
 	@BeforeEach
 	void before() {
-		this.source = new SecretConfigSource(this.resource, () -> SecretManagerServiceClient.create(stub));
+		this.source = new SecretConfigSource(Optional.of("my_project"), () -> SecretManagerServiceClient.create(stub));
 	}
 
 	@Test

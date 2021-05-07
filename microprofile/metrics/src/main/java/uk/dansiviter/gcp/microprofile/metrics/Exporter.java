@@ -37,6 +37,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
@@ -74,7 +75,7 @@ import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
 @ApplicationScoped
 public class Exporter {
 	private final Map<MetricID, MetricDescriptor> descriptors = new ConcurrentHashMap<>();
-	private final MonitoredResource resource;
+	private final Supplier<MonitoredResource> resourceSupplier;
 
 	@Inject
 	private Logger log;
@@ -96,6 +97,8 @@ public class Exporter {
 	@Inject
 	private MetricServiceClient client;
 
+	private MonitoredResource resource;
+
 	private Instant startInstant;
 	private Instant previousInstant;
 
@@ -106,11 +109,11 @@ public class Exporter {
 	 * Default constructor.
 	 */
 	public Exporter() {
-		this(MonitoredResourceProvider.monitoredResource());
+		this(MonitoredResourceProvider::monitoredResource);
 	}
 
-	Exporter(MonitoredResource resource) {
-		this.resource = resource;
+	Exporter(Supplier<MonitoredResource> resourceSupplier) {
+		this.resourceSupplier = resourceSupplier;
 	}
 
 	/**
@@ -121,12 +124,13 @@ public class Exporter {
 			return;  // no client available so don't initialise
 		}
 		this.startInstant = Instant.now();
+		this.resource = this.resourceSupplier.get();
 		var projectId = PROJECT_ID.get(this.resource);
 		if (!projectId.isPresent()) {
 			log.projectIdNotFound();
 			return;
 		}
-		this.projectName = ProjectName.of(PROJECT_ID.get(this.resource).orElseThrow());
+		this.projectName = ProjectName.of(projectId.orElseThrow());
 		// Ensure small diff. in start > end time
 		// https://cloud.google.com/monitoring/api/ref_v3/rest/v3/TimeInterval
 		this.future = this.executor.scheduleAtFixedRate(this::flush, 10, samplingRate.duration.getSeconds(), SECONDS);

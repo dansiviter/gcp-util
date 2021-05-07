@@ -16,9 +16,11 @@
 package uk.dansiviter.gcp.log.opentracing;
 
 import static com.google.cloud.ServiceOptions.getDefaultProjectId;
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -35,7 +37,7 @@ import uk.dansiviter.gcp.log.EntryDecorator;
  * @since v1.0 [13 Dec 2019]
  */
 public class Decorator implements EntryDecorator {
-	private final String prefix;
+	private final Optional<String> prefix;
 	private final Supplier<Tracer> tracer;
 
 	/**
@@ -51,7 +53,7 @@ public class Decorator implements EntryDecorator {
 	 * @param tracer the tracer supplier.
 	 */
 	public Decorator(@Nonnull Supplier<Tracer> tracer) {
-		this(tracer, getDefaultProjectId());
+		this(tracer, Optional.ofNullable(getDefaultProjectId()));
 	}
 
 	/**
@@ -59,20 +61,24 @@ public class Decorator implements EntryDecorator {
 	 * @param tracer the tracer supplier.
 	 * @param projectId the project identifier.
 	 */
-	public Decorator(@Nonnull Supplier<Tracer> tracer, @Nonnull String projectId) {
-		this.prefix = String.format("projects/%s/traces/", projectId);
+	public Decorator(@Nonnull Supplier<Tracer> tracer, Optional<String> projectId) {
+		this.prefix = projectId.map(id -> format("projects/%s/traces/", id));
 		this.tracer = requireNonNull(tracer);
 	}
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
+		this.prefix.ifPresent(p -> decorate(p, b, e, payload));
+	}
+
+	private void decorate(String prefix, Builder b, Entry e, Map<String, Object> payload) {
 		var span = this.tracer.get().activeSpan();
 		if (span == null) {
 			return;
 		}
 
 		var spanCtx = span.context();
-		b.setTrace(this.prefix.concat(spanCtx.toTraceId()));
+		b.setTrace(prefix.concat(spanCtx.toTraceId()));
 		b.setSpanId(spanCtx.toSpanId());
 		b.setTraceSampled(true);
 	}

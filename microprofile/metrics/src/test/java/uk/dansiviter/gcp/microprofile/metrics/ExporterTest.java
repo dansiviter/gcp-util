@@ -52,7 +52,7 @@ class ExporterTest {
 
 	@BeforeEach
 	void before() {
-		this.exporter = new Exporter(resource);
+		this.exporter = new Exporter(() -> resource);
 		set(this.exporter, "executor", executor);
 		set(this.exporter, "samplingRate", SamplingRate.STANDARD);
 	}

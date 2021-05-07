@@ -23,7 +23,6 @@ import static java.util.Optional.empty;
 import static java.util.logging.ErrorManager.CLOSE_FAILURE;
 import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
-import static uk.dansiviter.gcp.MonitoredResourceProvider.monitoredResource;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
 import java.util.LinkedList;
@@ -46,7 +45,7 @@ import com.google.cloud.logging.LoggingOptions;
 import com.google.cloud.logging.Severity;
 import com.google.cloud.logging.Synchronicity;
 
-import uk.dansiviter.gcp.AtomicInit;
+import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
@@ -108,28 +107,19 @@ import uk.dansiviter.juli.AsyncHandler;
  */
 public class JulHandler extends AsyncHandler<LogEntry> {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
-	private final AtomicInit<Logging> logging;
+	private final Logging logging;
 	private final WriteOption[] defaultWriteOptions;
-
-	private Severity flushSeverity;
-	private Synchronicity synchronicity;
 
 	/**
 	 * Creates a handler with log name of {@code java.log}, {@link LoggingOptions#getDefaultInstance()} and auto-detected
 	 * {@link MonitoredResource}.
 	 */
 	public JulHandler() {
-		this(empty(), monitoredResource(), JulHandler::createClient);
+		this(empty(), MonitoredResourceProvider::monitoredResource, JulHandler::createClient);
 	}
 
-	JulHandler(Optional<String> logName, MonitoredResource resource, Supplier<Logging> loggingFunction) {
-		this.logging = new AtomicInit<>(() -> {
-			var l = loggingFunction.get();
-			// ensure values are sync'ed
-			l.setFlushSeverity(this.flushSeverity);
-			l.setWriteSynchronicity(this.synchronicity);
-			return l;
-		});
+	JulHandler(Optional<String> logName, Supplier<MonitoredResource> resource, Supplier<Logging> loggingFunction) {
+		this.logging = loggingFunction.get();
 		setFormatter(new BasicFormatter());
 		var flushSev = property("flushSeverity").map(Severity::valueOf).orElse(Severity.WARNING);
 		setFlushSeverity(flushSev);
@@ -139,7 +129,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 		this.defaultWriteOptions = new WriteOption[] {
 			WriteOption.logName(logName.orElse("java.log")),
-			WriteOption.resource(resource)
+			WriteOption.resource(resource.get())
 		};
 	}
 
@@ -147,10 +137,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	 * For JBoss LogManager
 	 */
 	public JulHandler setFlushSeverity(Severity flushSeverity) {
-		this.flushSeverity = flushSeverity;
-		if (this.logging.isInitialised()) {
-			logging().setFlushSeverity(flushSeverity);
-		}
+		this.logging.setFlushSeverity(flushSeverity);
 		return this;
 	}
 
@@ -158,10 +145,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	 * For JBoss LogManager
 	 */
 	public JulHandler setSynchronicity(Synchronicity synchronicity) {
-		this.synchronicity = synchronicity;
-		if (this.logging.isInitialised()) {
-			logging().setWriteSynchronicity(synchronicity);
-		}
+		this.logging.setWriteSynchronicity(synchronicity);
 		return this;
 	}
 
@@ -190,10 +174,6 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 		return add(stream(enhancers).map(EntryDecorator::decorator).toArray(EntryDecorator[]::new));
 	}
 
-	private Logging logging() {
-		return this.logging.get();
-	}
-
 	@Override
 	protected LogEntry transform(LogRecord r) {
 		return logEntry(new JulEntry(r), this.decorators);
@@ -202,21 +182,19 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	@Override
 	protected void doPublish(LogEntry entry) {
 		try {
-			logging().write(singleton(entry), this.defaultWriteOptions);
+			this.logging.write(singleton(entry), this.defaultWriteOptions);
 		} catch (RuntimeException e) {
-			reportError(e.getLocalizedMessage(), e, WRITE_FAILURE);
+			reportError("Publish failure!", e, WRITE_FAILURE);
 		}
 	}
 
 	@Override
 	public void flush() {
-		this.logging.ifInitialised(l -> {
-			try {
-				l.flush();
-			} catch (Exception e) {
-				reportError("Unable to flush!", e, FLUSH_FAILURE);
-			}
-		});
+		try {
+			this.logging.flush();
+		} catch (Exception e) {
+			reportError("Flush falure!", e, FLUSH_FAILURE);
+		}
 	}
 
 	@Override
@@ -226,7 +204,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 		try {
 			this.logging.close();
 		} catch (Exception e) {
-			reportError("Unable to close!", e, CLOSE_FAILURE);
+			reportError("Close failure!", e, CLOSE_FAILURE);
 		}
 	}
 
