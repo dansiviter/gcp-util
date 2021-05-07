@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
@@ -51,7 +52,7 @@ class DecoratorTest {
 		var spanCtx = SpanContext.create("00000000000000000000000000000001", "0000000000000002", TraceFlags.getSampled(), TraceState.getDefault());
 		when(span.getSpanContext()).thenReturn(spanCtx);
 		try (var scope = span.storeInContext(Context.current()).makeCurrent()) {
-			new Decorator("foo").decorate(b, e, payload);
+			new Decorator(Optional.of("foo")).decorate(b, e, payload);
 		}
 
 		verify(b).setSpanId("0000000000000002");
@@ -63,7 +64,7 @@ class DecoratorTest {
 	void decorate_noContext(@Mock Builder b, @Mock Entry e) {
 		var payload = new HashMap<String, Object>();
 
-		new Decorator("foo").decorate(b, e, payload);
+		new Decorator(Optional.of("foo")).decorate(b, e, payload);
 
 		verifyNoInteractions(b);
 	}

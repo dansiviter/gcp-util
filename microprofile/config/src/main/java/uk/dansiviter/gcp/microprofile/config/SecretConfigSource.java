@@ -16,13 +16,13 @@
 package uk.dansiviter.gcp.microprofile.config;
 
 import static java.util.Collections.emptyMap;
-import static uk.dansiviter.gcp.MonitoredResourceProvider.monitoredResource;
-import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
+import static java.util.Collections.emptySet;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 
 import com.google.api.pathtemplate.PathTemplate;
 import com.google.cloud.MonitoredResource;
+import com.google.cloud.ServiceOptions;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceSettings;
 import com.google.cloud.secretmanager.v1.SecretVersion.State;
@@ -60,7 +61,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 
 	private final AtomicInit<SecretManagerServiceClient> client;
 
-	private final String projectId;
+	private final Optional<String> projectId;
 
 	/**
 	 * Creates a new instance with auto-detected {@link MonitoredResource} and default
@@ -69,29 +70,29 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 	 * @throws IOException
 	 */
 	public SecretConfigSource() throws IOException {
-		this(monitoredResource());
+		this(Optional.of(ServiceOptions.getDefaultProjectId()));
 	}
 
 	/**
 	 * Creates a new instance.
 	 *
-	 * @param resource the monitored resource.
+	 * @param projectId the project identifier.
 	 */
-	SecretConfigSource(@Nonnull MonitoredResource resource) {
-		this(resource, SecretConfigSource::createClient);
+	SecretConfigSource(Optional<String> projectId) {
+		this(projectId, SecretConfigSource::createClient);
 	}
 
 	/**
 	 * Creates a new instance.
 	 *
-	 * @param resource the monitored resource.
+	 * @param projectId the project identifier.
 	 * @param settings the settings.
 	 */
 	SecretConfigSource(
-		@Nonnull MonitoredResource resource,
+		Optional<String> projectId,
 		@Nonnull Supplier<SecretManagerServiceClient> clientSupplier)
 	{
-		this.projectId = PROJECT_ID.get(resource).orElseThrow();
+		this.projectId = projectId;
 		this.client = new AtomicInit<>(clientSupplier);
 	}
 
@@ -110,8 +111,12 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 
 	@Override
 	public Set<String> getPropertyNames() {
+		return this.projectId.map(this::propertyNames).orElse(emptySet());
+	}
+
+	private Set<String> propertyNames(@Nonnull String projectId) {
 		var names = new HashSet<String>();
-		for (var s : client().listSecrets(this.projectId).iterateAll()) {
+		for (var s : client().listSecrets(projectId).iterateAll()) {
 			var name = s.getName();
 			names.add("secret:".concat(name.substring(name.lastIndexOf('/'))));
 		}
@@ -120,10 +125,13 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 
 	@Override
 	public String getValue(String propertyName) {
-		var name = versionName(propertyName);
-		if (name == null) {
-			return null;
-		}
+		return this.projectId
+			.map(p -> versionName(p, propertyName))
+			.map(this::value)
+			.orElse(null);
+	}
+
+	private String value(@Nonnull SecretVersionName name) {
 		var version = client().getSecretVersion(name);
 		if (version.getState() == State.ENABLED) {
 			var response = client().accessSecretVersion(name);
@@ -150,14 +158,14 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		return this.client.get();
 	}
 
-	private SecretVersionName versionName(@Nonnull String in) {
+	private static SecretVersionName versionName(@Nonnull String projectId, @Nonnull String in) {
 		var values = SECRET_TEMPLATE.match(in);
 		if (values != null) {
-			return SecretVersionName.of(this.projectId, values.get("secret"), "latest");
+			return SecretVersionName.of(projectId, values.get("secret"), "latest");
 		}
 		values = SECRET_VERSION_TEMPLATE.match(in);
 		if (values != null) {
-			return SecretVersionName.of(this.projectId, values.get("secret"), values.get("version"));
+			return SecretVersionName.of(projectId, values.get("secret"), values.get("version"));
 		}
 		if (SecretVersionName.isParsableFrom(in)) {
 			return SecretVersionName.parse(in);

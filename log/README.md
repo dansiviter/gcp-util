@@ -21,7 +21,7 @@ uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
 uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator
 ```
 
-> :information_source: It's highly recommended you use this in combination with `uk.dansiviter.juli.FallbackHandler`. As Cloud Logging is remote, in the unlikely event `JulHandler` cannot start or send data the log record will be sent to the fallback `Handler`.
+> :information_source: It's highly recommended you use this in combination with `uk.dansiviter.juli.FallbackHandler`. As Cloud Logging is remote, in the unlikely event `JulHandler` cannot start the log record will be sent to the fallback `Handler`.
 
 #### Class Config ####
 

@@ -16,11 +16,10 @@
 package uk.dansiviter.gcp.log.opentelemetry;
 
 import static com.google.cloud.ServiceOptions.getDefaultProjectId;
-import static java.util.Objects.requireNonNull;
+import static java.lang.String.format;
 
 import java.util.Map;
-
-import javax.annotation.Nonnull;
+import java.util.Optional;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
@@ -33,31 +32,34 @@ import uk.dansiviter.gcp.log.EntryDecorator;
  * @since v1.0 [13 Dec 2019]
  */
 public class Decorator implements EntryDecorator {
-	private final String prefix;
+	private final Optional<String> prefix;
 
 	/**
 	 * Attempts to auto-detect the project ID.
 	 */
 	public Decorator() {
-		this(getDefaultProjectId());
+		this(Optional.ofNullable(getDefaultProjectId()));
 	}
 
 	/**
-	 *
 	 * @param projectId the project identifier.
 	 */
-	public Decorator(@Nonnull String projectId) {
-		this.prefix = String.format("projects/%s/traces/", requireNonNull(projectId));
+	public Decorator(Optional<String> projectId) {
+		this.prefix = projectId.map(id -> format("projects/%s/traces/", id));
 	}
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
+		this.prefix.ifPresent(p -> decorate(p, b, e, payload));
+	}
+
+	private static void decorate(String prefix, Builder b, Entry e, Map<String, Object> payload) {
 		var spanCtx = Span.current().getSpanContext();
 		if (!spanCtx.isValid()) {
 			return;
 		}
 		b.setSpanId(spanCtx.getSpanId());
-		b.setTrace(this.prefix.concat(spanCtx.getTraceId()));
+		b.setTrace(prefix.concat(spanCtx.getTraceId()));
 		b.setTraceSampled(spanCtx.isSampled());
 	}
 }
