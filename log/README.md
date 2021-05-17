@@ -105,7 +105,7 @@ Both `com.google.cloud.logging.LoggingEnhancers` and the more flexible `uk.dansi
 If you require a little more flexibility in decorating, it's recommended you group these into a single class which has the added benefit of less verbosity in the configuration:
 
 ```java
-public class MyCombiedDecorator implements EntryDecorator {
+public class MyCombinedDecorator implements EntryDecorator {
 	private static final EntryDecorator DELEGATES = EntryDecorator.all(
 		EntryDecorator.serviceContext(MyClass.class),
 		new ThreadContextDecorator()
@@ -123,8 +123,7 @@ A few common use-cases are already implemented:
 
 * `java.util.ServiceLoader` loading: `uk.dansiviter.gcp.log.ServiceLoaderDecorator`,
 * Message masking: `uk.dansiviter.gcp.log.MessageMaskingDecorator` - may help with your DLP requirements,
-* OpenTelemetry Log Correlation: `uk.dansiviter.gcp.log.opentelemetry.Decorator`,
-* OpenTracing Log Correlation: `uk.dansiviter.gcp.log.opentracing.Decorator`,
+* OpenTelemetry Log Correlation: `uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator`,
 * JBoss Logger MDC: `uk.dansiviter.gcp.log.jboss.MdcDecorator` - Use with caution! May lead to an information leak,
 * Log4j v2 `ThreadContext`: `uk.dansiviter.gcp.log.log4j2.ThreadContextDecorator` - Use with caution! May lead to an information leak.
 
