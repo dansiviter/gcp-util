@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.opentelemetry;
+package uk.dansiviter.gcp.log;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -35,14 +35,13 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.context.Context;
-import uk.dansiviter.gcp.log.Entry;
 
 
 /**
- * Tests for {@link Decorator}.
+ * Tests for {@link OpenTelemetryTraceDecorator}.
  */
 @ExtendWith(MockitoExtension.class)
-class DecoratorTest {
+class OpenTelemetryTraceDecoratorTest {
 
 	@Test
 	void decorate(@Mock Builder b, @Mock Entry e, @Mock Span span) {
@@ -52,7 +51,7 @@ class DecoratorTest {
 		var spanCtx = SpanContext.create("00000000000000000000000000000001", "0000000000000002", TraceFlags.getSampled(), TraceState.getDefault());
 		when(span.getSpanContext()).thenReturn(spanCtx);
 		try (var scope = span.storeInContext(Context.current()).makeCurrent()) {
-			new Decorator(Optional.of("foo")).decorate(b, e, payload);
+			new OpenTelemetryTraceDecorator(Optional.of("foo")).decorate(b, e, payload);
 		}
 
 		verify(b).setSpanId("0000000000000002");
@@ -64,7 +63,7 @@ class DecoratorTest {
 	void decorate_noContext(@Mock Builder b, @Mock Entry e) {
 		var payload = new HashMap<String, Object>();
 
-		new Decorator(Optional.of("foo")).decorate(b, e, payload);
+		new OpenTelemetryTraceDecorator(Optional.of("foo")).decorate(b, e, payload);
 
 		verifyNoInteractions(b);
 	}

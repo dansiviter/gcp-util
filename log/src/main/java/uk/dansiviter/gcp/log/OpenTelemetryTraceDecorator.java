@@ -13,57 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package uk.dansiviter.gcp.log.opentracing;
+package uk.dansiviter.gcp.log;
 
 import static com.google.cloud.ServiceOptions.getDefaultProjectId;
 import static java.lang.String.format;
-import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
-
-import javax.annotation.Nonnull;
 
 import com.google.cloud.logging.LogEntry.Builder;
 
-import io.opentracing.Tracer;
-import io.opentracing.util.GlobalTracer;
-import uk.dansiviter.gcp.log.Entry;
-import uk.dansiviter.gcp.log.EntryDecorator;
+import io.opentelemetry.api.trace.Span;
 
 /**
  * @author Daniel Siviter
  * @since v1.0 [13 Dec 2019]
  */
-public class Decorator implements EntryDecorator {
+public class OpenTelemetryTraceDecorator implements EntryDecorator {
 	private final Optional<String> prefix;
-	private final Supplier<Tracer> tracer;
-
-	/**
-	 * Creates a using {@link GlobalTracer#get()}
-	 */
-	public Decorator() {
-		this(GlobalTracer::get);
-	}
 
 	/**
 	 * Attempts to auto-detect the project ID.
-	 *
-	 * @param tracer the tracer supplier.
 	 */
-	public Decorator(@Nonnull Supplier<Tracer> tracer) {
-		this(tracer, Optional.ofNullable(getDefaultProjectId()));
+	public OpenTelemetryTraceDecorator() {
+		this(Optional.ofNullable(getDefaultProjectId()));
 	}
 
 	/**
-	 *
-	 * @param tracer the tracer supplier.
 	 * @param projectId the project identifier.
 	 */
-	public Decorator(@Nonnull Supplier<Tracer> tracer, Optional<String> projectId) {
+	public OpenTelemetryTraceDecorator(Optional<String> projectId) {
 		this.prefix = projectId.map(id -> format("projects/%s/traces/", id));
-		this.tracer = requireNonNull(tracer);
 	}
 
 	@Override
@@ -71,15 +51,13 @@ public class Decorator implements EntryDecorator {
 		this.prefix.ifPresent(p -> decorate(p, b, e, payload));
 	}
 
-	private void decorate(String prefix, Builder b, Entry e, Map<String, Object> payload) {
-		var span = this.tracer.get().activeSpan();
-		if (span == null) {
+	private static void decorate(String prefix, Builder b, Entry e, Map<String, Object> payload) {
+		var spanCtx = Span.current().getSpanContext();
+		if (!spanCtx.isValid()) {
 			return;
 		}
-
-		var spanCtx = span.context();
-		b.setTrace(prefix.concat(spanCtx.toTraceId()));
-		b.setSpanId(spanCtx.toSpanId());
-		b.setTraceSampled(true);
+		b.setSpanId(spanCtx.getSpanId());
+		b.setTrace(prefix.concat(spanCtx.getTraceId()));
+		b.setTraceSampled(spanCtx.isSampled());
 	}
 }
