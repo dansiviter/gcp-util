@@ -5,7 +5,7 @@
     "allPublicMethods": true
   },
   {
-    "name": "uk.dansiviter.gcp.log.OpenTelemetryDecorator",
+    "name": "uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator",
     "allDeclaredConstructors": true,
     "allPublicMethods": true
   }
