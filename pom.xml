@@ -64,20 +64,20 @@
 				<version>[3.0.2,4.0)</version>
 				<scope>provided</scope>
 			</dependency>
-		
+
 			<dependency>
 				<groupId>uk.dansiviter.juli</groupId>
-				<artifactId>core</artifactId>
+				<artifactId>juli</artifactId>
 				<version>${juli.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>uk.dansiviter.juli</groupId>
-				<artifactId>cdi</artifactId>
+				<artifactId>juli-cdi</artifactId>
 				<version>${juli.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>uk.dansiviter.juli</groupId>
-				<artifactId>processor</artifactId>
+				<artifactId>juli-processor</artifactId>
 				<version>${juli.version}</version>
 				<scope>provided</scope>
 			</dependency>
@@ -85,18 +85,18 @@
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
-				<version>20.4.0</version>
+				<version>20.6.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
 			<dependency>
 				<groupId>io.opentelemetry</groupId>
 				<artifactId>opentelemetry-bom</artifactId>
-				<version>1.2.0</version>
+				<version>1.3.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-		
+
 			<dependency>
 				<groupId>org.eclipse.microprofile.config</groupId>
 				<artifactId>microprofile-config-api</artifactId>

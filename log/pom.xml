@@ -6,18 +6,22 @@
 		<artifactId>gcp</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>log</artifactId>
+	<artifactId>gcp-log</artifactId>
+
+	<properties>
+		<module.name>${project.groupId}.log</module.name>
+	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>core</artifactId>
+			<artifactId>gcp-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>core</artifactId>
+			<artifactId>juli</artifactId>
 		</dependency>
 
 		<dependency>

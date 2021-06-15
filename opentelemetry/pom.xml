@@ -6,13 +6,26 @@
 		<artifactId>gcp</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>opentelemetry</artifactId>
+	<artifactId>gcp-util-opentelemetry</artifactId>
+
+	<properties>
+		<module.name>${project.groupId}.opentelemetry</module.name>
+	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>core</artifactId>
+			<artifactId>gcp-core</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>juli</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>uk.dansiviter.juli</groupId>
+			<artifactId>juli-processor</artifactId>
 		</dependency>
 
 		<dependency>

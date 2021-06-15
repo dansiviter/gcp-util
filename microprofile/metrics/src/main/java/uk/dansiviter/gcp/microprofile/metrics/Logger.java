@@ -27,7 +27,7 @@ import uk.dansiviter.juli.annotations.Message;
  * Defines the logger.
  */
 @Log
-public interface Logger {
+interface Logger {
   @Message(value = "Starting metrics collection... [start={0},end={1}]", level = DEBUG)
   void startCollection(Instant start, Instant end);
 

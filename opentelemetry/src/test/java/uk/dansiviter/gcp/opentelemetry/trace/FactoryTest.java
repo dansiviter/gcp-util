@@ -20,19 +20,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
+import com.google.cloud.MonitoredResource;
+import com.google.devtools.cloudtrace.v2.ProjectName;
 import com.google.protobuf.Timestamp;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
  * Unit test for {@link Factory}.
  */
 class FactoryTest {
+    private Factory factory;
+
+    @BeforeEach
+    void before() {
+        var resource = MonitoredResource.newBuilder("global").build();
+        this.factory = new Factory(resource, ProjectName.of("acme"));
+    }
+
     @Test
     void toTimestamp() {
         Instant i = Instant.now();
         long epochNanos = TimeUnit.SECONDS.toNanos(i.getEpochSecond()) + i.getNano();
-        Timestamp timestamp = Factory.toTimestamp(epochNanos);
+        Timestamp timestamp = this.factory.toTimestamp(epochNanos);
 
         assertEquals(i.getEpochSecond(), timestamp.getSeconds());
         assertEquals(i.getNano(), timestamp.getNanos());
