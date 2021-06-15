@@ -3,10 +3,10 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>uk.dansiviter.gcp</groupId>
-		<artifactId>microprofile</artifactId>
+		<artifactId>gcp-microprofile</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>microprofile-metrics</artifactId>
+	<artifactId>gcp-microprofile-metrics</artifactId>
 
 	<properties>
 		<module.name>uk.dansiviter.gcp.microprofile.metrics</module.name>
@@ -15,16 +15,11 @@
 	<dependencies>
 		<dependency>
 			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>cdi</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>core</artifactId>
+			<artifactId>juli-cdi</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>processor</artifactId>
+			<artifactId>juli-processor</artifactId>
 		</dependency>
 
 		<dependency>

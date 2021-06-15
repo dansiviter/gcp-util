@@ -32,12 +32,13 @@ import javax.annotation.Nonnull;
  * @author Daniel Siviter
  * @since v1.0 [6 Nov 2020]
  */
-public class AtomicInit<T> implements AutoCloseable {
+public class AtomicInit<T> implements Supplier<T>, AutoCloseable {
 	private final AtomicReference<AtomicInit<T>> shield = new AtomicReference<>();
 	private final AtomicReference<T> ref = new AtomicReference<>();
 	private final AtomicBoolean closed = new AtomicBoolean();
 
 	private final Supplier<T> supplier;
+	private final Consumer<T> reset;
 
 	/**
 	 * Constructs new atomic initialiser.
@@ -45,12 +46,24 @@ public class AtomicInit<T> implements AutoCloseable {
 	 * @param supplier the supplier to call to initialise.
 	 */
 	public AtomicInit(@Nonnull Supplier<T> supplier) {
+		this(supplier, v -> { });
+	}
+
+	/**
+	 * Constructs new atomic initialiser.
+	 *
+	 * @param supplier the supplier to call to initialise.
+	 * @param reset the reset function. Useful for builders that need to reset state.
+	 */
+	public AtomicInit(@Nonnull Supplier<T> supplier, Consumer<T> reset) {
 		this.supplier = requireNonNull(supplier);
+		this.reset = requireNonNull(reset);
 	}
 
 	/**
 	 * @return the contained value, initialising if required.
 	 */
+	@Override
 	public T get() {
 		T value;
 		while ((value = this.ref.get()) == null) {
@@ -66,6 +79,8 @@ public class AtomicInit<T> implements AutoCloseable {
 				this.ref.set(instance);
 			}
 		}
+
+		this.reset.accept(value);
 		return value;
 	}
 
@@ -145,5 +160,16 @@ public class AtomicInit<T> implements AutoCloseable {
 	 */
 	public static <T> AtomicInit<T> atomic(@Nonnull Supplier<T> supplier) {
 		return new AtomicInit<>(supplier);
+	}
+
+	/**
+	 *
+	 * @param <T> the type to initialise.
+	 * @param supplier the supplier to get an instance.
+	 * @param reset reset function.
+	 * @return a new instance.
+	 */
+	public static <T> AtomicInit<T> atomic(@Nonnull Supplier<T> supplier, @Nonnull Consumer<T> reset) {
+		return new AtomicInit<>(supplier, reset);
 	}
 }

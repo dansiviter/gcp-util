@@ -6,7 +6,11 @@
 		<artifactId>gcp</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>core</artifactId>
+	<artifactId>gcp-core</artifactId>
+
+	<properties>
+		<module.name>${project.groupId}</module.name>
+	</properties>
 
 	<dependencies>
 		<dependency>

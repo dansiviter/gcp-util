@@ -15,8 +15,8 @@
  */
 package uk.dansiviter.gcp.opentelemetry.trace;
 
-import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
+import static uk.dansiviter.gcp.Util.threadLocal;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -32,7 +32,9 @@ import com.google.devtools.cloudtrace.v2.ProjectName;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
+import uk.dansiviter.gcp.GaxUtil;
 import uk.dansiviter.gcp.MonitoredResourceProvider;
+import uk.dansiviter.juli.LogProducer;
 
 /**
  * A OpenTelemetry {@link SpanExporter exporter} that pushes the traces to Cloud Trace.
@@ -41,22 +43,25 @@ import uk.dansiviter.gcp.MonitoredResourceProvider;
  * @since v1.0 [13 Feb 2021]
  */
 public class Exporter implements SpanExporter {
+	private static final Logger LOG = LogProducer.log(Logger.class);
+
 	private final MonitoredResource resource;
 	private final ProjectName projectName;
 	private final TraceServiceClient client;
-	private final Factory factory;
+	private final ThreadLocal<Factory> factory;
 
 	Exporter(Builder builder) {
 		this.resource = builder.resource.orElseGet(MonitoredResourceProvider::monitoredResource);
 		var projectId = builder.projectId.or(() -> PROJECT_ID.get(this.resource));
 		this.projectName = ProjectName.of(projectId.orElseThrow());
 		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);
-		this.factory = new Factory(this.resource, this.projectName);
+		this.factory = threadLocal(() -> new Factory(this.resource, this.projectName));
 	}
 
 	@Override
 	public CompletableResultCode export(Collection<SpanData> spans) {
-		this.client.batchWriteSpans(projectName, spans.stream().map(factory::toSpan).collect(toList()));
+		LOG.export(spans::size);
+		this.client.batchWriteSpans(projectName, factory.get().toSpans(spans));
 		return CompletableResultCode.ofSuccess();
 	}
 
@@ -68,7 +73,8 @@ public class Exporter implements SpanExporter {
 
 	@Override
 	public CompletableResultCode shutdown() {
-		this.client.shutdown();
+		LOG.shutdown();
+		GaxUtil.close(this.client);
 		return CompletableResultCode.ofSuccess();
 	}
 
