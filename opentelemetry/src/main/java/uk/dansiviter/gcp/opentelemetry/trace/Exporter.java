@@ -16,7 +16,6 @@
 package uk.dansiviter.gcp.opentelemetry.trace;
 
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
-import static uk.dansiviter.gcp.Util.threadLocal;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -48,20 +47,20 @@ public class Exporter implements SpanExporter {
 	private final MonitoredResource resource;
 	private final ProjectName projectName;
 	private final TraceServiceClient client;
-	private final ThreadLocal<Factory> factory;
+	private final Factory factory;
 
 	Exporter(Builder builder) {
 		this.resource = builder.resource.orElseGet(MonitoredResourceProvider::monitoredResource);
 		var projectId = builder.projectId.or(() -> PROJECT_ID.get(this.resource));
 		this.projectName = ProjectName.of(projectId.orElseThrow());
 		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);
-		this.factory = threadLocal(() -> new Factory(this.resource, this.projectName));
+		this.factory = new Factory(this.resource, this.projectName);
 	}
 
 	@Override
 	public CompletableResultCode export(Collection<SpanData> spans) {
 		LOG.export(spans::size);
-		this.client.batchWriteSpans(projectName, factory.get().toSpans(spans));
+		this.client.batchWriteSpans(projectName, factory.toSpans(spans));
 		return CompletableResultCode.ofSuccess();
 	}
 

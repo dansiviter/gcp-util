@@ -15,8 +15,6 @@
  */
 package uk.dansiviter.gcp.opentelemetry.trace;
 
-import static java.util.stream.Collectors.toList;
-
 import static com.google.devtools.cloudtrace.v2.Span.Link.Type.CHILD_LINKED_SPAN;
 import static com.google.devtools.cloudtrace.v2.Span.Link.Type.PARENT_LINKED_SPAN;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_HOST;
@@ -28,7 +26,7 @@ import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static uk.dansiviter.gcp.AtomicInit.atomic;
+import static java.util.stream.Collectors.toList;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -58,7 +56,6 @@ import io.opentelemetry.sdk.trace.data.EventData;
 import io.opentelemetry.sdk.trace.data.LinkData;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.data.StatusData;
-import uk.dansiviter.gcp.AtomicInit;
 
 /**
  *
@@ -66,25 +63,6 @@ import uk.dansiviter.gcp.AtomicInit;
  * @since v1.0 [20 Feb 2020]
  */
 public class Factory {
-	private final AtomicInit<SpanName.Builder> spanNameBuilder =
-		atomic(SpanName::newBuilder);
-	private final AtomicInit<Span.Builder> spanBuilder =
-			atomic(Span::newBuilder, Span.Builder::clear);
-	private final AtomicInit<TruncatableString.Builder> stringBuilder =
-			atomic(TruncatableString::newBuilder, TruncatableString.Builder::clear);
-	private final AtomicInit<Timestamp.Builder> timestampBuilder =
-			atomic(Timestamp::newBuilder, Timestamp.Builder::clear);
-	private final AtomicInit<Attributes.Builder> attrsBuilder =
-			atomic(Attributes::newBuilder, Attributes.Builder::clear);
-	private final AtomicInit<AttributeValue.Builder> attrsValueBuilder =
-			atomic(AttributeValue::newBuilder, AttributeValue.Builder::clear);
-	private final AtomicInit<TimeEvents.Builder> timeEventsBuilder =
-			atomic(TimeEvents::newBuilder, TimeEvents.Builder::clear);
-	private final AtomicInit<TimeEvent.Builder> timeEventBuilder =
-			atomic(TimeEvent::newBuilder, TimeEvent.Builder::clear);
-	private final AtomicInit<TimeEvent.Annotation.Builder> timeEventAnnoBuilder =
-			atomic(TimeEvent.Annotation::newBuilder, TimeEvent.Annotation.Builder::clear);
-
 	private static final String AGENT_LABEL_KEY = "/agent";
 	private static final Map<String, String> HTTP_ATTRIBUTE_MAPPING = Map.of(
 		HTTP_HOST.getKey(), "/http/host",
@@ -119,11 +97,11 @@ public class Factory {
 	private Span toSpan(SpanData span) {
 		var ctx = span.getSpanContext();
 		var spanId = ctx.getSpanId();
-		var spanName = spanNameBuilder.get() // no clear method, but should override all fields anyway
+		var spanName = SpanName.newBuilder() // no clear method, but should override all fields anyway
 				.setProject(this.projectName.getProject())
 				.setTrace(ctx.getTraceId()).setSpan(spanId).build();
 
-		var builder = spanBuilder.get().setName(spanName.toString()).setSpanId(spanId)
+		var builder = Span.newBuilder().setName(spanName.toString()).setSpanId(spanId)
 				.setDisplayName(toTruncatableString(span.getName()))
 				.setAttributes(toAttrs(span.getAttributes(), this.resourceAttr))
 				.setTimeEvents(toTimeEvents(span.getEvents()))
@@ -164,7 +142,7 @@ public class Factory {
 	 * @return
 	 */
 	private TruncatableString toTruncatableString(@Nonnull CharSequence charSeq) {
-		return stringBuilder.get().setValue(charSeq.toString()).build();
+		return TruncatableString.newBuilder().setValue(charSeq.toString()).build();
 	}
 
 	/**
@@ -174,7 +152,7 @@ public class Factory {
 	 */
 	Timestamp toTimestamp(long epochNanos) {
 		long seconds = NANOSECONDS.toSeconds(epochNanos);
-		return timestampBuilder.get()
+		return Timestamp.newBuilder()
 				.setSeconds(seconds)
 				.setNanos((int) (epochNanos - SECONDS.toNanos(seconds)))
 				.build();
@@ -201,8 +179,8 @@ public class Factory {
 	 * @param logs
 	 * @return
 	 */
-	private Span.TimeEvents toTimeEvents(@Nonnull List<EventData> events) {
-		var builder = timeEventsBuilder.get();
+	private TimeEvents toTimeEvents(@Nonnull List<EventData> events) {
+		var builder = TimeEvents.newBuilder();
 		events.forEach(e -> builder.addTimeEvent(toTimeMessageEvent(e)));
 		return builder.build();
 	}
@@ -215,7 +193,7 @@ public class Factory {
 	private Attributes.Builder toAttrsBuilder(
 			@Nonnull io.opentelemetry.api.common.Attributes attrs)
 	{
-		final Attributes.Builder attributesBuilder = attrsBuilder.get();
+		var attributesBuilder = Attributes.newBuilder();
 		attrs.forEach((k, v) -> {
 				var key = HTTP_ATTRIBUTE_MAPPING.getOrDefault(k.getKey(), k.getKey());
 				var value = toAttrValue(k, v);
@@ -259,7 +237,7 @@ public class Factory {
 	 * @return
 	 */
 	private AttributeValue toAttrValue(@Nonnull String key, AttributeType type, @Nonnull Object value) {
-		var builder = attrsValueBuilder.get();
+		var builder = AttributeValue.newBuilder();
 		if (type == null) {
 			builder.setStringValue(toTruncatableString(value.toString()));
 			return builder.build();
@@ -309,9 +287,9 @@ public class Factory {
 	 * @return
 	 */
 	private TimeEvent toTimeMessageEvent(EventData event) {
-		var builder = timeEventBuilder.get()
+		var builder = TimeEvent.newBuilder()
 				.setTime(toTimestamp(event.getEpochNanos()))
-				.setAnnotation(timeEventAnnoBuilder.get()
+				.setAnnotation(TimeEvent.Annotation.newBuilder()
 						.setAttributes(toAttrsBuilder(event.getAttributes()))
 						.setDescription(toTruncatableString(event.getName())));
 		return builder.build();
