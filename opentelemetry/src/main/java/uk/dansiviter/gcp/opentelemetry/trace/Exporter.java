@@ -88,6 +88,13 @@ public class Exporter implements SpanExporter {
 	}
 
 	/**
+	 * @return create exporter with default configuration.
+	 */
+	public static Exporter createDefault() {
+		return builder().build();
+	}
+
+	/**
 	 *
 	 * @return
 	 */
