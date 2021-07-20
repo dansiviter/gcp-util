@@ -66,20 +66,9 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 	/**
 	 * Creates a new instance with auto-detected {@link MonitoredResource} and default
 	 * {@link SecretManagerServiceSettings}.
-	 *
-	 * @throws IOException
 	 */
-	public SecretConfigSource() throws IOException {
-		this(Optional.of(ServiceOptions.getDefaultProjectId()));
-	}
-
-	/**
-	 * Creates a new instance.
-	 *
-	 * @param projectId the project identifier.
-	 */
-	SecretConfigSource(Optional<String> projectId) {
-		this(projectId, SecretConfigSource::createClient);
+	SecretConfigSource() {
+		this(Optional.of(ServiceOptions.getDefaultProjectId()), SecretConfigSource::createClient);
 	}
 
 	/**
