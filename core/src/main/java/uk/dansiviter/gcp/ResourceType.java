@@ -15,6 +15,7 @@
  */
 package uk.dansiviter.gcp;
 
+import static com.google.cloud.MetadataConfig.getAttribute;
 import static java.lang.System.getenv;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
@@ -207,7 +208,7 @@ public enum ResourceType {
 		 * This relates to the master node rather than the pod.
 		 * https://cloud.google.com/monitoring/kubernetes-engine/migration#resource_type_changes
 		 */
-		LOCATION("location", Label::getLocation),
+		LOCATION("location", Label::clusterLocation, Label::zone),
 		/**
 		 * The name of the cluster that the container is running in.
 		 */
@@ -271,9 +272,13 @@ public enum ResourceType {
 			return ResourceType.label(resource, this);
 		}
 
-		private static String getLocation() {
+		private static String clusterLocation() {
+			return getAttribute("instance/attributes/cluster-location");
+		}
+
+		private static String zone() {
 			var zone = MetadataConfig.getZone();
-			if (zone != null && zone.endsWith("-1")) {
+			if (zone != null && zone.endsWith("-1")) { 	// Cloud Run has '-1' suffix
 				return zone.substring(0, zone.length() - 2);
 			}
 			return zone;
