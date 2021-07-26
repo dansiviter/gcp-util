@@ -176,7 +176,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 	@Override
 	protected LogEntry transform(LogRecord r) {
-		return logEntry(new JulEntry(r), this.decorators);
+		return logEntry(new JulEntry(r, getFormatter()), this.decorators);
 	}
 
 	@Override
@@ -243,11 +243,13 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	/**
 	 * The JUL entry.
 	 */
-	private class JulEntry implements Entry {
+	static class JulEntry implements Entry {
 		private final LogRecord delegate;
+		private final Formatter formatter;
 
-		JulEntry(LogRecord delegate) {
+		JulEntry(LogRecord delegate, Formatter formatter) {
 			this.delegate = delegate;
+			this.formatter = formatter;
 		}
 
 		@Override
@@ -280,7 +282,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 		@Override
 		public Optional<CharSequence> message() {
-			var msg = getFormatter().format(this.delegate);
+			var msg = this.formatter.format(this.delegate);
 			return msg == null || msg.isEmpty() ? Optional.empty() : Optional.of(msg);
 		}
 
