@@ -16,6 +16,7 @@
 package uk.dansiviter.gcp.log.jul;
 
 import static uk.dansiviter.juli.AbstractHandler.property;
+import static java.util.logging.LogManager.getLogManager;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
 import java.lang.reflect.Method;
@@ -40,7 +41,7 @@ public class JsonFormatter extends ExpandingFormatter {
 
 	static {
 		try {
-			var toPb = LogEntry.class.getDeclaredMethod("toPb", LogEntry.class);
+			var toPb = LogEntry.class.getDeclaredMethod("toPb", String.class);
 			if (!toPb.trySetAccessible()) {
 				throw new IllegalStateException();
 			}
@@ -52,18 +53,19 @@ public class JsonFormatter extends ExpandingFormatter {
 	private final List<EntryDecorator> decorators = new LinkedList<>();
 	private final Formatter delegate = new BasicFormatter();
 
-
+	/**
+	 *
+	 */
 	public JsonFormatter() {
-		property("decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
-
+		property(getLogManager(), getClass(), "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
 	}
 
 	@Override
 	protected String doFormat(LogRecord record) {
 		var entry = logEntry(new JulEntry(record, this.delegate), this.decorators);
 		try {
-			var pbEntry = (com.google.logging.v2.LogEntry) TO_PB.invoke(null, entry);
-			return JsonFormat.printer().print(pbEntry);
+			var pbEntry = (com.google.logging.v2.LogEntry) TO_PB.invoke(entry, "foo");
+			return JsonFormat.printer().omittingInsignificantWhitespace().print(pbEntry);
 		} catch (ReflectiveOperationException | InvalidProtocolBufferException e) {
 			throw new IllegalStateException(e);
 		}
