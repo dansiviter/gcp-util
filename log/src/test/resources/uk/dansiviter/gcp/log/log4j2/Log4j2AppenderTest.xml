@@ -2,7 +2,7 @@
 <Configuration status="WARN">
   <Appenders>
     <CloudLogging name="cloud" synchronicity="ASYNC">
-      <Decorator class="uk.dansiviter.gcp.log.opentelemetry.Decorator"/>
+      <Decorator class="uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator"/>
     </CloudLogging>
   </Appenders>
   <Loggers>

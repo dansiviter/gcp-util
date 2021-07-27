@@ -62,8 +62,8 @@ import uk.dansiviter.juli.AsyncHandler;
  *        specifies the severity level which mandates a flush.
  *        (defaults to {@link Severity#WARNING WARNING})
  * <li>   {@code &lt;handler-name&gt;.synchronicity}
- * 		  specifies the synchronicity of message writing.
- * 		  (defaults to {@link Synchronicity#ASYNC ASYNC})
+ * 	  	  specifies the synchronicity of message writing.
+ * 		    (defaults to {@link Synchronicity#ASYNC ASYNC})
  * <li>   {@code &lt;handler-name&gt;.decorators}
  *        comma-separated list of fully qualified class names of either {@link EntryDecorator} or
  *        {@link com.google.cloud.logging.LoggingEnhancer LoggingEnhancer} to perform decoration of log entries.
@@ -77,7 +77,7 @@ import uk.dansiviter.juli.AsyncHandler;
  *
  * uk.dansiviter.gcp.log.jul.JulHandler.level=FINEST
  * uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
- * uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator
+ * uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
  *
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>

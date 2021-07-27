@@ -4,11 +4,15 @@
 
 ### `java.util` Logger (JUL) ###
 
-Inspired by `com.google.cloud.logging.LoggingHandler` but one major limitation is it's use of `com.google.cloud.logging.Payload.StringPayload` which heavily limits the data that can be utilised by GCP. `uk.dansiviter.gcp.log.jul.JulHandler` uses `JsonPayload` to provide broader support to Cloud Logging's features.
+This has two options:
+* `uk.dansiviter.gcp.log.jul.JulHandler`: This will communicate directly with the APIs. This means a service account must be present in the VM or Pod with sufficient permissions,
+* `uk.dansiviter.gcp.log.jul.JsonFormatter`: This will format log messages as required by [Structured Logging](https://cloud.google.com/logging/docs/structured-logging). This is often simpler than direct API access.
 
-> :warning: The `java.util.logging.Formatter` for `uk.dansiviter.gcp.log.jul.JulHandler` is fixed as an contexual information is already provided. If you wish to add more information use `uk.dansiviter.gcp.log.EntryDecorator`.
+Both of these were inspired by `com.google.cloud.logging.LoggingHandler` but written to address it's limitation on the use of `com.google.cloud.logging.Payload.StringPayload` which heavily reduces the data that can be utilised by GCP for elements such as `serviceContext`.
 
-#### File Config ####
+> :information_source: The `java.util.logging.Formatter` for `uk.dansiviter.gcp.log.jul.JulHandler` is fixed as an contexual information is already provided. If you wish to add more information use `uk.dansiviter.gcp.log.EntryDecorator`.
+
+#### `uk.dansiviter.gcp.log.jul.JulHandler` File Config ####
 
 Example `java.util.logging.config.file` file config:
 
@@ -18,12 +22,12 @@ handlers=uk.dansiviter.gcp.log.jul.JulHandler
 
 uk.dansiviter.gcp.log.jul.JulHandler.level=INFO
 uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
-uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator
+uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator,foo.MyDecorator
 ```
 
 > :information_source: It's highly recommended you use this in combination with `uk.dansiviter.juli.FallbackHandler`. As Cloud Logging is remote, in the unlikely event `JulHandler` cannot start the log record will be sent to the fallback `Handler`.
 
-#### Class Config ####
+#### `uk.dansiviter.gcp.log.jul.JulHandler` Class Config ####
 
 Example `java.util.logging.config.class` class config:
 
@@ -42,6 +46,18 @@ public class MyConfig {
 }
 ```
 
+#### `uk.dansiviter.gcp.log.jul.JsonFormatter` File Config ####
+
+```
+.level=INFO
+handlers=uk.dansiviter.juli.AsyncConsoleHandler
+
+uk.dansiviter.juli.AsyncConsoleHandler.level=FINEST
+uk.dansiviter.juli.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.JsonFormatter
+
+uk.dansiviter.gcp.log.JsonFormatter.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
+```
+
 ### JBoss Logger ###
 
 JBoss logger is based on the JUL logger, however has some extensions. Therefore, the configuration is largely identical however format is a little different. Example:
@@ -53,7 +69,7 @@ logger.handlers=CLOUD_LOG
 handler.CLOUD_LOG=uk.dansiviter.gcp.log.jul.JulHandler
 handler.CLOUD_LOG.level=INFO
 handler.CLOUD_LOG.properties=decorators
-handler.CLOUD_LOG.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator
+handler.CLOUD_LOG.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator,foo.MyDecorator
 ```
 
 ### Log4J v2 ###
@@ -65,7 +81,7 @@ For Log4J v2 it's highly recommended a Failover appender is used to ensure any p
   <Appenders>
     <CloudLogging name="java.log" synchronicity="ASYNC">
       <Decorators>
-        <Decorator class="uk.dansiviter.gcp.log.opentelemetry.Decorator"/>
+        <Decorator class="uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator"/>
         <Decorator class="foo.MyDecorator"/>
       </Decorators>
     </CloudLogging>
@@ -90,7 +106,7 @@ For Log4J v2 it's highly recommended a Failover appender is used to ensure any p
    <appender name="GCP" class="uk.dansiviter.gcp.log.logback.LogbackAppender">
      <logName>java.log</logName>
      <synchronicity>ASYNC</synchronicity>
-     <decorators>uk.dansiviter.gcp.log.opentelemetry.Decorator,foo.MyDecorator</decorators>
+     <decorators>uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator,foo.MyDecorator</decorators>
    </appender>
     <root level="DEBUG">
      <appender-ref ref="GCP" />

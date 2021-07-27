@@ -22,14 +22,18 @@ import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.gcp.Util.threadLocal;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.json.Json;
+import javax.json.stream.JsonGenerator;
 
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.LoggingEnhancer;
@@ -164,6 +168,95 @@ public enum Factory { ;
 		} catch (ReflectiveOperationException e) {
 			throw new IllegalArgumentException(format("Unable to create! [%s]", name), e);
 		}
+	}
+
+	/**
+	 * Streams the entry to the given {@link OutputStream}.
+	 *
+	 * @param entry the entry to write.
+	 * @param os the target output stream.
+	 * @throws IOException thrown if unable to stream.
+	 */
+	public static void toJson(@Nonnull LogEntry entry, @Nonnull OutputStream os) throws IOException {
+		var generator = Json.createGenerator(os);
+		generator.writeStartObject()
+			.write("severity", entry.getSeverity().toString())
+			.write("timestamp", Instant.ofEpochMilli(entry.getTimestamp()).toString())
+			.writeKey("jsonPayload");
+		JsonPayload jsonPayload = entry.getPayload();
+		toJson(generator, jsonPayload.getDataAsMap());
+
+		if (!entry.getLabels().isEmpty()) {
+			generator.writeKey("logging.googleapis.com/labels")
+				.writeStartObject();
+			entry.getLabels().forEach((k, v) -> generator.write(k, v));
+			generator.writeEnd();
+		}
+
+		var operation = entry.getOperation();
+		if (operation != null) {
+			generator.writeKey("logging.googleapis.com/operation")
+				.writeStartObject();
+			if (operation.getId() != null) {
+				generator.write("id", operation.getId());
+			}
+			if (operation.getProducer() != null) {
+				generator.write("producer", operation.getProducer());
+			}
+			if (operation.first()) {
+				generator.write("first", operation.first());
+			}
+			if (operation.last()) {
+				generator.write("last", operation.last());
+			}
+			generator.writeEnd();
+		}
+
+		var sourceLocation = entry.getSourceLocation();
+		if (sourceLocation != null) {
+			generator.writeKey("logging.googleapis.com/sourceLocation")
+				.writeStartObject();
+			if (sourceLocation.getFile() != null) {
+				generator.write("file", sourceLocation.getFile());
+			}
+			if (sourceLocation.getFunction() != null) {
+				generator.write("function", sourceLocation.getFunction());
+			}
+			if (sourceLocation.getLine() != null) {
+				generator.write("line", sourceLocation.getLine());
+			}
+			generator.writeEnd();
+		}
+
+		var traceId = entry.getTrace();
+		if (traceId != null) {
+			generator.write("logging.googleapis.com/trace", traceId);
+		}
+		var spanId = entry.getSpanId();
+		if (spanId != null) {
+			generator.write("logging.googleapis.com/spanId", spanId);
+		}
+
+		if (entry.getTraceSampled()) {
+			generator.write("logging.googleapis.com/trace_sampled", true);
+		}
+		generator.writeEnd().close();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void toJson(JsonGenerator generator, Map<String, Object> map) {
+		generator.writeStartObject();
+		map.forEach((k, v) -> {
+			if (v instanceof Map) {
+				generator.writeKey(k);
+				toJson(generator, (Map<String, Object>) v);
+			} else if (v instanceof String) {
+				generator.write(k, (String) v);
+			} else {
+				throw new IllegalArgumentException("Unexpected type! [" + v + "]");
+			}
+		});
+		generator.writeEnd();
 	}
 
 	/**

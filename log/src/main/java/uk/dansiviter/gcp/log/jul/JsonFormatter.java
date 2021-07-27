@@ -15,41 +15,51 @@
  */
 package uk.dansiviter.gcp.log.jul;
 
-import static uk.dansiviter.juli.AbstractHandler.property;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.logging.LogManager.getLogManager;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
+import static uk.dansiviter.gcp.log.Factory.toJson;
+import static uk.dansiviter.juli.JulUtil.property;
 
-import java.lang.reflect.Method;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
-import com.google.cloud.logging.LogEntry;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
+import javax.annotation.Nonnull;
 
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
 import uk.dansiviter.gcp.log.jul.JulHandler.JulEntry;
 
 /**
- * This formatter can be used if you want to leverage the automatic container persistence.
+ * This formatter can be used if you want to leverage the automatic container logging. This is often simpler than using
+ * direct Cloud Logger API integration. See <a href="https://cloud.google.com/logging/docs/structured-logging">Structured Logging</a>.
+ *
+ * <p>
+ * <b>Configuration:</b>
+ * <ul>
+ * <li>   {@code &lt;handler-name&gt;.decorators}
+ *        comma-separated list of fully qualified class names of either {@link EntryDecorator} or
+ *        {@link com.google.cloud.logging.LoggingEnhancer LoggingEnhancer} to perform decoration of log entries.
+ *        (defaults to empty list)</li>
+ * </ul>
+ *
+ * Example file {@code java.util.logging.config.file} config:
+ *
+ * <pre>
+ * .level=INFO
+ * handlers=uk.dansiviter.juli.AsyncConsoleHandler
+ *
+ * uk.dansiviter.juli.AsyncConsoleHandler.level=FINEST
+ * uk.dansiviter.juli.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.JsonFormatter
+ *
+ * uk.dansiviter.gcp.log.JsonFormatter.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
+ * </pre>
  */
 public class JsonFormatter extends ExpandingFormatter {
-	private static final Method TO_PB;
-
-	static {
-		try {
-			var toPb = LogEntry.class.getDeclaredMethod("toPb", String.class);
-			if (!toPb.trySetAccessible()) {
-				throw new IllegalStateException();
-			}
-			TO_PB = toPb;
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException(e);
-		}
-	}
 	private final List<EntryDecorator> decorators = new LinkedList<>();
 	private final Formatter delegate = new BasicFormatter();
 
@@ -57,16 +67,42 @@ public class JsonFormatter extends ExpandingFormatter {
 	 *
 	 */
 	public JsonFormatter() {
-		property(getLogManager(), getClass(), "decorators").map(Factory::decorators).ifPresent(this.decorators::addAll);
+		var manager = getLogManager();
+		property(manager, getClass(), "decorators").ifPresent(this::setDecorators);
+	}
+
+	/**
+	 * For JBoss LogManager
+	 */
+	public JsonFormatter setDecorators(@Nonnull String decorators) {
+		this.decorators.clear();
+		this.decorators.addAll(Factory.decorators(decorators));
+		return this;
+	}
+
+	/**
+	 * Add decorators.
+	 *
+	 * @param decorator at least one decorator must be provided.
+	 * @param decorators any other decorators to add.
+	 * @return this formatter instance.
+	 */
+	public JsonFormatter addDecorators(@Nonnull EntryDecorator decorator, EntryDecorator... decorators) {
+		this.decorators.add(decorator);
+		for (var d : decorators) {
+			this.decorators.add(d);
+		}
+		return this;
 	}
 
 	@Override
 	protected String doFormat(LogRecord record) {
 		var entry = logEntry(new JulEntry(record, this.delegate), this.decorators);
-		try {
-			var pbEntry = (com.google.logging.v2.LogEntry) TO_PB.invoke(entry, "foo");
-			return JsonFormat.printer().omittingInsignificantWhitespace().print(pbEntry);
-		} catch (ReflectiveOperationException | InvalidProtocolBufferException e) {
+
+		try (var os = new ByteArrayOutputStream()) {
+			toJson(entry, os);
+			return os.toString(UTF_8);
+		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
 	}

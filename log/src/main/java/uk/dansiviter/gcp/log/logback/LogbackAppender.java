@@ -53,7 +53,7 @@ import uk.dansiviter.gcp.log.Factory;
  *   &lt;appender name="GCP" class="uk.dansiviter.gcp.log.logback.LogbackAppender"&gt;
  *     &lt;logName&gt;java.log&lt;/logName&gt;
  *     &lt;synchronicity&gt;ASYNC&lt;/synchronicity&gt;
- *     &lt;decorators&gt;uk.dansiviter.gcp.log.opentelemetry.Decorator&lt;/decorators&gt;
+ *     &lt;decorators&gt;uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator&lt;/decorators&gt;
  *   &lt;/appender&gt;
 *    &lt;root level="DEBUG"&gt;
  *     &lt;appender-ref ref="GCP" /&gt;

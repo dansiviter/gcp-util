@@ -61,7 +61,7 @@ import uk.dansiviter.gcp.log.Factory;
  *   &lt;Appenders&gt;
  *     &lt;CloudLogging name="java.log" synchronicity="ASYNC"&gt;
  *       &lt;Decorators&gt;
- *         &lt;Decorator class="uk.dansiviter.gcp.log.opentelemetry.Decorator"/&gt;
+ *         &lt;Decorator class="uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator"/&gt;
  *       &lt;/Decorators&gt;
  *       &lt;Filter .../&gt;
  *     &lt;/CloudLogging&gt;
