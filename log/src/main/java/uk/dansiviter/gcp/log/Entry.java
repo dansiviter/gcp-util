@@ -15,6 +15,7 @@
  */
 package uk.dansiviter.gcp.log;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -36,9 +37,9 @@ public interface Entry {
 	@Nonnull Severity severity();
 
 	/**
-	 * @return timestamp from epoch.
+	 * @return log timestamp.
 	 */
-	long timestamp();
+	Instant timestamp();
 
 	/**
 	 * @return source of log message.

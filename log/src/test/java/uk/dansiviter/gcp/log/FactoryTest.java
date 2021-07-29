@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -52,6 +53,7 @@ class FactoryTest {
 	@Test
 	void logEntry(@Mock Entry entry) {
 		when(entry.severity()).thenReturn(Severity.INFO);
+		when(entry.timestamp()).thenReturn(Instant.EPOCH);
 		when(entry.message()).thenReturn(Optional.of("foo"));
 
 		var logEntry = Factory.logEntry(entry, emptyList());
@@ -66,6 +68,7 @@ class FactoryTest {
 	@Test
 	void logEntry_error(@Mock Entry entry) {
 		when(entry.severity()).thenReturn(Severity.ERROR);
+		when(entry.timestamp()).thenReturn(Instant.EPOCH);
 		when(entry.message()).thenReturn(Optional.of("foo"));
 		when(entry.thrown()).thenReturn(Optional.of(() -> "Exception"));
 
@@ -82,6 +85,7 @@ class FactoryTest {
 	@SuppressWarnings("unchecked")
 	void logEntry_context_reportLocation(@Mock Entry entry, @Mock Source source) {
 		when(entry.severity()).thenReturn(Severity.WARNING);
+		when(entry.timestamp()).thenReturn(Instant.EPOCH);
 		when(entry.thrown()).thenReturn(Optional.empty());
 		when(entry.source()).thenReturn(Optional.of(source));
 		when(source.className()).thenReturn("fooClass");

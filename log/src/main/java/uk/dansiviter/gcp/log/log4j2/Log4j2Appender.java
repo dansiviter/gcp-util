@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -61,7 +62,7 @@ import uk.dansiviter.gcp.log.Factory;
  *   &lt;Appenders&gt;
  *     &lt;CloudLogging name="java.log" synchronicity="ASYNC"&gt;
  *       &lt;Decorators&gt;
- *         &lt;Decorator class="uk.dansiviter.gcp.log.opentelemetry.Decorator"/&gt;
+ *         &lt;Decorator class="uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator"/&gt;
  *       &lt;/Decorators&gt;
  *       &lt;Filter .../&gt;
  *     &lt;/CloudLogging&gt;
@@ -232,8 +233,8 @@ public class Log4j2Appender extends AbstractAppender {
 		}
 
 		@Override
-		public long timestamp() {
-			return this.delegate.getTimeMillis();
+		public Instant timestamp() {
+			return Instant.ofEpochMilli(this.delegate.getTimeMillis());
 		}
 
 		@Override

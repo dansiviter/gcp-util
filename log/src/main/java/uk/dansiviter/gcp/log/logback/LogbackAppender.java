@@ -18,6 +18,7 @@ package uk.dansiviter.gcp.log.logback;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +54,7 @@ import uk.dansiviter.gcp.log.Factory;
  *   &lt;appender name="GCP" class="uk.dansiviter.gcp.log.logback.LogbackAppender"&gt;
  *     &lt;logName&gt;java.log&lt;/logName&gt;
  *     &lt;synchronicity&gt;ASYNC&lt;/synchronicity&gt;
- *     &lt;decorators&gt;uk.dansiviter.gcp.log.opentelemetry.Decorator&lt;/decorators&gt;
+ *     &lt;decorators&gt;uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator&lt;/decorators&gt;
  *   &lt;/appender&gt;
 *    &lt;root level="DEBUG"&gt;
  *     &lt;appender-ref ref="GCP" /&gt;
@@ -252,8 +253,8 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 		}
 
 		@Override
-		public long timestamp() {
-			return this.delegate.getTimeStamp();
+		public Instant timestamp() {
+			return Instant.ofEpochMilli(this.delegate.getTimeStamp());
 		}
 
 		@Override

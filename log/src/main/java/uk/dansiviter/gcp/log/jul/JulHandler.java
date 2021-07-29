@@ -25,6 +25,7 @@ import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -62,8 +63,8 @@ import uk.dansiviter.juli.AsyncHandler;
  *        specifies the severity level which mandates a flush.
  *        (defaults to {@link Severity#WARNING WARNING})
  * <li>   {@code &lt;handler-name&gt;.synchronicity}
- * 		  specifies the synchronicity of message writing.
- * 		  (defaults to {@link Synchronicity#ASYNC ASYNC})
+ * 	  	  specifies the synchronicity of message writing.
+ * 		    (defaults to {@link Synchronicity#ASYNC ASYNC})
  * <li>   {@code &lt;handler-name&gt;.decorators}
  *        comma-separated list of fully qualified class names of either {@link EntryDecorator} or
  *        {@link com.google.cloud.logging.LoggingEnhancer LoggingEnhancer} to perform decoration of log entries.
@@ -77,7 +78,7 @@ import uk.dansiviter.juli.AsyncHandler;
  *
  * uk.dansiviter.gcp.log.jul.JulHandler.level=FINEST
  * uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
- * uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.opentelemetry.Decorator
+ * uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
  *
  * java.util.logging.SimpleFormatter.format=%3$s: %5$s%6$s
  * </pre>
@@ -176,7 +177,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 	@Override
 	protected LogEntry transform(LogRecord r) {
-		return logEntry(new JulEntry(r), this.decorators);
+		return logEntry(new JulEntry(r, getFormatter()), this.decorators);
 	}
 
 	@Override
@@ -243,11 +244,13 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	/**
 	 * The JUL entry.
 	 */
-	private class JulEntry implements Entry {
+	static class JulEntry implements Entry {
 		private final LogRecord delegate;
+		private final Formatter formatter;
 
-		JulEntry(LogRecord delegate) {
+		JulEntry(LogRecord delegate, Formatter formatter) {
 			this.delegate = delegate;
+			this.formatter = formatter;
 		}
 
 		@Override
@@ -256,8 +259,8 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 		}
 
 		@Override
-		public long timestamp() {
-			return this.delegate.getMillis();
+		public Instant timestamp() {
+			return this.delegate.getInstant();
 		}
 
 		@Override
@@ -280,7 +283,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 		@Override
 		public Optional<CharSequence> message() {
-			var msg = getFormatter().format(this.delegate);
+			var msg = this.formatter.format(this.delegate);
 			return msg == null || msg.isEmpty() ? Optional.empty() : Optional.of(msg);
 		}
 
