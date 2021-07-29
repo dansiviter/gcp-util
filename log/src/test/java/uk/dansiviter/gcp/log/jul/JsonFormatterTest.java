@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Map;
 import java.util.logging.Level;
@@ -29,9 +30,10 @@ import uk.dansiviter.gcp.log.ServiceContextDecorator;
 class JsonFormatterTest {
 	@Test
 	void format() {
-		var record = new LogRecord(Level.SEVERE, "Hello world!");
+		var record = new LogRecord(Level.SEVERE, "Hello {0}!");
+		record.setParameters(new Object[] { "world" });
 		record.setLoggerName("test");
-		record.setInstant(Instant.parse("2021-07-26T13:14:15.016Z"));
+		record.setInstant(Instant.parse("2021-07-26T13:14:15.123456789Z"));
 
 		var formatter = new JsonFormatter();
 		formatter.setDecorators(KitchenSink.class.getName());
@@ -41,15 +43,17 @@ class JsonFormatterTest {
 		var expected =
 			"{" +
 				"\"severity\":\"ERROR\"," +
-				"\"timestamp\":\"2021-07-26T13:14:15.016Z\"," +
-				"\"jsonPayload\":{" +
-					"\"@type\":\"type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent\"," +
-					"\"message\":\"Hello world!\"," +
-					"\"serviceContext\":{" +
-						"\"service\":\"testService\"," +
-						"\"version\":\"testVersion\"" +
-					"}" +
+				"\"time\":\"2021-07-26T13:14:15.123456789Z\"," +
+				"\"@type\":\"type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent\"," +
+				"\"message\":\"Hello world!\"," +
+				"\"float\":1.1," +
+				"\"bigInt\":1.0," +
+				"\"int\":1.0," +
+				"\"serviceContext\":{" +
+					"\"service\":\"testService\"," +
+					"\"version\":\"testVersion\"" +
 				"}," +
+				"\"logging.googleapis.com/insertId\":\"ABC123\"," +
 				"\"logging.googleapis.com/labels\":{" +
 					"\"logName\":\"test\"," +
 					"\"Hello\":\"world\"," +
@@ -78,13 +82,16 @@ class JsonFormatterTest {
 
 	public static class KitchenSink implements EntryDecorator {
 		@Override
-		public void decorate(Builder b, Entry e, Map<String, Object> payload) {
+		public void decorate(Builder b, Entry e, Map<String, Object> p) {
+			p.put("int", 1);
+			p.put("bigInt", new BigInteger("1"));
+			p.put("float", 1.1);
 			b.setOperation(Operation
 				.newBuilder("testId", "testProducer")
 				.setFirst(true)
 				.setLast(true)
 				.build());
-
+			b.setInsertId("ABC123");
 			b.addLabel("Hello", "world");
 			b.setSpanId("0000000000000002");
 			b.setTrace("projects/foo/traces/00000000000000000000000000000001");

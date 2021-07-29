@@ -25,6 +25,7 @@ import static java.util.logging.ErrorManager.FLUSH_FAILURE;
 import static java.util.logging.ErrorManager.WRITE_FAILURE;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -258,8 +259,8 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 		}
 
 		@Override
-		public long timestamp() {
-			return this.delegate.getMillis();
+		public Instant timestamp() {
+			return this.delegate.getInstant();
 		}
 
 		@Override

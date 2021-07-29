@@ -144,3 +144,8 @@ A few common use-cases are already implemented:
 * Log4j v2 `ThreadContext`: `uk.dansiviter.gcp.log.log4j2.ThreadContextDecorator` - Use with caution! May lead to an information leak.
 
 Check the JavaDoc for each class for more information.
+
+
+## Limitations
+
+* Timestamp Precision: Although the underlying protobuf `LogEntry` supports it, if using API client implementations, the maximum precision for timestamp is milliseconds. If you wish to have micro or nano then you must use a JSON formatter and Structured Logging. [googleapis/java-logging#598]

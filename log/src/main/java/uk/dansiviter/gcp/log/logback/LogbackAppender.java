@@ -18,6 +18,7 @@ package uk.dansiviter.gcp.log.logback;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -252,8 +253,8 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 		}
 
 		@Override
-		public long timestamp() {
-			return this.delegate.getTimeStamp();
+		public Instant timestamp() {
+			return Instant.ofEpochMilli(this.delegate.getTimeStamp());
 		}
 
 		@Override

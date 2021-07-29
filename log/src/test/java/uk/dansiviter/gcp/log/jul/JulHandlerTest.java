@@ -23,6 +23,7 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -61,6 +62,7 @@ class JulHandlerTest {
 	@Test
 	void publish(@Mock LogRecord record) {
 		when(record.getLevel()).thenReturn(Level.INFO);
+		when(record.getInstant()).thenReturn(Instant.EPOCH);
 
 		handler.publish(record);
 		handler.flush();

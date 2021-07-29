@@ -37,9 +37,9 @@ public interface EntryDecorator {
 	 *
 	 * @param b the log entry builder.
 	 * @param e immutable log entry.
-	 * @param payload mutable payload.
+	 * @param p mutable payload.
 	 */
-	void decorate(Builder b, Entry e, Map<String, Object> payload);
+	void decorate(Builder b, Entry e, Map<String, Object> p);
 
 	/**
 	 * Wraps a {@link LoggingEnhancer} as a {@link EntryDecorator}.

@@ -26,6 +26,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.json.Json;
+import javax.json.JsonValue;
 import javax.json.stream.JsonGenerator;
 
 import com.google.cloud.logging.LogEntry;
@@ -46,6 +49,7 @@ import com.google.cloud.logging.Severity;
  * @since v1.0 [6 Dec 2019]
  */
 public enum Factory { ;
+	private static final String NANO_TIME = "nanoTime";
 	private static final ThreadLocal<LogEntry.Builder> BUILDER = threadLocal(() -> LogEntry.newBuilder(null), b -> {
 		b.setInsertId(null);
 		b.setHttpRequest(null);
@@ -64,9 +68,14 @@ public enum Factory { ;
 	 */
 	@Nonnull
 	public static LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
+		var timestamp = entry.timestamp();
 		var b = BUILDER.get()
-				.setTimestamp(entry.timestamp())
+				.setTimestamp(timestamp.toEpochMilli())
 				.setSeverity(entry.severity());
+		if (timestamp.getNano() > 0) {  // googleapis/java-logging#598
+			b.addLabel(NANO_TIME, timestamp.toString());
+		}
+
 		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
 		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
 
@@ -179,18 +188,25 @@ public enum Factory { ;
 	 */
 	public static void toJson(@Nonnull LogEntry entry, @Nonnull OutputStream os) throws IOException {
 		var generator = Json.createGenerator(os);
+		var precisionTime = entry.getLabels().get(NANO_TIME);
 		generator.writeStartObject()
 			.write("severity", entry.getSeverity().toString())
-			.write("timestamp", Instant.ofEpochMilli(entry.getTimestamp()).toString())
-			.writeKey("jsonPayload");
+			.write("time", precisionTime != null ? precisionTime : Instant.ofEpochMilli(entry.getTimestamp()).toString());
 		JsonPayload jsonPayload = entry.getPayload();
 		toJson(generator, jsonPayload.getDataAsMap());
 
 		if (!entry.getLabels().isEmpty()) {
 			generator.writeKey("logging.googleapis.com/labels")
 				.writeStartObject();
-			entry.getLabels().forEach((k, v) -> generator.write(k, v));
+			entry.getLabels().entrySet().stream()
+				.filter(e -> !NANO_TIME.equals(e.getKey()))
+				.forEach(e -> generator.write(e.getKey(), e.getValue()));
 			generator.writeEnd();
+		}
+
+		var insertId = entry.getInsertId();
+		if (insertId != null) {
+			generator.write("logging.googleapis.com/insertId", insertId);
 		}
 
 		var operation = entry.getOperation();
@@ -245,18 +261,31 @@ public enum Factory { ;
 
 	@SuppressWarnings("unchecked")
 	private static void toJson(JsonGenerator generator, Map<String, Object> map) {
-		generator.writeStartObject();
 		map.forEach((k, v) -> {
-			if (v instanceof Map) {
-				generator.writeKey(k);
-				toJson(generator, (Map<String, Object>) v);
-			} else if (v instanceof String) {
+			if (v instanceof String) {
 				generator.write(k, (String) v);
+			} else if (v instanceof Boolean) {
+				generator.write(k, (Boolean) v);
+			} else if (v instanceof Integer || v instanceof Short) {
+				generator.write(k, ((Number) v).intValue());
+			} else if (v instanceof Long) {
+				generator.write(k, (Long) v);
+			} else if (v instanceof BigInteger) {
+				generator.write(k, (BigInteger) v);
+			} else if (v instanceof Float || v instanceof Double) {
+				generator.write(k, ((Number) v).doubleValue());
+			} else if (v instanceof BigDecimal) {
+				generator.write(k, (BigDecimal) v);
+			} else if (v instanceof Map) {
+				generator.writeKey(k).writeStartObject();;
+				toJson(generator, (Map<String, Object>) v);
+				generator.writeEnd();
+			} else if (v instanceof JsonValue) {
+				generator.write(k, (JsonValue) v);
 			} else {
 				throw new IllegalArgumentException("Unexpected type! [" + v + "]");
 			}
 		});
-		generator.writeEnd();
 	}
 
 	/**
