@@ -35,7 +35,7 @@
 
 		<module.name>${project.groupId}.${project.artifactId}</module.name>
 
-		<juli.version>0.2.0-SNAPSHOT</juli.version>
+		<juli.version>0.3.0</juli.version>
 	</properties>
 
 	<distributionManagement>
@@ -137,15 +137,6 @@
 
 		</dependencies>
 	</dependencyManagement>
-
-	<repositories>
-		<repository>
-			<id>snpsht</id>
-			<url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
-			<releases><enabled>false</enabled></releases>
-			<snapshots><enabled>true</enabled></snapshots>
-		</repository>
-	</repositories>
 
 	<dependencies>
 		<dependency>
