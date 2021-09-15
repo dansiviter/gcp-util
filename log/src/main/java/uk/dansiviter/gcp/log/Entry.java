@@ -22,8 +22,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.logging.Severity;
 
 /**
@@ -34,7 +32,7 @@ public interface Entry {
 	/**
 	 * @return log severity.
 	 */
-	@Nonnull Severity severity();
+	Severity severity();
 
 	/**
 	 * @return log timestamp.
@@ -83,7 +81,7 @@ public interface Entry {
 		/**
 		 * @return the class name.
 		 */
-		@Nonnull String className();
+		String className();
 
 		/**
 		 * @return the line of the code, if available.
@@ -95,7 +93,7 @@ public interface Entry {
 		/**
 		 * @return the method name.
 		 */
-		@Nonnull String method();
+		String method();
 
 		/**
 		 * @return the values as a map.

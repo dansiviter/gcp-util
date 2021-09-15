@@ -20,8 +20,6 @@ import java.util.function.Supplier;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
-import javax.annotation.Nonnull;
-
 /**
  * A formatter that will expand {@link Supplier} and {@link Optional} instances.
  *
@@ -52,5 +50,5 @@ public abstract class ExpandingFormatter extends Formatter {
 	 * @param record the record to format.
 	 * @return the formatted string.
 	 */
-	protected abstract String doFormat(@Nonnull LogRecord record);
+	protected abstract String doFormat(LogRecord record);
 }

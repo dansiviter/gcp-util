@@ -18,6 +18,7 @@ package uk.dansiviter.gcp.log;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.gcp.Util.threadLocal;
 
@@ -33,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.json.Json;
 import javax.json.JsonValue;
 import javax.json.stream.JsonGenerator;
@@ -49,6 +49,7 @@ import com.google.cloud.logging.Severity;
  * @since v1.0 [6 Dec 2019]
  */
 public enum Factory { ;
+	@Deprecated  // googleapis/java-logging#598
 	private static final String NANO_TIME = "nanoTime";
 	private static final ThreadLocal<LogEntry.Builder> BUILDER = threadLocal(() -> LogEntry.newBuilder(null), b -> {
 		b.setInsertId(null);
@@ -66,8 +67,7 @@ public enum Factory { ;
 	 * @param decorators the log entry decorators.
 	 * @return the Cloud Logging entry.
 	 */
-	@Nonnull
-	public static LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
+	public static LogEntry logEntry(Entry entry, List<EntryDecorator> decorators) {
 		var timestamp = entry.timestamp();
 		var b = BUILDER.get()
 				.setTimestamp(timestamp.toEpochMilli())
@@ -91,8 +91,8 @@ public enum Factory { ;
 	 * @param decorators the decorators represented as a comma separated string.
 	 * @return a list of decorator instances.
 	 */
-	@Nonnull
-	public static List<EntryDecorator> decorators(@Nonnull String decorators) {
+	public static List<EntryDecorator> decorators(String decorators) {
+		requireNonNull(decorators, "'decorators' must not be null!");
 		if (decorators.isBlank()) {
 			return emptyList();
 		}
@@ -106,7 +106,6 @@ public enum Factory { ;
 	 * @param name the class name.
 	 * @return a decorator instance.
 	 */
-	@Nonnull
 	public static EntryDecorator decorator(String name) {
 		var instance = instance(name);
 		if (instance instanceof EntryDecorator) {
@@ -124,7 +123,7 @@ public enum Factory { ;
 	 * @param entry the log entry.
 	 * @return the map instance.
 	 */
-	private static @Nonnull Map<String, Object> payload(@Nonnull Entry entry) {
+	private static Map<String, Object> payload(Entry entry) {
 		var data = new HashMap<String, Object>();
 
 		// doesn't support CharSequence or even the protobuf ByteString
@@ -151,8 +150,9 @@ public enum Factory { ;
 	 *
 	 * @param t the throwable.
 	 * @return the character sequence.
+	 * @throws IllegalStateException if unable to write.
 	 */
-	public static @Nonnull CharSequence toCharSequence(@Nonnull Throwable t) {
+	public static CharSequence toCharSequence(Throwable t) {
 		try (var sw = new StringWriter(); var pw = new UnixPrintWriter(sw)) {
 			t.printStackTrace(pw);
 			return sw.getBuffer();
@@ -170,7 +170,8 @@ public enum Factory { ;
 	 * @throws IllegalArgumentException if the class cannot be created.
 	 */
 	@SuppressWarnings("unchecked")
-	public static @Nonnull <T> T instance(@Nonnull String name) {
+	public static <T> T instance(String name) {
+		requireNonNull(name, "'name' must not be null!");
 		try {
 			var concreteCls = Class.forName(name);
 			return (T) concreteCls.getDeclaredConstructor().newInstance();
@@ -186,7 +187,7 @@ public enum Factory { ;
 	 * @param os the target output stream.
 	 * @throws IOException thrown if unable to stream.
 	 */
-	public static void toJson(@Nonnull LogEntry entry, @Nonnull OutputStream os) throws IOException {
+	public static void toJson(LogEntry entry, OutputStream os) throws IOException {
 		var generator = Json.createGenerator(os);
 		var precisionTime = entry.getLabels().get(NANO_TIME);
 		generator.writeStartObject()

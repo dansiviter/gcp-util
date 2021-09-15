@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.logging.LogEntry.Builder;
 import com.google.cloud.logging.LoggingEnhancer;
 
@@ -47,7 +45,7 @@ public interface EntryDecorator {
 	 * @param enhancer the enhancer to wrap.
 	 * @return the wrapped enhancer.
 	 */
-	public static EntryDecorator decorator(@Nonnull LoggingEnhancer enhancer) {
+	public static EntryDecorator decorator(LoggingEnhancer enhancer) {
 		requireNonNull(enhancer);
 		return (b, e, p) -> enhancer.enhanceLogEntry(b);
 	}
@@ -58,7 +56,8 @@ public interface EntryDecorator {
 	 * @param mdcSupplier the supplier.
 	 * @return a decorator instance.
 	 */
-	public static EntryDecorator mdc(@Nonnull Supplier<Map<String, ?>> mdcSupplier) {
+	public static EntryDecorator mdc(Supplier<Map<String, ?>> mdcSupplier) {
+		requireNonNull(mdcSupplier);
 		return (b, e, p) -> {
 			var mdc = mdcSupplier.get();
 			if (mdc.isEmpty()) {
@@ -76,7 +75,8 @@ public interface EntryDecorator {
 	 * @param decorators subsequent decorators.
 	 * @return a decorator that wraps the others.
 	 */
-	public static EntryDecorator all(@Nonnull EntryDecorator decorator, EntryDecorator... decorators) {
+	public static EntryDecorator all(EntryDecorator decorator, EntryDecorator... decorators) {
+		requireNonNull(decorator, "'decorator' must not be null!");
 		return (b, e, p) -> {
 			decorator.decorate(b, e, p);
 			for (EntryDecorator d : decorators) {

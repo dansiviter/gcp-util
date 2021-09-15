@@ -34,8 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.MonitoredResource;
 import com.google.devtools.cloudtrace.v2.AttributeValue;
 import com.google.devtools.cloudtrace.v2.ProjectName;
@@ -141,7 +139,7 @@ public class Factory {
 	 * @param charSeq
 	 * @return
 	 */
-	private TruncatableString toTruncatableString(@Nonnull CharSequence charSeq) {
+	private TruncatableString toTruncatableString(CharSequence charSeq) {
 		return TruncatableString.newBuilder().setValue(charSeq.toString()).build();
 	}
 
@@ -165,8 +163,8 @@ public class Factory {
 	 * @return
 	 */
 	private Attributes toAttrs(
-			@Nonnull io.opentelemetry.api.common.Attributes attrs,
-			@Nonnull Map<String, AttributeValue> resourceAttr)
+			io.opentelemetry.api.common.Attributes attrs,
+			Map<String, AttributeValue> resourceAttr)
 	{
 		var attributesBuilder = toAttrsBuilder(attrs);
 		attributesBuilder.putAttributeMap(AGENT_LABEL_KEY, agentLabelValue);
@@ -179,7 +177,7 @@ public class Factory {
 	 * @param logs
 	 * @return
 	 */
-	private TimeEvents toTimeEvents(@Nonnull List<EventData> events) {
+	private TimeEvents toTimeEvents(List<EventData> events) {
 		var builder = TimeEvents.newBuilder();
 		events.forEach(e -> builder.addTimeEvent(toTimeMessageEvent(e)));
 		return builder.build();
@@ -191,7 +189,7 @@ public class Factory {
 	 * @return
 	 */
 	private Attributes.Builder toAttrsBuilder(
-			@Nonnull io.opentelemetry.api.common.Attributes attrs)
+			io.opentelemetry.api.common.Attributes attrs)
 	{
 		var attributesBuilder = Attributes.newBuilder();
 		attrs.forEach((k, v) -> {
@@ -210,7 +208,7 @@ public class Factory {
 	 * @param value
 	 * @return
 	 */
-	private AttributeValue toAttrValue(@Nonnull String key, @Nonnull Object value) {
+	private AttributeValue toAttrValue(String key, Object value) {
 		AttributeType type = null;
 		if (value instanceof CharSequence) {
 			type = AttributeType.STRING;
@@ -227,7 +225,7 @@ public class Factory {
 	 * @param value
 	 * @return
 	 */
-	private AttributeValue toAttrValue(@Nonnull AttributeKey<?> key, @Nonnull Object value) {
+	private AttributeValue toAttrValue(AttributeKey<?> key, Object value) {
 		return toAttrValue(key.getKey(), key.getType(), value);
 	}
 
@@ -236,7 +234,7 @@ public class Factory {
 	 * @param value
 	 * @return
 	 */
-	private AttributeValue toAttrValue(@Nonnull String key, AttributeType type, @Nonnull Object value) {
+	private AttributeValue toAttrValue(String key, AttributeType type, Object value) {
 		var builder = AttributeValue.newBuilder();
 		if (type == null) {
 			builder.setStringValue(toTruncatableString(value.toString()));

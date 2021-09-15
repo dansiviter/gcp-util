@@ -54,6 +54,7 @@ class ExporterTest {
 	void before() {
 		this.exporter = new Exporter(() -> resource);
 		set(this.exporter, "executor", executor);
+		set(this.exporter, "enabled", true);
 		set(this.exporter, "samplingRate", SamplingRate.STANDARD);
 	}
 

@@ -19,8 +19,6 @@ import static java.util.Collections.emptyMap;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.logging.LogEntry.Builder;
 
 /**
@@ -33,7 +31,7 @@ public class ServiceContextDecorator implements EntryDecorator {
 	 * @param pkg the package to extract `Implementation-Title` and `Implementation-Version` from.
 	 */
 	@SuppressWarnings("deprecation")  // ClassLoader#getDefinedPackage not supported by GraalVM yet
-	public ServiceContextDecorator(@Nonnull String pkg) {
+	public ServiceContextDecorator(String pkg) {
 		this(Package.getPackage(pkg));
 	}
 
@@ -41,14 +39,14 @@ public class ServiceContextDecorator implements EntryDecorator {
 	 * @param cls the class to get the {@link Package} from.
 	 * @see #ServiceContextDecorator(Package)
 	 */
-	public ServiceContextDecorator(@Nonnull Class<?> cls) {
+	public ServiceContextDecorator(Class<?> cls) {
 		this(cls.getPackage());
 	}
 
 	/**
 	 * @param pkg the package to extract `Implementation-Title` and `Implementation-Version` from.
 	 */
-	public ServiceContextDecorator(@Nonnull Package pkg) {
+	public ServiceContextDecorator(Package pkg) {
 		this(pkg.getImplementationTitle(), pkg.getImplementationVersion());
 	}
 

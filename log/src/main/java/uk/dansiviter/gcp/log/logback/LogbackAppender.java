@@ -25,8 +25,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
@@ -91,8 +89,8 @@ public class LogbackAppender extends AppenderBase<ILoggingEvent> {
 	 * @param monitoredResource the monitored resource.
 	 */
 	LogbackAppender(
-		@Nonnull LoggingOptions loggingOptions,
-		@Nonnull MonitoredResource monitoredResource)
+		LoggingOptions loggingOptions,
+		MonitoredResource monitoredResource)
 	{
 		this.monitoredResource = requireNonNull(monitoredResource);
 		try {

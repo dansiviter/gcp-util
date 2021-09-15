@@ -36,8 +36,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.MetadataConfig;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.ServiceOptions;
@@ -98,7 +96,7 @@ public enum ResourceType {
 	 * @return the found resource.
 	 * @throws IllegalArgumentException if resource not found.
 	 */
-	public static ResourceType fromString(@Nonnull String name) {
+	public static ResourceType fromString(String name) {
 		for (var type : values()) {
 			if (type.name.equalsIgnoreCase(name)) {
 				return type;
@@ -146,7 +144,7 @@ public enum ResourceType {
 	 * @param override ability to override the default values.
 	 * @return the created monitored instance.
 	 */
-	public static MonitoredResource monitoredResource(@Nonnull Function<String, Optional<String>> override) {
+	public static MonitoredResource monitoredResource(Function<String, Optional<String>> override) {
 		var type = autoDetect();
 		var builder = MonitoredResource.newBuilder(type.name);
 		Arrays.asList(type.labels).forEach(l -> {
@@ -165,7 +163,7 @@ public enum ResourceType {
 	 * @param key the key of the label.
 	 * @return the value.
 	 */
-	public static Optional<String> label(@Nonnull MonitoredResource resource, Label key) {
+	public static Optional<String> label(MonitoredResource resource, Label key) {
 		return Optional.ofNullable(resource.getLabels().get(key.name));
 	}
 
@@ -267,7 +265,7 @@ public enum ResourceType {
 		 * @param resource the resource to extract from.
 		 * @return the value.
 		 */
-		public Optional<String> get(@Nonnull MonitoredResource resource) {
+		public Optional<String> get(MonitoredResource resource) {
 			return ResourceType.label(resource, this);
 		}
 

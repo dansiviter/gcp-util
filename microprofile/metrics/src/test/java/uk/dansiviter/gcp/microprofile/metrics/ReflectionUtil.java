@@ -23,8 +23,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import javax.annotation.Nonnull;
-
 /**
  * A set of utility methods for performing reflection activities.
  */
@@ -36,7 +34,7 @@ public enum ReflectionUtil { ;
 	 * @return the value of the field.
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
-	public static <T> T get(@Nonnull Object source, @Nonnull String name) {
+	public static <T> T get(Object source, String name) {
 		return get(source, name, null);
 	}
 
@@ -49,7 +47,7 @@ public enum ReflectionUtil { ;
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T get(@Nonnull Object source, @Nonnull String name, Class<T> type) {
+	public static <T> T get(Object source, String name, Class<T> type) {
 		try {
 			var field = findField(source.getClass(), name, type);
 			if (field == null) {
@@ -71,7 +69,7 @@ public enum ReflectionUtil { ;
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T get(@Nonnull Class<?> sourceCls, @Nonnull String name, Class<T> type) {
+	public static <T> T get(Class<?> sourceCls, String name, Class<T> type) {
 		try {
 			var field = findField(sourceCls, name, type);
 			if (field == null) {
@@ -90,7 +88,7 @@ public enum ReflectionUtil { ;
 	 * @param value  the value to set on the field.
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
-	public static void set(@Nonnull Object source, @Nonnull String name, Object value) {
+	public static void set(Object source, String name, Object value) {
 		set(source, name, null, value);
 	}
 
@@ -101,7 +99,7 @@ public enum ReflectionUtil { ;
 	 * @param value  the value to set on the field.
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
-	public static void set(@Nonnull Object source, @Nonnull String name, Class<?> type, Object value) {
+	public static void set(Object source, String name, Class<?> type, Object value) {
 		try {
 			var field = findField(source.getClass(), name, type);
 			if (field == null) {
@@ -123,7 +121,7 @@ public enum ReflectionUtil { ;
 	 *         value will be {@code null}.
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
-	public static <T> T invoke(@Nonnull Object source, @Nonnull String name, Object... args) {
+	public static <T> T invoke(Object source, String name, Object... args) {
 		var argTypes = new Class<?>[args.length];
 		for (int i = 0; i < args.length; i++) {
 			argTypes[i] = args[i] == null ? Object.class : args[i].getClass();
@@ -147,7 +145,7 @@ public enum ReflectionUtil { ;
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T invoke(@Nonnull Object source, @Nonnull Method method, Object... args) {
+	public static <T> T invoke(Object source, Method method, Object... args) {
 		try {
 			if (!method.trySetAccessible()) {
 				throw new IllegalStateException(format("Unable to access!: %s", method.toString()));
@@ -165,7 +163,7 @@ public enum ReflectionUtil { ;
 	 * @return the found field or {@code null} if not.
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
-	public static Field findField(@Nonnull Class<?> clazz, @Nonnull String name, Class<?> type) {
+	public static Field findField(Class<?> clazz, String name, Class<?> type) {
 		var searchType = clazz;
 		while (!Object.class.equals(searchType) && searchType != null) {
 			for (var field : searchType.getDeclaredFields()) {
@@ -185,7 +183,7 @@ public enum ReflectionUtil { ;
 	 * @return the found method or {@code null} if not.
 	 * @throws IllegalStateException if there is an issue in accessing.
 	 */
-	public static Method findMethod(@Nonnull Class<?> clazz, @Nonnull String name, Class<?>... params) {
+	public static Method findMethod(Class<?> clazz, String name, Class<?>... params) {
 		var searchType = clazz;
 		while (!Object.class.equals(searchType) && searchType != null) {
 			for (var method : searchType.getDeclaredMethods()) {
@@ -201,7 +199,7 @@ public enum ReflectionUtil { ;
 	/**
 	 * @param field the field to set as accessible.
 	 */
-	public static void setAccessible(@Nonnull Field field) {
+	public static void setAccessible(Field field) {
 		if (!field.trySetAccessible()) {
 			throw new IllegalStateException(format("Unable to access!: %s", field.toString()));
 		}
@@ -213,7 +211,7 @@ public enum ReflectionUtil { ;
 	 * @param annotation the annotation type wanted.
 	 * @return the annotation instance.
 	 */
-	public static <A extends Annotation> A getAnnotation(@Nonnull Class<?> clazz, @Nonnull Class<A> annotation) {
+	public static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotation) {
 		return annotation.cast(clazz.getAnnotation(annotation));
 	}
 
@@ -223,7 +221,7 @@ public enum ReflectionUtil { ;
 	 * @param annotation the annotation type wanted.
 	 * @return the annotation instance.
 	 */
-	public static <A extends Annotation> A getAnnotation(@Nonnull Object source, @Nonnull Class<A> annotation) {
+	public static <A extends Annotation> A getAnnotation(Object source, Class<A> annotation) {
 		return getAnnotation(source.getClass(), annotation);
 	}
 
@@ -235,8 +233,8 @@ public enum ReflectionUtil { ;
 	 * @param name       the name of the annotation value wanted.
 	 * @return the value of the named annotation value or {@code null} if not found.
 	 */
-	public static <V, A extends Annotation> V getAnnotationValue(@Nonnull Class<?> clazz, @Nonnull Class<A> annotation,
-			@Nonnull String name) {
+	public static <V, A extends Annotation> V getAnnotationValue(Class<?> clazz, Class<A> annotation,
+			String name) {
 		var a = getAnnotation(clazz, annotation);
 		return a != null ? get(a, name) : null;
 	}
@@ -249,7 +247,7 @@ public enum ReflectionUtil { ;
 	 * @return the value of the annotation {@code value} or {@code null} if not
 	 *         found.
 	 */
-	public static <V, A extends Annotation> V getAnnotationValue(@Nonnull Class<?> clazz, @Nonnull Class<A> annotation) {
+	public static <V, A extends Annotation> V getAnnotationValue(Class<?> clazz, Class<A> annotation) {
 		return getAnnotationValue(clazz, annotation, "value");
 	}
 

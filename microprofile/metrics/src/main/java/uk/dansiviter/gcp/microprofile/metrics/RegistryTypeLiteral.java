@@ -15,7 +15,6 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
-import javax.annotation.Nonnull;
 import javax.enterprise.util.AnnotationLiteral;
 
 import org.eclipse.microprofile.metrics.MetricRegistry.Type;
@@ -53,7 +52,7 @@ public final class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> i
 	 * @param type the type to get.
 	 * @return
 	 */
-	public static RegistryType registryType(@Nonnull Type type) {
+	public static RegistryType registryType(Type type) {
 		switch (type) {
 		case BASE:
 			return BASE_TYPE;
