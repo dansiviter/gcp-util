@@ -41,6 +41,7 @@ import javax.json.stream.JsonGenerator;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.LoggingEnhancer;
 import com.google.cloud.logging.Payload.JsonPayload;
+import com.google.cloud.logging.Payload.StringPayload;
 import com.google.cloud.logging.Severity;
 
 /**
@@ -191,8 +192,13 @@ public enum Factory { ;
 		generator.writeStartObject()
 			.write("severity", entry.getSeverity().toString())
 			.write("time", precisionTime != null ? precisionTime : Instant.ofEpochMilli(entry.getTimestamp()).toString());
-		JsonPayload jsonPayload = entry.getPayload();
-		toJson(generator, jsonPayload.getDataAsMap());
+		var payload = entry.getPayload();
+
+		if (payload instanceof JsonPayload) {
+			addMap(generator, ((JsonPayload) payload).getDataAsMap());
+		} else {
+			generator.write("message", ((StringPayload) payload).getData());
+		}
 
 		if (!entry.getLabels().isEmpty()) {
 			generator.writeKey("logging.googleapis.com/labels")
@@ -208,6 +214,43 @@ public enum Factory { ;
 			generator.write("logging.googleapis.com/insertId", insertId);
 		}
 
+		addOperation(entry, generator);
+		addSourceLocation(entry, generator);
+		addTrace(entry, generator);
+
+		generator.writeEnd().close();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void addMap(JsonGenerator generator, Map<String, Object> map) {
+		map.forEach((k, v) -> {
+			if (v instanceof String) {
+				generator.write(k, (String) v);
+			} else if (v instanceof Boolean) {
+				generator.write(k, (Boolean) v);
+			} else if (v instanceof Integer || v instanceof Short) {
+				generator.write(k, ((Number) v).intValue());
+			} else if (v instanceof Long) {
+				generator.write(k, (Long) v);
+			} else if (v instanceof BigInteger) {
+				generator.write(k, (BigInteger) v);
+			} else if (v instanceof Float || v instanceof Double) {
+				generator.write(k, ((Number) v).doubleValue());
+			} else if (v instanceof BigDecimal) {
+				generator.write(k, (BigDecimal) v);
+			} else if (v instanceof Map) {
+				generator.writeKey(k).writeStartObject();;
+				addPayload(generator, (Map<String, Object>) v);
+				generator.writeEnd();
+			} else if (v instanceof JsonValue) {
+				generator.write(k, (JsonValue) v);
+			} else {
+				throw new IllegalArgumentException("Unexpected type! [" + v + "]");
+			}
+		});
+	}
+
+	private static void addOperation(LogEntry entry, JsonGenerator generator) {
 		var operation = entry.getOperation();
 		if (operation != null) {
 			generator.writeKey("logging.googleapis.com/operation")
@@ -226,7 +269,9 @@ public enum Factory { ;
 			}
 			generator.writeEnd();
 		}
+	}
 
+	private static void addSourceLocation(LogEntry entry, JsonGenerator generator) {
 		var sourceLocation = entry.getSourceLocation();
 		if (sourceLocation != null) {
 			generator.writeKey("logging.googleapis.com/sourceLocation")
@@ -242,7 +287,9 @@ public enum Factory { ;
 			}
 			generator.writeEnd();
 		}
+	}
 
+	private static void addTrace(LogEntry entry, JsonGenerator generator) {
 		var traceId = entry.getTrace();
 		if (traceId != null) {
 			generator.write("logging.googleapis.com/trace", traceId);
@@ -255,36 +302,6 @@ public enum Factory { ;
 		if (entry.getTraceSampled()) {
 			generator.write("logging.googleapis.com/trace_sampled", true);
 		}
-		generator.writeEnd().close();
-	}
-
-	@SuppressWarnings("unchecked")
-	private static void toJson(JsonGenerator generator, Map<String, Object> map) {
-		map.forEach((k, v) -> {
-			if (v instanceof String) {
-				generator.write(k, (String) v);
-			} else if (v instanceof Boolean) {
-				generator.write(k, (Boolean) v);
-			} else if (v instanceof Integer || v instanceof Short) {
-				generator.write(k, ((Number) v).intValue());
-			} else if (v instanceof Long) {
-				generator.write(k, (Long) v);
-			} else if (v instanceof BigInteger) {
-				generator.write(k, (BigInteger) v);
-			} else if (v instanceof Float || v instanceof Double) {
-				generator.write(k, ((Number) v).doubleValue());
-			} else if (v instanceof BigDecimal) {
-				generator.write(k, (BigDecimal) v);
-			} else if (v instanceof Map) {
-				generator.writeKey(k).writeStartObject();;
-				toJson(generator, (Map<String, Object>) v);
-				generator.writeEnd();
-			} else if (v instanceof JsonValue) {
-				generator.write(k, (JsonValue) v);
-			} else {
-				throw new IllegalArgumentException("Unexpected type! [" + v + "]");
-			}
-		});
 	}
 
 	/**
