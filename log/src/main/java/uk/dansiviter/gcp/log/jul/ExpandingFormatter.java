@@ -47,8 +47,8 @@ public abstract class ExpandingFormatter extends Formatter {
 	/**
 	 * Perform the underlying log record formatting.
 	 *
-	 * @param record the record to format.
+	 * @param r the record to format.
 	 * @return the formatted string.
 	 */
-	protected abstract String doFormat(LogRecord record);
+	protected abstract String doFormat(LogRecord r);
 }

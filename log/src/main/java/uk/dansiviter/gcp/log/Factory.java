@@ -49,7 +49,6 @@ import com.google.cloud.logging.Severity;
  * @since v1.0 [6 Dec 2019]
  */
 public enum Factory { ;
-	@Deprecated  // googleapis/java-logging#598
 	private static final String NANO_TIME = "nanoTime";
 	private static final ThreadLocal<LogEntry.Builder> BUILDER = threadLocal(() -> LogEntry.newBuilder(null), b -> {
 		b.setInsertId(null);
@@ -185,9 +184,8 @@ public enum Factory { ;
 	 *
 	 * @param entry the entry to write.
 	 * @param os the target output stream.
-	 * @throws IOException thrown if unable to stream.
 	 */
-	public static void toJson(LogEntry entry, OutputStream os) throws IOException {
+	public static void toJson(LogEntry entry, OutputStream os) {
 		var generator = Json.createGenerator(os);
 		var precisionTime = entry.getLabels().get(NANO_TIME);
 		generator.writeStartObject()
