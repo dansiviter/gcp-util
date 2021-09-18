@@ -240,7 +240,7 @@ public enum Factory { ;
 				generator.write(k, (BigDecimal) v);
 			} else if (v instanceof Map) {
 				generator.writeKey(k).writeStartObject();;
-				addPayload(generator, (Map<String, Object>) v);
+				addMap(generator, (Map<String, Object>) v);
 				generator.writeEnd();
 			} else if (v instanceof JsonValue) {
 				generator.write(k, (JsonValue) v);
