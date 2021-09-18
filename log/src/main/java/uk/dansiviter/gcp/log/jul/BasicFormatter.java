@@ -25,7 +25,7 @@ import java.util.logging.LogRecord;
  */
 public class BasicFormatter extends ExpandingFormatter {
 	@Override
-	protected String doFormat(LogRecord record) {
-		return formatMessage(record);
+	protected String doFormat(LogRecord r) {
+		return formatMessage(r);
 	}
 }

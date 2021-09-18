@@ -28,10 +28,10 @@ import java.util.logging.LogRecord;
  */
 public abstract class ExpandingFormatter extends Formatter {
 	@Override
-	public final String format(LogRecord record) {
+	public final String format(LogRecord r) {
 		// expand any suppliers so we can lazy extract values
-		if (record.getParameters() != null) {
-			var params = record.getParameters();
+		if (r.getParameters() != null) {
+			var params = r.getParameters();
 			for (int i = 0; i < params.length; i++) {
 				if (params[i] instanceof Supplier) {
 					params[i] = ((Supplier<?>) params[i]).get();
@@ -41,7 +41,7 @@ public abstract class ExpandingFormatter extends Formatter {
 				}
 			}
 		}
-		return doFormat(record);
+		return doFormat(r);
 	}
 
 	/**
