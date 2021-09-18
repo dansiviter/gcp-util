@@ -34,8 +34,6 @@ import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
@@ -222,7 +220,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 	 * @param level the level to convert.
 	 * @return the severity equivalent or {@link Severity#DEFAULT} if not.
 	 */
-	static Severity severity(@Nonnull Level level) {
+	static Severity severity(Level level) {
 		if (level instanceof LoggingLevel) {
 			return ((LoggingLevel) level).getSeverity();
 		}

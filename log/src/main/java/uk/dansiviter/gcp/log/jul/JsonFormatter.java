@@ -16,6 +16,7 @@
 package uk.dansiviter.gcp.log.jul;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static java.util.logging.LogManager.getLogManager;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 import static uk.dansiviter.gcp.log.Factory.toJson;
@@ -27,8 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
-
-import javax.annotation.Nonnull;
 
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
@@ -74,7 +73,7 @@ public class JsonFormatter extends ExpandingFormatter {
 	/**
 	 * For JBoss LogManager
 	 */
-	public JsonFormatter setDecorators(@Nonnull String decorators) {
+	public JsonFormatter setDecorators(String decorators) {
 		this.decorators.clear();
 		this.decorators.addAll(Factory.decorators(decorators));
 		return this;
@@ -87,7 +86,8 @@ public class JsonFormatter extends ExpandingFormatter {
 	 * @param decorators any other decorators to add.
 	 * @return this formatter instance.
 	 */
-	public JsonFormatter addDecorators(@Nonnull EntryDecorator decorator, EntryDecorator... decorators) {
+	public JsonFormatter addDecorators(EntryDecorator decorator, EntryDecorator... decorators) {
+		requireNonNull(decorator, "'decorator' must not be null!");
 		this.decorators.add(decorator);
 		for (var d : decorators) {
 			this.decorators.add(d);

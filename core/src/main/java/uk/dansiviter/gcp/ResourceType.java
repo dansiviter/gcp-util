@@ -36,8 +36,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.MetadataConfig;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.ServiceOptions;
@@ -98,7 +96,7 @@ public enum ResourceType {
 	 * @return the found resource.
 	 * @throws IllegalArgumentException if resource not found.
 	 */
-	public static ResourceType fromString(@Nonnull String name) {
+	public static ResourceType fromString(String name) {
 		for (var type : values()) {
 			if (type.name.equalsIgnoreCase(name)) {
 				return type;
@@ -110,29 +108,29 @@ public enum ResourceType {
 	/**
 	 * Attempts to auto-detect resource type.
 	 *
-	 * @return the found resource type or {@code global} type.
+	 * @return the resource type.
 	 */
-	public static ResourceType autoDetect() {
+	public static Optional<ResourceType> autoDetect() {
 		if (getenv("K_SERVICE") != null
 				&& getenv("K_REVISION") != null
 				&& getenv("K_CONFIGURATION") != null
 				&& getenv("KUBERNETES_SERVICE_HOST") == null)
 		{
-			return CLOUD_RUN;
+			return Optional.of(CLOUD_RUN);
 		}
 		if (System.getenv("GAE_INSTANCE") != null) {
-			return GAE_APP_FLEX;
+			return Optional.of(GAE_APP_FLEX);
 		}
 		if (System.getenv("KUBERNETES_SERVICE_HOST") != null) {
-			return K8S_CONTAINER;
+			return Optional.of(K8S_CONTAINER);
 		}
 		if (ServiceOptions.getAppEngineAppId() != null) {
-			return GAE_APP;
+			return Optional.of(GAE_APP);
 		}
 		if (MetadataConfig.getInstanceId() != null) {
-			return GCE_INSTANCE;
+			return Optional.of(GCE_INSTANCE);
 		}
-		return GLOBAL;
+		return Optional.empty();
 	}
 
 	/**
@@ -146,8 +144,8 @@ public enum ResourceType {
 	 * @param override ability to override the default values.
 	 * @return the created monitored instance.
 	 */
-	public static MonitoredResource monitoredResource(@Nonnull Function<String, Optional<String>> override) {
-		var type = autoDetect();
+	public static MonitoredResource monitoredResource(Function<String, Optional<String>> override) {
+		var type = autoDetect().orElse(GLOBAL);
 		var builder = MonitoredResource.newBuilder(type.name);
 		Arrays.asList(type.labels).forEach(l -> {
 			var value = override.apply(l.name);
@@ -165,12 +163,8 @@ public enum ResourceType {
 	 * @param key the key of the label.
 	 * @return the value.
 	 */
-	public static Optional<String> label(@Nonnull MonitoredResource resource, Label key) {
+	public static Optional<String> label(MonitoredResource resource, Label key) {
 		return Optional.ofNullable(resource.getLabels().get(key.name));
-	}
-
-	private static Supplier<String> env(String name) {
-		return () -> getenv(name);
 	}
 
 
@@ -196,11 +190,11 @@ public enum ResourceType {
 		/**
 		 * The service/module name.
 		 */
-		MODULE_ID("module_id", env("GAE_SERVICE")),
+		MODULE_ID("module_id", () -> getenv("GAE_SERVICE")),
 		/**
 		 * The version name.
 		 */
-		VERSION_ID("version_id", env("GAE_VERSION")),
+		VERSION_ID("version_id", () -> getenv("GAE_VERSION")),
 		/**
 		 * The physical location of the cluster that contains the container.
 		 * <p>
@@ -219,27 +213,26 @@ public enum ResourceType {
 		/**
 		 * The name of the pod that the container is running in.
 		 */
-		POD_NAME("pod_name", env("HOSTNAME")),
+		POD_NAME("pod_name", () -> getenv("HOSTNAME")),
 		/**
 		 * The name of the container.
 		 */
 		CONTAINER_NAME("container_name", MetadataConfig::getContainerName),
 		/**
-		 *
+		 * Cloud Run/Knative revision.
 		 */
-		REVISION_NAME("revision_name", env("K_REVISION")),
+		REVISION_NAME("revision_name", () -> getenv("K_REVISION")),
 		/**
-		 *
+		 * K8s/Cloud Run/Knative service name.
 		 */
-        SERVICE_NAME("service_name", env("K_SERVICE"));
+		SERVICE_NAME("service_name", () -> getenv("K_SERVICE"));
 
 		private final String name;
-		private final Supplier<String>[] suppliers;
+		private final Supplier<String> supplier;
 
-		@SafeVarargs
-		private Label(String name, Supplier<String>... suppliers) {
+		private Label(String name, Supplier<String> supplier) {
 			this.name = requireNonNull(name);
-			this.suppliers = suppliers;
+			this.supplier = supplier;
 		}
 
 		/**
@@ -254,11 +247,9 @@ public enum ResourceType {
 			if (value.isPresent()) {
 				return value;
 			}
-			for (final Supplier<String> supplier : this.suppliers) {
-				var strValue = supplier.get();
-				if (!isNull(strValue) && !strValue.isEmpty()) {
-					return Optional.of(strValue);
-				}
+			var strValue = supplier.get();
+			if (!isNull(strValue) && !strValue.isEmpty()) {
+				return Optional.of(strValue);
 			}
 			return Optional.empty();
 		}
@@ -267,7 +258,7 @@ public enum ResourceType {
 		 * @param resource the resource to extract from.
 		 * @return the value.
 		 */
-		public Optional<String> get(@Nonnull MonitoredResource resource) {
+		public Optional<String> get(MonitoredResource resource) {
 			return ResourceType.label(resource, this);
 		}
 

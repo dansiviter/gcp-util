@@ -22,8 +22,6 @@ import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.trace.v2.TraceServiceClient;
 import com.google.devtools.cloudtrace.v2.ProjectName;
@@ -122,7 +120,7 @@ public class Exporter implements SpanExporter {
 		 * @param client the client to set
 		 * @return this builder instance.
 		 */
-		public Builder client(@Nonnull TraceServiceClient client) {
+		public Builder client(TraceServiceClient client) {
 			this.client = Optional.of(client);
 			return this;
 		}
@@ -131,7 +129,7 @@ public class Exporter implements SpanExporter {
 		 * @param projectId the projectId to set
 		 * @return this builder instance.
 		 */
-		public Builder projectId(@Nonnull String projectId) {
+		public Builder projectId(String projectId) {
 			this.projectId = Optional.of(projectId);
 			return this;
 		}
@@ -140,7 +138,7 @@ public class Exporter implements SpanExporter {
 		 * @param resource the resource to set
 		 * @return this builder instance.
 		 */
-		public Builder resource(@Nonnull MonitoredResource resource) {
+		public Builder resource(MonitoredResource resource) {
 			this.resource = Optional.of(resource);
 			return this;
 		}

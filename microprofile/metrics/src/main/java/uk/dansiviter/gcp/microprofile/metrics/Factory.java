@@ -35,8 +35,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.api.Distribution;
 import com.google.api.Distribution.BucketOptions;
 import com.google.api.LabelDescriptor;
@@ -95,7 +93,7 @@ public enum Factory { ;
 	 * @param end the end time.
 	 * @return the new instance.
 	 */
-	public static TimeInterval toInterval(@Nonnull Instant start, @Nonnull Instant end) {
+	public static TimeInterval toInterval(Instant start, Instant end) {
 		if (start.compareTo(end) > 0) {
 			throw new IllegalArgumentException(format("Start time cannot be after end! [start=%s,end=%s]", start, end));
 		}
@@ -114,7 +112,7 @@ public enum Factory { ;
 	 * @param t the input datetime.
 	 * @return the new instance.
 	 */
-	static Timestamp toTimestamp(@Nonnull Instant i) {
+	static Timestamp toTimestamp(Instant i) {
 		return TIMESTAMP_BUILDER.get().setSeconds(i.getEpochSecond()).setNanos(i.getNano()).build();
 	}
 
@@ -130,12 +128,12 @@ public enum Factory { ;
 	 * @return the created descriptor.
 	 */
 	public static MetricDescriptor toDescriptor(
-		@Nonnull MonitoredResource resource,
-		@Nonnull Config config,
-		@Nonnull MetricRegistry registry,
-		@Nonnull Type type,
-		@Nonnull MetricID id,
-		@Nonnull Snapshot snapshot)
+		MonitoredResource resource,
+		Config config,
+		MetricRegistry registry,
+		Type type,
+		MetricID id,
+		Snapshot snapshot)
 	{
 		var name = toDescriptorName(resource, type, id);
 		var metadata = registry.getMetadata().get(id.getName());
@@ -163,9 +161,9 @@ public enum Factory { ;
 	 * @return name instance.
 	 */
 	public static MetricDescriptorName toDescriptorName(
-		@Nonnull MonitoredResource resource,
-		@Nonnull Type type,
-		@Nonnull MetricID id)
+		MonitoredResource resource,
+		Type type,
+		MetricID id)
 	{
 		return MetricDescriptorName.of(
 			PROJECT_ID.get(resource).orElseThrow(),
@@ -181,16 +179,16 @@ public enum Factory { ;
 	 * @return the builder instance.
 	 */
 	private static LabelDescriptor.Builder labelDescriptor(
-		@Nonnull Config config,
-		@Nonnull String key,
-		@Nonnull String value)
+		Config config,
+		String key,
+		String value)
 	{
 		var builder = LABEL_BUILDER.get().setKey(key).setValueType(getValueType(value));
 		config.labelDescription(key).ifPresent(builder::setDescription);
 		return builder;
 	}
 
-	private static LabelDescriptor.ValueType getValueType(@Nonnull String value) {
+	private static LabelDescriptor.ValueType getValueType(String value) {
 		try {
 			Long.parseLong(value);  // test parse
 			return LabelDescriptor.ValueType.INT64;
@@ -253,7 +251,7 @@ public enum Factory { ;
 	 * @param in the input metric unit.
 	 * @return the converted unit.
 	 */
-	private static String convertUnit(@Nonnull String in) {
+	private static String convertUnit(String in) {
 		// Basic unit: bit, By, s, min, h, d
 		// Prefixes: l, M, G, T, P, E, Z, Y, m, u, n, p, f, a, z, y, Ki, Mi, Gi, Ti
 		in = in.toLowerCase();
@@ -289,9 +287,9 @@ public enum Factory { ;
 	 * @see MetricUnits
 	 */
 	private static String convertPrefix(
-		@Nonnull String original,
-		@Nonnull String oldUnit,
-		@Nonnull String newUnit)
+		String original,
+		String oldUnit,
+		String newUnit)
 	{
 		if (original.equals(oldUnit)) {
 			return newUnit;
@@ -348,10 +346,10 @@ public enum Factory { ;
 	}
 
 	static void buckets(
-		@Nonnull BucketOptions options,
-		@Nonnull org.eclipse.microprofile.metrics.Snapshot snapshot,
-		@Nonnull BucketConverter converter,
-		@Nonnull Distribution.Builder distribution)
+		BucketOptions options,
+		org.eclipse.microprofile.metrics.Snapshot snapshot,
+		BucketConverter converter,
+		Distribution.Builder distribution)
 	{
 		final List<Bucket> buckets;
 		if (options.hasExponentialBuckets()) {
@@ -377,7 +375,7 @@ public enum Factory { ;
 		buckets.stream().map(b -> b.count).forEach(distribution::addBucketCounts);
 	}
 
-	private static List<Bucket> exponentialBuckets(@Nonnull BucketOptions options) {
+	private static List<Bucket> exponentialBuckets(BucketOptions options) {
 		var exponential = options.getExponentialBuckets();
 		var buckets = new LinkedList<Bucket>();
 		for (int i = 0; i <= exponential.getNumFiniteBuckets(); i++) {
@@ -387,7 +385,7 @@ public enum Factory { ;
 		return buckets;
 	}
 
-	private static List<Bucket> explicitBuckets(@Nonnull BucketOptions options) {
+	private static List<Bucket> explicitBuckets(BucketOptions options) {
 		var explicit = options.getExplicitBuckets();
 		var buckets = new LinkedList<Bucket>();
 		for (var upper : explicit.getBoundsList()) {
@@ -396,7 +394,7 @@ public enum Factory { ;
 		return buckets;
 	}
 
-	private static List<Bucket> linearBuckets(@Nonnull BucketOptions options) {
+	private static List<Bucket> linearBuckets(BucketOptions options) {
 		var linear = options.getLinearBuckets();
 		var buckets = new LinkedList<Bucket>();
 		for (int i = 0; i <= linear.getNumFiniteBuckets(); i++) {
@@ -413,11 +411,11 @@ public enum Factory { ;
 	 * @param value the value if the tag.
 	 * @return new tag instance.
 	 */
-	public static Tag tag(@Nonnull String name, @Nonnull String value) {
+	public static Tag tag(String name, String value) {
 		return new Tag(name, value);
 	}
 
-	private static TimeInterval timeInterval(@Nonnull Context ctx, @Nonnull MetricKind kind) {
+	private static TimeInterval timeInterval(Context ctx, MetricKind kind) {
 		switch (kind) {
 			case GAUGE:
 				return INTERVAL_BUILDER.get()
@@ -603,7 +601,7 @@ public enum Factory { ;
 			return builder.addPoints(point);
 		}
 
-		private static Optional<TimeUnit> timeUnit(@Nonnull String unit) {
+		private static Optional<TimeUnit> timeUnit(String unit) {
 			switch (unit.toLowerCase()) {
 			case "ms":
 				return Optional.of(MILLISECONDS);

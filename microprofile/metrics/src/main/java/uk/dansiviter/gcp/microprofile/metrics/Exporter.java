@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
@@ -79,6 +78,9 @@ public class Exporter {
 
 	@Inject
 	private Logger log;
+	@Inject
+	@ConfigProperty(name = "cloudMonitoring.enabled", defaultValue = "true")
+	private boolean enabled;
 	@Inject
 	@ConfigProperty(name = "cloudMonitoring.samplingRate", defaultValue = "STANDARD")
 	private SamplingRate samplingRate;
@@ -120,7 +122,7 @@ public class Exporter {
 	 * @param init simply here to force initialisation.
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
-		if (this.client == null) {
+		if (!this.enabled || this.client == null) {
 			return;  // no client available so don't initialise
 		}
 		this.startInstant = Instant.now();
@@ -223,11 +225,11 @@ public class Exporter {
 	}
 
 	private Optional<TimeSeries> timeSeries(
-			@Nonnull Context ctx,
-			@Nonnull MetricRegistry registry,
-			@Nonnull MetricRegistry.Type type,
-			@Nonnull Map<MetricID, Snapshot> snapshots,
-			@Nonnull MetricID id)
+			Context ctx,
+			MetricRegistry registry,
+			MetricRegistry.Type type,
+			Map<MetricID, Snapshot> snapshots,
+			MetricID id)
 	{
 		var snapshot = snapshots.get(id);
 		if (snapshot == null) {
@@ -240,10 +242,10 @@ public class Exporter {
 	}
 
 	private MetricDescriptor metricDescriptor(
-		@Nonnull MetricRegistry registry,
-		@Nonnull MetricRegistry.Type type,
-		@Nonnull Snapshot snapshot,
-		@Nonnull MetricID id)
+		MetricRegistry registry,
+		MetricRegistry.Type type,
+		Snapshot snapshot,
+		MetricID id)
 	{
 		// to save churn for no reason (especially in audit log), first load the existing metric and only create if
 		// different
@@ -265,7 +267,7 @@ public class Exporter {
 	// --- Static Methods ---
 
 
-	private static Collection<List<TimeSeries>> partition(@Nonnull List<TimeSeries> in, int chunk) {
+	private static Collection<List<TimeSeries>> partition(List<TimeSeries> in, int chunk) {
 		var counter = new AtomicInteger();
 		return in.stream().collect(groupingBy(it -> counter.getAndIncrement() / chunk)).values();
 	}

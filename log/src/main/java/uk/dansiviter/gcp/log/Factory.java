@@ -18,6 +18,7 @@ package uk.dansiviter.gcp.log;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static uk.dansiviter.gcp.Util.threadLocal;
 
@@ -33,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.json.Json;
 import javax.json.JsonValue;
 import javax.json.stream.JsonGenerator;
@@ -41,6 +41,7 @@ import javax.json.stream.JsonGenerator;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.LoggingEnhancer;
 import com.google.cloud.logging.Payload.JsonPayload;
+import com.google.cloud.logging.Payload.StringPayload;
 import com.google.cloud.logging.Severity;
 
 /**
@@ -66,8 +67,7 @@ public enum Factory { ;
 	 * @param decorators the log entry decorators.
 	 * @return the Cloud Logging entry.
 	 */
-	@Nonnull
-	public static LogEntry logEntry(@Nonnull Entry entry, @Nonnull List<EntryDecorator> decorators) {
+	public static LogEntry logEntry(Entry entry, List<EntryDecorator> decorators) {
 		var timestamp = entry.timestamp();
 		var b = BUILDER.get()
 				.setTimestamp(timestamp.toEpochMilli())
@@ -91,8 +91,8 @@ public enum Factory { ;
 	 * @param decorators the decorators represented as a comma separated string.
 	 * @return a list of decorator instances.
 	 */
-	@Nonnull
-	public static List<EntryDecorator> decorators(@Nonnull String decorators) {
+	public static List<EntryDecorator> decorators(String decorators) {
+		requireNonNull(decorators, "'decorators' must not be null!");
 		if (decorators.isBlank()) {
 			return emptyList();
 		}
@@ -106,7 +106,6 @@ public enum Factory { ;
 	 * @param name the class name.
 	 * @return a decorator instance.
 	 */
-	@Nonnull
 	public static EntryDecorator decorator(String name) {
 		var instance = instance(name);
 		if (instance instanceof EntryDecorator) {
@@ -124,7 +123,7 @@ public enum Factory { ;
 	 * @param entry the log entry.
 	 * @return the map instance.
 	 */
-	private static @Nonnull Map<String, Object> payload(@Nonnull Entry entry) {
+	private static Map<String, Object> payload(Entry entry) {
 		var data = new HashMap<String, Object>();
 
 		// doesn't support CharSequence or even the protobuf ByteString
@@ -151,8 +150,9 @@ public enum Factory { ;
 	 *
 	 * @param t the throwable.
 	 * @return the character sequence.
+	 * @throws IllegalStateException if unable to write.
 	 */
-	public static @Nonnull CharSequence toCharSequence(@Nonnull Throwable t) {
+	public static CharSequence toCharSequence(Throwable t) {
 		try (var sw = new StringWriter(); var pw = new UnixPrintWriter(sw)) {
 			t.printStackTrace(pw);
 			return sw.getBuffer();
@@ -170,7 +170,8 @@ public enum Factory { ;
 	 * @throws IllegalArgumentException if the class cannot be created.
 	 */
 	@SuppressWarnings("unchecked")
-	public static @Nonnull <T> T instance(@Nonnull String name) {
+	public static <T> T instance(String name) {
+		requireNonNull(name, "'name' must not be null!");
 		try {
 			var concreteCls = Class.forName(name);
 			return (T) concreteCls.getDeclaredConstructor().newInstance();
@@ -184,16 +185,20 @@ public enum Factory { ;
 	 *
 	 * @param entry the entry to write.
 	 * @param os the target output stream.
-	 * @throws IOException thrown if unable to stream.
 	 */
-	public static void toJson(@Nonnull LogEntry entry, @Nonnull OutputStream os) throws IOException {
+	public static void toJson(LogEntry entry, OutputStream os) {
 		var generator = Json.createGenerator(os);
 		var precisionTime = entry.getLabels().get(NANO_TIME);
 		generator.writeStartObject()
 			.write("severity", entry.getSeverity().toString())
 			.write("time", precisionTime != null ? precisionTime : Instant.ofEpochMilli(entry.getTimestamp()).toString());
-		JsonPayload jsonPayload = entry.getPayload();
-		toJson(generator, jsonPayload.getDataAsMap());
+		var payload = entry.getPayload();
+
+		if (payload instanceof JsonPayload) {
+			addMap(generator, ((JsonPayload) payload).getDataAsMap());
+		} else {
+			generator.write("message", ((StringPayload) payload).getData());
+		}
 
 		if (!entry.getLabels().isEmpty()) {
 			generator.writeKey("logging.googleapis.com/labels")
@@ -209,6 +214,43 @@ public enum Factory { ;
 			generator.write("logging.googleapis.com/insertId", insertId);
 		}
 
+		addOperation(entry, generator);
+		addSourceLocation(entry, generator);
+		addTrace(entry, generator);
+
+		generator.writeEnd().close();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void addMap(JsonGenerator generator, Map<String, Object> map) {
+		map.forEach((k, v) -> {
+			if (v instanceof String) {
+				generator.write(k, (String) v);
+			} else if (v instanceof Boolean) {
+				generator.write(k, (Boolean) v);
+			} else if (v instanceof Integer || v instanceof Short) {
+				generator.write(k, ((Number) v).intValue());
+			} else if (v instanceof Long) {
+				generator.write(k, (Long) v);
+			} else if (v instanceof BigInteger) {
+				generator.write(k, (BigInteger) v);
+			} else if (v instanceof Float || v instanceof Double) {
+				generator.write(k, ((Number) v).doubleValue());
+			} else if (v instanceof BigDecimal) {
+				generator.write(k, (BigDecimal) v);
+			} else if (v instanceof Map) {
+				generator.writeKey(k).writeStartObject();;
+				addMap(generator, (Map<String, Object>) v);
+				generator.writeEnd();
+			} else if (v instanceof JsonValue) {
+				generator.write(k, (JsonValue) v);
+			} else {
+				throw new IllegalArgumentException("Unexpected type! [" + v + "]");
+			}
+		});
+	}
+
+	private static void addOperation(LogEntry entry, JsonGenerator generator) {
 		var operation = entry.getOperation();
 		if (operation != null) {
 			generator.writeKey("logging.googleapis.com/operation")
@@ -227,7 +269,9 @@ public enum Factory { ;
 			}
 			generator.writeEnd();
 		}
+	}
 
+	private static void addSourceLocation(LogEntry entry, JsonGenerator generator) {
 		var sourceLocation = entry.getSourceLocation();
 		if (sourceLocation != null) {
 			generator.writeKey("logging.googleapis.com/sourceLocation")
@@ -243,7 +287,9 @@ public enum Factory { ;
 			}
 			generator.writeEnd();
 		}
+	}
 
+	private static void addTrace(LogEntry entry, JsonGenerator generator) {
 		var traceId = entry.getTrace();
 		if (traceId != null) {
 			generator.write("logging.googleapis.com/trace", traceId);
@@ -256,36 +302,6 @@ public enum Factory { ;
 		if (entry.getTraceSampled()) {
 			generator.write("logging.googleapis.com/trace_sampled", true);
 		}
-		generator.writeEnd().close();
-	}
-
-	@SuppressWarnings("unchecked")
-	private static void toJson(JsonGenerator generator, Map<String, Object> map) {
-		map.forEach((k, v) -> {
-			if (v instanceof String) {
-				generator.write(k, (String) v);
-			} else if (v instanceof Boolean) {
-				generator.write(k, (Boolean) v);
-			} else if (v instanceof Integer || v instanceof Short) {
-				generator.write(k, ((Number) v).intValue());
-			} else if (v instanceof Long) {
-				generator.write(k, (Long) v);
-			} else if (v instanceof BigInteger) {
-				generator.write(k, (BigInteger) v);
-			} else if (v instanceof Float || v instanceof Double) {
-				generator.write(k, ((Number) v).doubleValue());
-			} else if (v instanceof BigDecimal) {
-				generator.write(k, (BigDecimal) v);
-			} else if (v instanceof Map) {
-				generator.writeKey(k).writeStartObject();;
-				toJson(generator, (Map<String, Object>) v);
-				generator.writeEnd();
-			} else if (v instanceof JsonValue) {
-				generator.write(k, (JsonValue) v);
-			} else {
-				throw new IllegalArgumentException("Unexpected type! [" + v + "]");
-			}
-		});
 	}
 
 	/**

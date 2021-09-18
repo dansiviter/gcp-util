@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-
 import com.google.api.Distribution.BucketOptions;
 import com.google.api.Distribution.BucketOptions.Exponential;
 import com.google.errorprone.annotations.Immutable;
@@ -52,7 +50,7 @@ public class Config {
 	 * @param unit the unit.
 	 * @return the bucket options for the unit or that for {@code default}.
 	 */
-	public BucketOptions bucketOptions(@Nonnull MetricType type, @Nonnull String unit) {
+	public BucketOptions bucketOptions(MetricType type, String unit) {
 		var options = this.bucketOptions.get(entry(type, unit));
 		if (options == null) {
 			options = this.bucketOptions.get(entry(type, "default"));
@@ -64,7 +62,7 @@ public class Config {
 	 * @param key the label key.
 	 * @return the value.
 	 */
-	public Optional<String> labelDescription(@Nonnull String key) {
+	public Optional<String> labelDescription(String key) {
 		return Optional.ofNullable(this.labelDescriptions.get(key));
 	}
 
@@ -104,7 +102,7 @@ public class Config {
 		 * @param options the bucket options.
 		 * @return this builder.
 		 */
-		public Builder put(@Nonnull MetricType type, @Nonnull String unit, @Nonnull BucketOptions options) {
+		public Builder put(MetricType type, String unit, BucketOptions options) {
 			this.bucketOptions.put(entry(type, unit), options);
 			return this;
 		}
@@ -116,7 +114,7 @@ public class Config {
 		 * @param value label value.
 		 * @return this builder.
 		 */
-		public Builder labelDescription(@Nonnull String key, @Nonnull String value) {
+		public Builder labelDescription(String key, String value) {
 			this.labelDescriptions.put(key, value);
 			return this;
 		}

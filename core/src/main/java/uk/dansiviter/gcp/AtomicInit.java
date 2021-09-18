@@ -23,8 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 /**
  * A utility to atomically initialise an instance and subsequently clear if
  * required. This is non-blocking.
@@ -45,7 +43,7 @@ public class AtomicInit<T> implements Supplier<T>, AutoCloseable {
 	 *
 	 * @param supplier the supplier to call to initialise.
 	 */
-	public AtomicInit(@Nonnull Supplier<T> supplier) {
+	public AtomicInit(Supplier<T> supplier) {
 		this(supplier, v -> { });
 	}
 
@@ -55,7 +53,7 @@ public class AtomicInit<T> implements Supplier<T>, AutoCloseable {
 	 * @param supplier the supplier to call to initialise.
 	 * @param reset the reset function. Useful for builders that need to reset state.
 	 */
-	public AtomicInit(@Nonnull Supplier<T> supplier, Consumer<T> reset) {
+	public AtomicInit(Supplier<T> supplier, Consumer<T> reset) {
 		this.supplier = requireNonNull(supplier);
 		this.reset = requireNonNull(reset);
 	}
@@ -158,7 +156,7 @@ public class AtomicInit<T> implements Supplier<T>, AutoCloseable {
 	 * @param supplier the supplier to get an instance.
 	 * @return a new instance.
 	 */
-	public static <T> AtomicInit<T> atomic(@Nonnull Supplier<T> supplier) {
+	public static <T> AtomicInit<T> atomic(Supplier<T> supplier) {
 		return new AtomicInit<>(supplier);
 	}
 
@@ -169,7 +167,7 @@ public class AtomicInit<T> implements Supplier<T>, AutoCloseable {
 	 * @param reset reset function.
 	 * @return a new instance.
 	 */
-	public static <T> AtomicInit<T> atomic(@Nonnull Supplier<T> supplier, @Nonnull Consumer<T> reset) {
+	public static <T> AtomicInit<T> atomic(Supplier<T> supplier, Consumer<T> reset) {
 		return new AtomicInit<>(supplier, reset);
 	}
 }

@@ -26,8 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.api.pathtemplate.PathTemplate;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.ServiceOptions;
@@ -79,7 +77,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 	 */
 	SecretConfigSource(
 		Optional<String> projectId,
-		@Nonnull Supplier<SecretManagerServiceClient> clientSupplier)
+		Supplier<SecretManagerServiceClient> clientSupplier)
 	{
 		this.projectId = projectId;
 		this.client = new AtomicInit<>(clientSupplier);
@@ -103,7 +101,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		return this.projectId.map(this::propertyNames).orElse(emptySet());
 	}
 
-	private Set<String> propertyNames(@Nonnull String projectId) {
+	private Set<String> propertyNames(String projectId) {
 		var names = new HashSet<String>();
 		for (var s : client().listSecrets(projectId).iterateAll()) {
 			var name = s.getName();
@@ -120,7 +118,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 			.orElse(null);
 	}
 
-	private String value(@Nonnull SecretVersionName name) {
+	private String value(SecretVersionName name) {
 		var version = client().getSecretVersion(name);
 		if (version.getState() == State.ENABLED) {
 			var response = client().accessSecretVersion(name);
@@ -147,7 +145,7 @@ public class SecretConfigSource implements ConfigSource, Closeable {
 		return this.client.get();
 	}
 
-	private static SecretVersionName versionName(@Nonnull String projectId, @Nonnull String in) {
+	private static SecretVersionName versionName(String projectId, String in) {
 		var values = SECRET_TEMPLATE.match(in);
 		if (values != null) {
 			return SecretVersionName.of(projectId, values.get("secret"), "latest");
