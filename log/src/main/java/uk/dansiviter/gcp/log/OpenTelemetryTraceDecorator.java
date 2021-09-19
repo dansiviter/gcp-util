@@ -48,10 +48,10 @@ public class OpenTelemetryTraceDecorator implements EntryDecorator {
 
 	@Override
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
-		this.prefix.ifPresent(p -> decorate(p, b, payload));
+		this.prefix.ifPresent(p -> decorate(p, b));
 	}
 
-	private static void decorate(String prefix, Builder b, Map<String, Object> payload) {
+	private static void decorate(String prefix, Builder b) {
 		var spanCtx = Span.current().getSpanContext();
 		if (!spanCtx.isValid()) {
 			return;
