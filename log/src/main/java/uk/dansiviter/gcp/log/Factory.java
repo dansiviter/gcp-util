@@ -29,7 +29,6 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +49,6 @@ import com.google.cloud.logging.Severity;
  * @since v1.0 [6 Dec 2019]
  */
 public enum Factory { ;
-	private static final String NANO_TIME = "nanoTime";
 	private static final ThreadLocal<LogEntry.Builder> BUILDER = threadLocal(() -> LogEntry.newBuilder(null), b -> {
 		b.setInsertId(null);
 		b.setHttpRequest(null);
@@ -70,11 +68,8 @@ public enum Factory { ;
 	public static LogEntry logEntry(Entry entry, List<EntryDecorator> decorators) {
 		var timestamp = entry.timestamp();
 		var b = BUILDER.get()
-				.setTimestamp(timestamp.toEpochMilli())
+				.setTimestamp(timestamp)
 				.setSeverity(entry.severity());
-		if (timestamp.getNano() > 0) {  // googleapis/java-logging#598
-			b.addLabel(NANO_TIME, timestamp.toString());
-		}
 
 		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
 		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
@@ -188,10 +183,9 @@ public enum Factory { ;
 	 */
 	public static void toJson(LogEntry entry, OutputStream os) {
 		var generator = Json.createGenerator(os);
-		var precisionTime = entry.getLabels().get(NANO_TIME);
 		generator.writeStartObject()
 			.write("severity", entry.getSeverity().toString())
-			.write("time", precisionTime != null ? precisionTime : Instant.ofEpochMilli(entry.getTimestamp()).toString());
+			.write("time", entry.getInstantTimestamp().toString());
 		var payload = entry.getPayload();
 
 		if (payload instanceof JsonPayload) {
@@ -204,7 +198,6 @@ public enum Factory { ;
 			generator.writeKey("logging.googleapis.com/labels")
 				.writeStartObject();
 			entry.getLabels().entrySet().stream()
-				.filter(e -> !NANO_TIME.equals(e.getKey()))
 				.forEach(e -> generator.write(e.getKey(), e.getValue()));
 			generator.writeEnd();
 		}

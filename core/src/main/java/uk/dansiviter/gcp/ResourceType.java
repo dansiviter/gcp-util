@@ -41,9 +41,9 @@ import com.google.cloud.MonitoredResource;
 import com.google.cloud.ServiceOptions;
 
 /**
- * Utility to create a {@link MonitoredResource} based on the Cloud Operations
- * Suite documentation. It will attempt to load the data from the environment
- * but all values can be overriden via Microprofile Config. This is inspired by
+ * Utility to create a {@link MonitoredResource} based on the Cloud Operations Suite documentation. It will attempt to
+ * load the data from the environment but all values can be overridden via System properties (prefix
+ * {@code gcp.cloud.resource.}) or environment parameter (in uppercase). This is inspired by
  * {@code com.google.cloud.logging.MonitoredResourceUtil} but more flexible.
  *
  * @author Daniel Siviter
