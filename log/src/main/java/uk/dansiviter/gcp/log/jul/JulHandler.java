@@ -303,7 +303,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 		public Optional<CharSequence> threadName() {
 			// JUL logging is a synchronous implementation so this should be correct!
 			var thread = Thread.currentThread();
-			if (thread.getId() == (long) this.delegate.getThreadID()) {
+			if (thread.getId() == this.delegate.getThreadID()) {
 				return Optional.of(thread.getName());
 			}
 			return Optional.empty();

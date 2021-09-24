@@ -239,7 +239,7 @@ public enum Factory { ;
 			} else if (v instanceof BigDecimal) {
 				generator.write(k, (BigDecimal) v);
 			} else if (v instanceof Map) {
-				generator.writeKey(k).writeStartObject();;
+				generator.writeKey(k).writeStartObject();
 				addMap(generator, (Map<String, Object>) v);
 				generator.writeEnd();
 			} else if (v instanceof JsonValue) {

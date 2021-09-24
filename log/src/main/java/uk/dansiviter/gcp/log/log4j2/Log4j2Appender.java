@@ -17,8 +17,6 @@ package uk.dansiviter.gcp.log.log4j2;
 
 import static java.util.stream.Collectors.toList;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,7 +38,6 @@ import com.google.cloud.logging.Synchronicity;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.StringLayout;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Node;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
@@ -216,7 +213,7 @@ public class Log4j2Appender extends AbstractAppender {
 	/**
 	 * A Log4j entry.
 	 */
-	private class Log4J2Entry implements Entry {
+	static class Log4J2Entry implements Entry {
 		private final LogEvent delegate;
 
 		/**
@@ -262,14 +259,7 @@ public class Log4j2Appender extends AbstractAppender {
 
 		@Override
 		public Optional<CharSequence> message() {
-			var bytes = getLayout().toByteArray(this.delegate);
-			Charset charset;
-			if (getLayout() instanceof StringLayout) {
-				charset = ((StringLayout) getLayout()).getCharset();
-			} else {
-				charset = Charset.defaultCharset();
-			}
-			var msg = charset.decode(ByteBuffer.wrap(bytes));
+			var msg = this.delegate.getMessage().getFormattedMessage();
 			return msg == null || msg.length() == 0 ? Optional.empty() : Optional.of(msg);
 		}
 

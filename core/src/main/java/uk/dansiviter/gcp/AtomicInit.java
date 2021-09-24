@@ -66,13 +66,13 @@ public class AtomicInit<T> implements Supplier<T>, AutoCloseable {
 		T value;
 		while ((value = this.ref.get()) == null) {
 			if (isClosed()) {
-				throw new IllegalStateException();
+				throw new IllegalStateException("Initialiser closed!");
 			}
 			if (this.shield.compareAndSet(null, this)) {
 				var instance = this.supplier.get();
 				if (isNull(instance)) {
 					closed.set(true);
-					throw new IllegalStateException();
+					throw new IllegalStateException("Instance supplied is null!");
 				}
 				this.ref.set(instance);
 			}
