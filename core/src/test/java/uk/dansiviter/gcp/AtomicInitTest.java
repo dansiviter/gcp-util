@@ -19,9 +19,9 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -49,10 +49,9 @@ class AtomicInitTest {
 			return "Hello!";
 		});
 
-		var ref = new AtomicReference<String>();
+		var future = CompletableFuture.supplyAsync(() -> init.get());
 
-		new Thread(() -> ref.set(init.get())).start();
-		Awaitility.await().until(() -> "Hello!".equals(ref.get()));
+		await().until(() -> "Hello!".equals(future.get()));
 		assertEquals("Hello!", init.get());
 	}
 
@@ -63,12 +62,13 @@ class AtomicInitTest {
 			return null;
 		});
 
-		var ref = new AtomicReference<Object>();
+		var future = CompletableFuture.supplyAsync(() -> init.get());
 
-		new Thread(() -> ref.set(init.get())).start();
-
-		assertThrows(IllegalStateException.class, () -> await().until(() -> "Hello!".equals(ref.get())));
-		assertThrows(IllegalStateException.class, () -> init.get());
+		await().until(() -> future.isDone());
+		var ise0 = assertThrows(ExecutionException.class, () -> future.get());
+		assertEquals(ise0.getCause().getMessage(), "Instance supplied is null!");
+		var ise1 = assertThrows(IllegalStateException.class, () -> init.get());
+		assertEquals("Initialiser closed!", ise1.getMessage());
 	}
 
 	private static void sleep(long millis) {
