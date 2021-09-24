@@ -66,7 +66,7 @@ class AtomicInitTest {
 
 		await().until(() -> future.isDone());
 		var ise0 = assertThrows(ExecutionException.class, () -> future.get());
-		assertEquals(ise0.getCause().getMessage(), "Instance supplied is null!");
+		assertEquals("Instance supplied is null!", ise0.getCause().getMessage());
 		var ise1 = assertThrows(IllegalStateException.class, () -> init.get());
 		assertEquals("Initialiser closed!", ise1.getMessage());
 	}
