@@ -18,6 +18,7 @@ package uk.dansiviter.gcp;
 import static java.lang.System.getenv;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
+import static uk.dansiviter.gcp.AtomicInit.atomic;
 import static uk.dansiviter.gcp.ResourceType.Label.CLUSTER_NAME;
 import static uk.dansiviter.gcp.ResourceType.Label.CONTAINER_NAME;
 import static uk.dansiviter.gcp.ResourceType.Label.INSTANCE_ID;
@@ -178,7 +179,7 @@ public enum ResourceType {
 		 * The identifier of the GCP project associated with this resource, such as
 		 * "my-project".
 		 */
-		PROJECT_ID("project_id", ServiceOptions::getDefaultProjectId),
+		PROJECT_ID("project_id", true, ServiceOptions::getDefaultProjectId),
 		/**
 		 * The numeric VM instance identifier assigned by Compute Engine.
 		 */
@@ -228,22 +229,31 @@ public enum ResourceType {
 		SERVICE_NAME("service_name", () -> getenv("K_SERVICE"));
 
 		private final String name;
-		private final Supplier<String> supplier;
+		private final Supplier<Optional<String>> supplier;
 
 		private Label(String name, Supplier<String> supplier) {
+			this(name, false, supplier);
+		}
+
+		private Label(String name, boolean cache, Supplier<String> supplier) {
 			this.name = requireNonNull(name);
-			this.supplier = supplier;
+			Supplier<Optional<String>> delegate = () -> get(name, supplier);
+			this.supplier = cache ? atomic(delegate) : delegate;
+		}
+
+		public Optional<String> get() {
+			return this.supplier.get();
 		}
 
 		/**
 		 * @return the value of the label.
 		 */
-		public Optional<String> get() {
-			var value = Optional.ofNullable(getenv(this.name.toUpperCase()));
+		public static Optional<String> get(String name, Supplier<String> supplier) {
+			var value = Optional.ofNullable(getenv(name.toUpperCase()));
 			if (value.isPresent()) {
 				return value;
 			}
-			value = Optional.ofNullable(System.getProperty("gcp.cloud.resource.".concat(this.name)));
+			value = Optional.ofNullable(System.getProperty("gcp.cloud.resource.".concat(name)));
 			if (value.isPresent()) {
 				return value;
 			}
