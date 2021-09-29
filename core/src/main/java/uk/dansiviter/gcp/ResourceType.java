@@ -89,6 +89,21 @@ public enum ResourceType {
 		this.labels = labels;
 	}
 
+	/**
+	 * @return the monitored resource instance for this resource type.
+	 */
+	public MonitoredResource toMonitoredResource() {
+		return monitoredResource(this);
+	}
+
+	/**
+	 * @param override ability to override the default values.
+	 * @return the monitored resource instance for this resource type.
+	 */
+	public MonitoredResource toMonitoredResource(Function<String, Optional<String>> override) {
+		return monitoredResource(this, override);
+	}
+
 
 	// --- Static Methods ---
 
@@ -146,7 +161,23 @@ public enum ResourceType {
 	 * @return the created monitored instance.
 	 */
 	public static MonitoredResource monitoredResource(Function<String, Optional<String>> override) {
-		var type = autoDetect().orElse(GLOBAL);
+		return monitoredResource(autoDetect().orElse(GLOBAL), override);
+	}
+
+	/**
+	 * @param type the resource type;
+	 * @return the created monitored instance.
+	 */
+	public static MonitoredResource monitoredResource(ResourceType type) {
+		return monitoredResource(type, n -> Optional.empty());
+	}
+
+	/**
+	 * @param type the resource type;
+	 * @param override ability to override the default values.
+	 * @return the created monitored instance.
+	 */
+	public static MonitoredResource monitoredResource(ResourceType type, Function<String, Optional<String>> override) {
 		var builder = MonitoredResource.newBuilder(type.name);
 		Arrays.asList(type.labels).forEach(l -> {
 			var value = override.apply(l.name);
@@ -166,6 +197,16 @@ public enum ResourceType {
 	 */
 	public static Optional<String> label(MonitoredResource resource, Label key) {
 		return Optional.ofNullable(resource.getLabels().get(key.name));
+	}
+
+	/**
+	 * Extracts the {@code project_id}.
+	 *
+	 * @param resource the resource to use.
+	 * @return the value.
+	 */
+	public static Optional<String> projectId(MonitoredResource resource) {
+		return Label.PROJECT_ID.get(resource);
 	}
 
 
