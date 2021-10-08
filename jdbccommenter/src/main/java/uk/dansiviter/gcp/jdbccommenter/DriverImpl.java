@@ -40,12 +40,12 @@ public class DriverImpl implements java.sql.Driver {
 	private static final String PREFIX = "jdbc:commenter:";
 
 	static {
-    try {
-      DriverManager.registerDriver(new DriverImpl());
-    } catch (SQLException e) {
-      throw new RuntimeException("Cannot register driver!", e);
-    }
-  }
+		try {
+			DriverManager.registerDriver(new DriverImpl());
+		} catch (SQLException e) {
+			throw new IllegalStateException("Cannot register driver!", e);
+		}
+	}
 
 	@Override
 	public boolean acceptsURL(String url) throws SQLException {
@@ -60,13 +60,13 @@ public class DriverImpl implements java.sql.Driver {
 	@Override
 	public Connection connect(String url, Properties info) throws SQLException {
 		if (!acceptsURL(url)) {
-      return null;
-    }
+			return null;
+		}
 
-    var realUrl = realUrl(url);
+		var realUrl = realUrl(url);
 		var conn = DriverManager.getConnection(realUrl, info);
 		return proxy(conn, new ConnectionHandler(conn));
-  }
+	}
 
 	private OptionalInt version(int i) {
 		var version = getClass().getPackage().getImplementationVersion();
@@ -114,7 +114,7 @@ public class DriverImpl implements java.sql.Driver {
 
 	@SuppressWarnings("unchecked")
 	private static <T> T proxy(T o, InvocationHandler h) {
-    return (T) Proxy.newProxyInstance(o.getClass().getClassLoader(), o.getClass().getInterfaces(), h);
+		return (T) Proxy.newProxyInstance(o.getClass().getClassLoader(), o.getClass().getInterfaces(), h);
 	}
 
 	private static String comment(String sql) {
@@ -169,8 +169,8 @@ public class DriverImpl implements java.sql.Driver {
 			}
 
 			Object obj;
-    	try {
-      	obj =  method.invoke(conn, args);
+			try {
+				obj =  method.invoke(conn, args);
 			} catch (InvocationTargetException e) {
 				throw e.getCause();
 			}
@@ -200,7 +200,7 @@ public class DriverImpl implements java.sql.Driver {
 				args[0] = comment((String) args[0]);
 			}
 			try {
-      	return method.invoke(this.statement, args);
+				return method.invoke(this.statement, args);
 			} catch (InvocationTargetException e) {
 				throw e.getCause();
 			}

@@ -46,34 +46,34 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.sdk.testing.junit5.OpenTelemetryExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DriverImplTest {
+class DriverImplTest {
 	@RegisterExtension
 	static final OpenTelemetryExtension otelTesting = OpenTelemetryExtension.create();
 
 	private final Tracer tracer = otelTesting.getOpenTelemetry().getTracer("test");
 
 	@Test
-	public void registration() {
+	void registration() {
 		assertThat(Collections.list(DriverManager.getDrivers()), hasItem(isA(Driver.class)));
 	}
 
 	@Test
-	public void getMajorVersion() {
+	void getMajorVersion() {
 		assertThat(new DriverImpl().getMajorVersion(), is(-1));
 	}
 
 	@Test
-	public void getMinorVersion() {
+	void getMinorVersion() {
 		assertThat(new DriverImpl().getMinorVersion(), is(-1));
 	}
 
 	@Test
-	public void jdbcCompliant() {
+	void jdbcCompliant() {
 		assertThat(new DriverImpl().jdbcCompliant(), is(true));
 	}
 
 	@Test
-	public void connect_noDriver() throws SQLException {
+	void connect_noDriver() throws SQLException {
 		var url = "jdbc:commenter:foo";
 		var driver = DriverManager.getDriver(url);
 		var ex = assertThrows(SQLException.class, () -> driver.connect(url, null));
@@ -81,7 +81,7 @@ public class DriverImplTest {
 	}
 
 	@Test
-	public void connect(@Mock Driver driver, @Mock Connection conn, @Mock PreparedStatement statement) throws SQLException {
+	void connect(@Mock Driver driver, @Mock Connection conn, @Mock PreparedStatement statement) throws SQLException {
 		when(driver.connect(any(), any())).thenReturn(conn);
 		when(conn.prepareStatement(any())).thenReturn(statement);
 
