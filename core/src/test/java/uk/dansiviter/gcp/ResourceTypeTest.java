@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.*;
 
 import org.junit.jupiter.api.Test;
 
-public class ResourceTypeTest {
+class ResourceTypeTest {
 	@Test
-	public void test() {
+	void test() {
 		var monitoredResource = ResourceType.K8S_CONTAINER.toMonitoredResource();
 		assertThat(monitoredResource.getType(), is("k8s_container"));
 	}
