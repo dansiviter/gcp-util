@@ -51,6 +51,7 @@
 
 	<modules>
 		<module>core</module>
+		<module>jdbccommenter</module>
 		<module>log</module>
 		<module>microprofile</module>
 		<module>opentelemetry</module>
@@ -78,7 +79,7 @@
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
-				<version>23.0.0</version>
+				<version>23.1.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
