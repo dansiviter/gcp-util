@@ -30,6 +30,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collections;
 
 import org.hamcrest.BaseMatcher;
@@ -70,6 +71,11 @@ class DriverImplTest {
 	@Test
 	void jdbcCompliant() {
 		assertThat(new DriverImpl().jdbcCompliant(), is(true));
+	}
+
+	@Test
+	void getParentLogger() {
+		assertThrows(SQLFeatureNotSupportedException.class, () -> new DriverImpl().getParentLogger());
 	}
 
 	@Test
