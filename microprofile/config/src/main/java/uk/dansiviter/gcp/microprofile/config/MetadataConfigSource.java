@@ -16,6 +16,7 @@
 package uk.dansiviter.gcp.microprofile.config;
 
 import static java.util.Collections.emptyMap;
+import static uk.dansiviter.gcp.AtomicInit.atomic;
 
 import java.util.Map;
 import java.util.function.Supplier;
@@ -27,7 +28,7 @@ import org.eclipse.microprofile.config.spi.ConfigSource;
 
 class MetadataConfigSource implements ConfigSource {
 	private static final Map<String, Supplier<String>> MAP = Map.of(
-		"gcp.project-id", ServiceOptions::getDefaultProjectId,
+		"gcp.project-id", atomic(ServiceOptions::getDefaultProjectId),
 		"gcp.cluster-name", MetadataConfig::getClusterName,
 		"gcp.cluster-location", () -> MetadataConfig.getAttribute("instance/attributes/cluster-location"),
 		"gcp.default-sa.email", () -> MetadataConfig.getAttribute("instance/service-accounts/default/email")
