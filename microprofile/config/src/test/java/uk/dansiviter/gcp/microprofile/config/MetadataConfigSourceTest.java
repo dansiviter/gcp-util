@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link MetadataConfigSource}.
  */
-public class MetadataConfigSourceTest {
+class MetadataConfigSourceTest {
 	private MetadataConfigSource source;
 
 	@BeforeEach
