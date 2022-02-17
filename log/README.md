@@ -53,9 +53,9 @@ public class MyConfig {
 handlers=uk.dansiviter.juli.AsyncConsoleHandler
 
 uk.dansiviter.juli.AsyncConsoleHandler.level=FINEST
-uk.dansiviter.juli.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.JsonFormatter
+uk.dansiviter.juli.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.jul.JsonFormatter
 
-uk.dansiviter.gcp.log.JsonFormatter.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
+uk.dansiviter.gcp.log.jul.JsonFormatter.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
 ```
 
 ### JBoss Logger ###
