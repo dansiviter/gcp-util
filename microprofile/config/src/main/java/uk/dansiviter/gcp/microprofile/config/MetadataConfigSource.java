@@ -15,10 +15,10 @@
  */
 package uk.dansiviter.gcp.microprofile.config;
 
-import static java.util.Collections.emptyMap;
 import static uk.dansiviter.gcp.AtomicInit.atomic;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import com.google.cloud.MetadataConfig;
@@ -36,7 +36,12 @@ class MetadataConfigSource implements ConfigSource {
 
 	@Override
 	public Map<String, String> getProperties() {
-		return emptyMap();
+		return Map.of();
+	}
+
+	@Override
+	public Set<String> getPropertyNames() {
+		return Set.of();
 	}
 
 	@Override

@@ -17,7 +17,6 @@ package uk.dansiviter.gcp.microprofile.metrics.jaxrs;
 
 import static java.time.Duration.between;
 import static java.time.Instant.now;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.ClientMetricsFilter.START;
 import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.Metrics.RESPONSE_LATENCY;
 
@@ -47,7 +46,7 @@ public class ClientMetricsReaderInterceptor implements ReaderInterceptor {
 			if (timer != null) {
 				var stop = now();
 				var start = (Instant) context.getProperty(START);
-				timer.update(between(start, stop).toNanos(), NANOSECONDS);
+				timer.update(between(start, stop));
 			}
 		}
 	}

@@ -33,9 +33,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.json.Json;
-import javax.json.JsonValue;
-import javax.json.stream.JsonGenerator;
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonGenerator;
 
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.LoggingEnhancer;

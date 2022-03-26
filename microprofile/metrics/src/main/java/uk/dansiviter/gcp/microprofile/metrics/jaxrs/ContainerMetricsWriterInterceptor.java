@@ -17,10 +17,9 @@ package uk.dansiviter.gcp.microprofile.metrics.jaxrs;
 
 import static java.time.Duration.between;
 import static java.time.Instant.now;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static javax.ws.rs.Priorities.USER;
-import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.Metrics.RESPONSE_LATENCY;
 import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.ContainerMetricsFilter.START;
+import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.Metrics.RESPONSE_LATENCY;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -48,7 +47,7 @@ class ContainerMetricsWriterInterceptor implements WriterInterceptor {
 			if (timer != null) {
 				var stop = now();
 				var start = (Instant) context.getProperty(START);
-				timer.update(between(start, stop).toNanos(), NANOSECONDS);
+				timer.update(between(start, stop));
 			}
 		}
 	}

@@ -144,8 +144,8 @@ public enum Factory { ;
 			.setDisplayName(metadata.getDisplayName())
 			.addMonitoredResourceTypes(resource.getType());
 		getValueType(snapshot).ifPresent(descriptor::setValueType);
-		metadata.getDescription().ifPresent(descriptor::setDescription);
-		metadata.getUnit().ifPresentOrElse(
+		metadata.description().ifPresent(descriptor::setDescription);
+		metadata.unit().ifPresentOrElse(
 			u -> descriptor.setUnit(convertUnit(u)),
 			() -> descriptor.setUnit("1"));
 		id.getTags().forEach((k, v) -> descriptor.addLabels(labelDescriptor(config, k, v)));

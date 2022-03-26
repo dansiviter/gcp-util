@@ -35,7 +35,7 @@
 
 		<module.name>${project.groupId}.${project.artifactId}</module.name>
 
-		<juli.version>0.4.0</juli.version>
+		<juli.version>[0.0,1.0)</juli.version>
 	</properties>
 
 	<distributionManagement>
@@ -79,14 +79,14 @@
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
-				<version>24.3.0</version>
+				<version>25.0.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
 			<dependency>
 				<groupId>io.opentelemetry</groupId>
 				<artifactId>opentelemetry-bom</artifactId>
-				<version>1.11.0</version>
+				<version>1.12.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -94,13 +94,13 @@
 			<dependency>
 				<groupId>org.junit.jupiter</groupId>
 				<artifactId>junit-jupiter</artifactId>
-				<version>5.8.2</version>
+				<version>[5.8,6.0)</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.mockito</groupId>
 				<artifactId>mockito-junit-jupiter</artifactId>
-				<version>4.3.1</version>
+				<version>[4.3,5.0)</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>

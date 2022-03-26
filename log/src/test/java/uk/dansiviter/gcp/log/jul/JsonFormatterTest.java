@@ -12,8 +12,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
-import javax.json.Json;
-import javax.json.JsonObject;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 
 import com.google.cloud.logging.Operation;
 import com.google.cloud.logging.LogEntry.Builder;
