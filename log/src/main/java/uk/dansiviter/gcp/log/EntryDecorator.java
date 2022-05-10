@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import com.google.cloud.logging.LogEntry.Builder;
+import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.LoggingEnhancer;
 
 /**
@@ -37,7 +37,7 @@ public interface EntryDecorator {
 	 * @param e immutable log entry.
 	 * @param p mutable payload.
 	 */
-	void decorate(Builder b, Entry e, Map<String, Object> p);
+	void decorate(LogEntry.Builder b, Entry e, Map<String, Object> p);
 
 	/**
 	 * Wraps a {@link LoggingEnhancer} as a {@link EntryDecorator}.

@@ -2,7 +2,7 @@ package uk.dansiviter.gcp.log.log4j2;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
-import static uk.dansiviter.gcp.log.Factory.toJson;
+import static uk.dansiviter.gcp.log.JsonFactory.toJson;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

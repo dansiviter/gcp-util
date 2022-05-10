@@ -19,7 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.logging.LogManager.getLogManager;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
-import static uk.dansiviter.gcp.log.Factory.toJson;
+import static uk.dansiviter.gcp.log.JsonFactory.toJson;
 import static uk.dansiviter.juli.JulUtil.property;
 
 import java.io.ByteArrayOutputStream;
