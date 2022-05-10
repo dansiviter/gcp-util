@@ -32,6 +32,8 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import jakarta.json.Json;
 import jakarta.json.JsonValue;
@@ -121,8 +123,7 @@ public enum Factory { ;
 	private static Map<String, Object> payload(Entry entry) {
 		var data = new HashMap<String, Object>();
 
-		// doesn't support CharSequence or even the protobuf ByteString
-		entry.message().ifPresent(m -> data.put("message", m instanceof String ? m : m.toString()));
+		message(entry).ifPresent(m -> data.put("message", m));
 
 		var context = new HashMap<String, Object>();
 		if (entry.severity().ordinal() >= Severity.ERROR.ordinal()) {
@@ -131,7 +132,6 @@ public enum Factory { ;
 		if (entry.severity().ordinal() >= Severity.WARNING.ordinal() && !entry.thrown().isPresent()) {
 			entry.source().ifPresent(s -> context.put("reportLocation", s.asMap()));
 		}
-		entry.thrown().ifPresent(t -> data.put("stack_trace", t.get().toString()));
 
 		if (!context.isEmpty()) {
 			data.put("context", context);
@@ -309,5 +309,16 @@ public enum Factory { ;
 		public void println() {
 			write('\n');
 		}
+	}
+
+	private static Optional<String> message(Entry e) {
+		if (e.message().isPresent()) {
+			if (e.thrown().isPresent()) {
+				return Optional.of(format("%s\n%s", e.message().get(), e.thrown().get().get()));
+			}
+			// doesn't support CharSequence or even the protobuf ByteString
+			return e.message().map(Object::toString);
+		}
+		return e.thrown().map(Object::toString);
 	}
 }

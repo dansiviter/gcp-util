@@ -78,7 +78,7 @@ class FactoryTest {
 
 		var data = payload.getDataAsMap();
 		assertThat(data.get("@type"), equalTo("type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent"));
-		assertThat(data.get("stack_trace"), equalTo("Exception"));
+		assertThat(data.get("message"), equalTo("foo\nException"));
 }
 
 	@Test
