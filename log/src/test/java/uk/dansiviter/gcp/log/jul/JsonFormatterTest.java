@@ -3,6 +3,7 @@ package uk.dansiviter.gcp.log.jul;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static uk.dansiviter.gcp.log.Decorators.serviceContext;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -15,14 +16,13 @@ import java.util.logging.LogRecord;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 
-import com.google.cloud.logging.Operation;
 import com.google.cloud.logging.LogEntry.Builder;
+import com.google.cloud.logging.Operation;
 
 import org.junit.jupiter.api.Test;
 
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
-import uk.dansiviter.gcp.log.ServiceContextDecorator;
 
 /**
  * Tests for {@link JsonFormatter}.
@@ -37,7 +37,7 @@ class JsonFormatterTest {
 
 		var formatter = new JsonFormatter();
 		formatter.setDecorators(KitchenSink.class.getName());
-		formatter.addDecorators(new ServiceContextDecorator("testService", "testVersion"));
+		formatter.addDecorators(serviceContext("testService", "testVersion"));
 		var actual = formatter.format(record);
 
 		var expected =

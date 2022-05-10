@@ -38,7 +38,7 @@
 		<dependency>
 			<groupId>org.jboss.logging</groupId>
 			<artifactId>jboss-logging</artifactId>
-			<version>3.4.3.Final</version>
+			<version>3.5.0.Final</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -63,9 +63,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.glassfish</groupId>
-			<artifactId>jakarta.json</artifactId>
-			<version>[2.0,3.0)</version>
+			<groupId>org.eclipse.parsson</groupId>
+			<artifactId>parsson</artifactId>
+			<version>[1.1,2.0)</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

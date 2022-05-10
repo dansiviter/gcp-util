@@ -17,11 +17,11 @@ package uk.dansiviter.gcp.log;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
+import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.google.cloud.logging.LogEntry.Builder;
@@ -56,7 +56,7 @@ public class MessageMaskingDecorator implements EntryDecorator {
 		this.patterns = stream(patterns).map(Pattern::compile).collect(toUnmodifiableList());
 	}
 
-		/**
+	/**
 	 * Creates a masking decorator for the given patterns.
 	 *
 	 * @param patterns regular expression patterns.
@@ -69,23 +69,25 @@ public class MessageMaskingDecorator implements EntryDecorator {
 	public void decorate(Builder b, Entry e, Map<String, Object> payload) {
 		var originalMsg = (String) payload.get("message");
 
-		if (Objects.isNull(originalMsg) || originalMsg.isEmpty()) {
+		if (isNull(originalMsg) || originalMsg.isBlank()) {
 			return;
 		}
 
 		var msg = new StringBuilder(originalMsg);
-		for (var pattern : this.patterns) {
-			var matcher = pattern.matcher(msg);
-			matcher.reset();
-			var result = matcher.find();
-			if (result) {
-				do {
-					msg.delete(matcher.start(), matcher.end());
-					msg.insert(matcher.start(), REPLACEMENT);
-					result = matcher.find();
-				} while (result);
-			}
-		}
+		this.patterns.forEach(p -> apply(p, msg));
 		payload.put("message", msg.toString());
+	}
+
+	private static void apply(Pattern pattern, StringBuilder msg) {
+		var matcher = pattern.matcher(msg);
+		matcher.reset();
+		var result = matcher.find();
+		if (result) {
+			do {
+				msg.delete(matcher.start(), matcher.end());
+				msg.insert(matcher.start(), REPLACEMENT);
+				result = matcher.find();
+			} while (result);
+		}
 	}
 }
