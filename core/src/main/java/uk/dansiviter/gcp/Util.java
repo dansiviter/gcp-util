@@ -18,7 +18,9 @@ package uk.dansiviter.gcp;
 import static java.util.function.UnaryOperator.identity;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -85,5 +87,53 @@ public enum Util { ;
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * Utility method that can be used as a replacement for {@code synchronized} with Virtual Threads.
+	 * <pre>
+	 * private final Lock lock = new ReentrantLock(true);
+	 *
+	 * void doSomething() {
+	 *   try (var scope = sync(lock)) {
+	 *     // do something not thread-safe
+	 *   }
+	 * }
+	 * </pre>
+	 * @param lock
+	 * @return
+	 */
+	public static AutoCloseable sync(Lock lock) {
+		lock.lock();
+		return lock::unlock;
+	}
+
+	/**
+	 * Utility method that can be used as a replacement for {@code synchronized} with Virtual Threads.
+	 * <pre>
+	 * private final Semaphore semaphore = new Semaphore(1, true);
+	 *
+	 * void doSomething() {
+	 *   try (var scope = sync(semaphore)) {
+	 *     // do something not thread-safe
+	 *   }
+	 * }
+	 * </pre>
+	 *
+	 * @param semaphore the semaphone to use as
+	 * @return a closable which
+	 * @throws IllegalStateException if semaphore permits is not equal to 1.
+	 */
+	public static AutoCloseable sync(Semaphore semaphore) {
+		if (semaphore.availablePermits() != 1) {
+			throw new IllegalStateException("Not a suitable replacement for 'synchronized'!");
+		}
+
+		try {
+			semaphore.acquire();
+			return semaphore::release;
+		} catch (InterruptedException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 }

@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.logging.LogManager.getLogManager;
 import static uk.dansiviter.gcp.log.Factory.logEntry;
 import static uk.dansiviter.gcp.log.JsonFactory.toJson;
-import static uk.dansiviter.juli.JulUtil.property;
+import static uk.dansiviter.jule.JulUtil.property;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,10 +50,10 @@ import uk.dansiviter.gcp.log.jul.JulHandler.JulEntry;
  *
  * <pre>
  * .level=INFO
- * handlers=uk.dansiviter.juli.AsyncConsoleHandler
+ * handlers=uk.dansiviter.jule.AsyncConsoleHandler
  *
- * uk.dansiviter.juli.AsyncConsoleHandler.level=FINEST
- * uk.dansiviter.juli.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.JsonFormatter
+ * uk.dansiviter.jule.AsyncConsoleHandler.level=FINEST
+ * uk.dansiviter.jule.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.JsonFormatter
  *
  * uk.dansiviter.gcp.log.JsonFormatter.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
  * </pre>
@@ -66,8 +66,7 @@ public class JsonFormatter extends ExpandingFormatter {
 	 *
 	 */
 	public JsonFormatter() {
-		var manager = getLogManager();
-		property(manager, getClass(), "decorators").ifPresent(this::setDecorators);
+		property(getLogManager(), getClass(), "decorators").ifPresent(this::setDecorators);
 	}
 
 	/**

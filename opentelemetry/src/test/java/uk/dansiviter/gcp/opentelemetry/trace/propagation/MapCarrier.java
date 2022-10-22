@@ -17,6 +17,8 @@ package uk.dansiviter.gcp.opentelemetry.trace.propagation;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
 
@@ -26,8 +28,8 @@ class MapCarrier implements TextMapGetter<Map<String, String>>, TextMapSetter<Ma
     private MapCarrier() { }
 
     @Override
-    public String get(Map<String, String> carrier, String key) {
-        return carrier.get(key);
+    public String get(@Nullable Map<String, String> carrier, String key) {
+        return carrier != null ?  carrier.get(key) : null;
     }
 
     @Override
@@ -36,8 +38,10 @@ class MapCarrier implements TextMapGetter<Map<String, String>>, TextMapSetter<Ma
     }
 
     @Override
-    public void set(Map<String, String> carrier, String key, String value) {
-        carrier.put(key, value);
+    public void set(@Nullable Map<String, String> carrier, String key, String value) {
+        if (carrier != null) {
+            carrier.put(key, value);
+        }
     }
 
     public static MapCarrier mapCarrier() {

@@ -18,6 +18,8 @@ package uk.dansiviter.gcp.opentelemetry.trace.propagation;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
@@ -42,7 +44,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 	private static final List<String> FIELDS = List.of(TRACE_ID, SPAN_ID, PARENT_SPAN_ID, SAMPLED, FLAGS);
 
 	@Override
-	public <C> void inject(Context context, C carrier, TextMapSetter<C> setter) {
+	public <C> void inject(Context context, @Nullable C carrier, TextMapSetter<C> setter) {
 		SpanContext spanContext = Span.fromContext(context).getSpanContext();
 		if (!spanContext.isValid()) {
 			return;
@@ -59,7 +61,7 @@ public class B3MultiPropagator implements TextMapPropagator {
 
 
 	@Override
-	public <C> Context extract(Context context, C carrier, TextMapGetter<C> getter) {
+	public <C> Context extract(Context context, @Nullable C carrier, TextMapGetter<C> getter) {
 		String traceId = getter.get(carrier, TRACE_ID);
 		String spanId = getter.get(carrier, SPAN_ID);
 		String parentSpanId = getter.get(carrier, PARENT_SPAN_ID);

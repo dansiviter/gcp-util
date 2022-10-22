@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>uk.dansiviter.gcp</groupId>
 	<artifactId>gcp</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<url>https://github.com/dansiviter/gcp-util</url>
@@ -35,7 +35,7 @@
 
 		<module.name>${project.groupId}.${project.artifactId}</module.name>
 
-		<juli.version>[0.0,1.0)</juli.version>
+		<jule.version>0.7.0-SNAPSHOT</jule.version>
 	</properties>
 
 	<distributionManagement>
@@ -60,33 +60,33 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
-				<groupId>uk.dansiviter.juli</groupId>
-				<artifactId>juli</artifactId>
-				<version>${juli.version}</version>
+				<groupId>uk.dansiviter.jule</groupId>
+				<artifactId>jule</artifactId>
+				<version>${jule.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>uk.dansiviter.juli</groupId>
-				<artifactId>juli-cdi</artifactId>
-				<version>${juli.version}</version>
+				<groupId>uk.dansiviter.jule</groupId>
+				<artifactId>jule-cdi</artifactId>
+				<version>${jule.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>uk.dansiviter.juli</groupId>
-				<artifactId>juli-processor</artifactId>
-				<version>${juli.version}</version>
+				<groupId>uk.dansiviter.jule</groupId>
+				<artifactId>jule-processor</artifactId>
+				<version>${jule.version}</version>
 				<scope>provided</scope>
 			</dependency>
 
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
-				<version>25.2.0</version>
+				<version>26.1.3</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
 			<dependency>
 				<groupId>io.opentelemetry</groupId>
 				<artifactId>opentelemetry-bom</artifactId>
-				<version>1.14.0</version>
+				<version>1.19.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -119,7 +119,7 @@
 			<dependency>
 				<groupId>org.jboss.weld</groupId>
 				<artifactId>weld-junit5</artifactId>
-				<version>[3.0.0.Final,4.0)</version>
+				<version>4.0.0.Final</version>
 				<scope>test</scope>
 			</dependency>
 

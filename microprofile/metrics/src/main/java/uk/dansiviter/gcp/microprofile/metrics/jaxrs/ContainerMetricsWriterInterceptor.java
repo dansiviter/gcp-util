@@ -17,17 +17,17 @@ package uk.dansiviter.gcp.microprofile.metrics.jaxrs;
 
 import static java.time.Duration.between;
 import static java.time.Instant.now;
-import static javax.ws.rs.Priorities.USER;
+import static jakarta.ws.rs.Priorities.USER;
 import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.ContainerMetricsFilter.START;
 import static uk.dansiviter.gcp.microprofile.metrics.jaxrs.Metrics.RESPONSE_LATENCY;
 
 import java.io.IOException;
 import java.time.Instant;
 
-import javax.annotation.Priority;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.ext.WriterInterceptor;
-import javax.ws.rs.ext.WriterInterceptorContext;
+import jakarta.annotation.Priority;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.ext.WriterInterceptor;
+import jakarta.ws.rs.ext.WriterInterceptorContext;
 
 import org.eclipse.microprofile.metrics.Timer;
 

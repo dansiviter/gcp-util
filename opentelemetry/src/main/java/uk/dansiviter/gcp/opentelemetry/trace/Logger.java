@@ -17,9 +17,9 @@ package uk.dansiviter.gcp.opentelemetry.trace;
 
 import java.util.function.IntSupplier;
 
-import uk.dansiviter.juli.annotations.Log;
-import uk.dansiviter.juli.annotations.Message;
-import uk.dansiviter.juli.annotations.Message.Level;
+import uk.dansiviter.jule.annotations.Log;
+import uk.dansiviter.jule.annotations.Message;
+import uk.dansiviter.jule.annotations.Message.Level;
 
 /**
  * Defines the logger.

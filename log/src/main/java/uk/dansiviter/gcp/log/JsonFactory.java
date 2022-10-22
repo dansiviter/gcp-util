@@ -25,36 +25,37 @@ public enum JsonFactory { ;
 	 * @param os the target output stream.
 	 */
 	public static void toJson(LogEntry entry, OutputStream os) {
-		var generator = Json.createGenerator(os);
-		generator.writeStartObject()
-			.write("severity", entry.getSeverity().toString())
-			.write("time", entry.getInstantTimestamp().toString());
-		var payload = entry.getPayload();
+		try (var generator = Json.createGenerator(os)) {
+			generator.writeStartObject()
+				.write("severity", entry.getSeverity().toString())
+				.write("time", entry.getInstantTimestamp().toString());
+			var payload = entry.getPayload();
 
-		if (payload instanceof JsonPayload) {
-			addMap(generator, ((JsonPayload) payload).getDataAsMap());
-		} else {
-			generator.write("message", ((StringPayload) payload).getData());
-		}
+			if (payload instanceof JsonPayload) {
+				addMap(generator, ((JsonPayload) payload).getDataAsMap());
+			} else {
+				generator.write("message", ((StringPayload) payload).getData());
+			}
 
-		if (!entry.getLabels().isEmpty()) {
-			generator.writeKey("logging.googleapis.com/labels")
-				.writeStartObject();
-			entry.getLabels().entrySet().stream()
-				.forEach(e -> generator.write(e.getKey(), e.getValue()));
+			if (!entry.getLabels().isEmpty()) {
+				generator.writeKey("logging.googleapis.com/labels")
+					.writeStartObject();
+				entry.getLabels().entrySet().stream()
+					.forEach(e -> generator.write(e.getKey(), e.getValue()));
+				generator.writeEnd();
+			}
+
+			var insertId = entry.getInsertId();
+			if (insertId != null) {
+				generator.write("logging.googleapis.com/insertId", insertId);
+			}
+
+			addOperation(entry, generator);
+			addSourceLocation(entry, generator);
+			addTrace(entry, generator);
+
 			generator.writeEnd();
 		}
-
-		var insertId = entry.getInsertId();
-		if (insertId != null) {
-			generator.write("logging.googleapis.com/insertId", insertId);
-		}
-
-		addOperation(entry, generator);
-		addSourceLocation(entry, generator);
-		addTrace(entry, generator);
-
-		generator.writeEnd().close();
 	}
 
 	@SuppressWarnings("unchecked")

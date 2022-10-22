@@ -17,11 +17,11 @@ package uk.dansiviter.gcp.microprofile.metrics;
 
 import java.io.IOException;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import com.google.cloud.monitoring.v3.MetricServiceClient;
 
@@ -30,7 +30,7 @@ import uk.dansiviter.gcp.GaxUtil;
 /**
  * Produces an instance of {@link MetricServiceClientProducer}.
  * <p>
- * Override with the {@link javax.enterprise.inject.Specializes} mechanism if you need to override.
+ * Override with the {@link jakarta.enterprise.inject.Specializes} mechanism if you need to override.
  */
 @ApplicationScoped
 public class MetricServiceClientProducer {

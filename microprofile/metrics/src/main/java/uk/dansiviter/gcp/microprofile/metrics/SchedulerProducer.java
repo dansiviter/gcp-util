@@ -20,14 +20,14 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Disposes;
+import jakarta.enterprise.inject.Produces;
 
 import uk.dansiviter.gcp.Util;
 
 /**
- * Override with the {@link javax.enterprise.inject.Specializes} mechanism if you need to override.
+ * Override with the {@link jakarta.enterprise.inject.Specializes} mechanism if you need to override.
  */
 public class SchedulerProducer {
 	@Produces

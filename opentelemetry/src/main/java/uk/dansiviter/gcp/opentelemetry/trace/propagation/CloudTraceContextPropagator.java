@@ -18,6 +18,8 @@ package uk.dansiviter.gcp.opentelemetry.trace.propagation;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
@@ -39,7 +41,7 @@ public class CloudTraceContextPropagator implements TextMapPropagator {
 	private static final List<String> FIELDS = List.of(HEADER);
 
 	@Override
-	public <C> void inject(Context context, C carrier, TextMapSetter<C> setter) {
+	public <C> void inject(Context context, @Nullable C carrier, TextMapSetter<C> setter) {
 		SpanContext spanContext = Span.fromContext(context).getSpanContext();
 		if (!spanContext.isValid()) {
 			return;
@@ -53,7 +55,7 @@ public class CloudTraceContextPropagator implements TextMapPropagator {
 	}
 
 	@Override
-	public <C> Context extract(Context context, C carrier, TextMapGetter<C> getter) {
+	public <C> Context extract(Context context, @Nullable C carrier, TextMapGetter<C> getter) {
 		String value = getter.get(carrier, HEADER);
 
 		if (value == null) {

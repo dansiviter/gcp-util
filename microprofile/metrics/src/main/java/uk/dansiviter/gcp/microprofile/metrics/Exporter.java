@@ -39,12 +39,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Initialized;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import com.google.api.MetricDescriptor;
 import com.google.api.gax.rpc.NotFoundException;
@@ -97,7 +97,7 @@ public class Exporter {
 	@Inject @Filter
 	private Instance<Predicate<MetricID>> filters;
 	@Inject
-	private MetricServiceClient client;
+	private Instance<MetricServiceClient> client;
 
 	private MonitoredResource resource;
 
@@ -173,7 +173,7 @@ public class Exporter {
 					.setName(this.projectName.toString())
 					.addAllTimeSeries(chunk)
 					.build();
-			this.client.createTimeSeries(request);
+			client().createTimeSeries(request);
 		}
 		this.previousInstant = end;
 	}
@@ -209,6 +209,10 @@ public class Exporter {
 		} catch (RuntimeException e) {
 			this.log.snapshotFail(e);
 		}
+	}
+
+	private MetricServiceClient client() {
+		return this.client.get();
 	}
 
 	/**
@@ -252,13 +256,13 @@ public class Exporter {
 		var name = Factory.toDescriptorName(this.resource, type, id);
 		MetricDescriptor found;
 		try {
-			found = this.client.getMetricDescriptor(name);
+			found = client().getMetricDescriptor(name);
 		} catch (NotFoundException e) {
 			found = null;
 		}
 		var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
 		if (!like(found, created)) {
-			return this.client.createMetricDescriptor(this.projectName, created);
+			return client().createMetricDescriptor(this.projectName, created);
 		}
 		return found;
 	}
