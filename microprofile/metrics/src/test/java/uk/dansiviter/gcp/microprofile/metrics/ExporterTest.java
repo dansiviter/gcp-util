@@ -21,10 +21,16 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static uk.dansiviter.gcp.microprofile.metrics.ReflectionUtil.set;
 
+import java.lang.annotation.Annotation;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.util.TypeLiteral;
 
 import com.google.api.MetricDescriptor;
 import com.google.cloud.MonitoredResource;
@@ -79,7 +85,7 @@ class ExporterTest {
 
 	@Test
 	void init(@Mock MetricServiceClient client) {
-		set(this.exporter, "client", client);
+		set(this.exporter, "client", new TestInstance<>(client));
 
 		this.exporter.init(null);
 
@@ -93,5 +99,54 @@ class ExporterTest {
 		this.exporter.destroy();
 
 		verify(future).cancel(false);
+	}
+
+
+	private static class TestInstance<T> implements Instance<T> {
+		private final T value;
+
+		TestInstance(T value) {
+			this.value = value;
+		}
+
+		@Override
+		public Iterator<T> iterator() {
+			return Collections.singleton(value).iterator();
+		}
+
+		@Override
+		public T get() {
+			return value;
+		}
+
+		@Override
+		public Instance<T> select(Annotation... qualifiers) {
+			return this;
+		}
+
+		@Override
+		public <U extends T> Instance<U> select(Class<U> subtype, Annotation... qualifiers) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public <U extends T> Instance<U> select(TypeLiteral<U> subtype, Annotation... qualifiers) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isUnsatisfied() {
+			return false;
+		}
+
+		@Override
+		public boolean isAmbiguous() {
+			return false;
+		}
+
+		@Override
+		public void destroy(T instance) {
+			// nothing to see here
+		}
 	}
 }

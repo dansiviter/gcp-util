@@ -48,7 +48,7 @@ import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.log.Entry;
 import uk.dansiviter.gcp.log.EntryDecorator;
 import uk.dansiviter.gcp.log.Factory;
-import uk.dansiviter.juli.AsyncHandler;
+import uk.dansiviter.jule.AsyncHandler;
 
 /**
  * Inspired by {@link com.google.cloud.logging.LoggingHandler} but one major limitation is it's use of
@@ -301,7 +301,7 @@ public class JulHandler extends AsyncHandler<LogEntry> {
 
 		@Override
 		public Optional<CharSequence> threadName() {
-			// JUL logging is a synchronous implementation so this should be correct!
+			// called on logging thread so this should be correct!
 			var thread = Thread.currentThread();
 			if (thread.getId() == this.delegate.getThreadID()) {
 				return Optional.of(thread.getName());

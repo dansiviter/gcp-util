@@ -25,7 +25,7 @@ uk.dansiviter.gcp.log.jul.JulHandler.filter=foo.MyFilter
 uk.dansiviter.gcp.log.jul.JulHandler.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator,foo.MyDecorator
 ```
 
-> :information_source: It's highly recommended you use this in combination with `uk.dansiviter.juli.FallbackHandler`. As Cloud Logging is remote, in the unlikely event `JulHandler` cannot start the log record will be sent to the fallback `Handler`.
+> :information_source: It's highly recommended you use this in combination with `uk.dansiviter.jule.FallbackHandler`. As Cloud Logging is remote, in the unlikely event `JulHandler` cannot start the log record will be sent to the fallback `Handler`.
 
 #### `uk.dansiviter.gcp.log.jul.JulHandler` Class Config ####
 
@@ -50,10 +50,10 @@ public class MyConfig {
 
 ```
 .level=INFO
-handlers=uk.dansiviter.juli.AsyncConsoleHandler
+handlers=uk.dansiviter.jule.AsyncConsoleHandler
 
-uk.dansiviter.juli.AsyncConsoleHandler.level=FINEST
-uk.dansiviter.juli.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.jul.JsonFormatter
+uk.dansiviter.jule.AsyncConsoleHandler.level=FINEST
+uk.dansiviter.jule.AsyncConsoleHandler.formatter=uk.dansiviter.gcp.log.jul.JsonFormatter
 
 uk.dansiviter.gcp.log.jul.JsonFormatter.decorators=uk.dansiviter.gcp.log.OpenTelemetryTraceDecorator
 ```

@@ -372,7 +372,7 @@ public enum Factory { ;
 			}
 		}
 
-		buckets.stream().map(b -> b.count).forEach(distribution::addBucketCounts);
+		buckets.stream().mapToLong(b -> b.count).forEach(distribution::addBucketCounts);
 	}
 
 	private static List<Bucket> exponentialBuckets(BucketOptions options) {
@@ -637,7 +637,7 @@ public enum Factory { ;
 
 	private static class Bucket {
 		private final long upper;
-		private int count;
+		private long count;
 
 		Bucket(long upper) {
 			this.upper = upper;

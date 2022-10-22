@@ -15,13 +15,13 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
-import static uk.dansiviter.juli.annotations.Message.Level.DEBUG;
-import static uk.dansiviter.juli.annotations.Message.Level.WARN;
+import static uk.dansiviter.jule.annotations.Message.Level.DEBUG;
+import static uk.dansiviter.jule.annotations.Message.Level.WARN;
 
 import java.time.Instant;
 
-import uk.dansiviter.juli.annotations.Log;
-import uk.dansiviter.juli.annotations.Message;
+import uk.dansiviter.jule.annotations.Log;
+import uk.dansiviter.jule.annotations.Message;
 
 /**
  * Defines the logger.

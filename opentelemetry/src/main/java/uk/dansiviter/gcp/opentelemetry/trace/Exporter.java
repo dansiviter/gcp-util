@@ -31,7 +31,7 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import uk.dansiviter.gcp.GaxUtil;
 import uk.dansiviter.gcp.MonitoredResourceProvider;
-import uk.dansiviter.juli.LogProducer;
+import uk.dansiviter.jule.LogProducer;
 
 /**
  * A OpenTelemetry {@link SpanExporter exporter} that pushes the traces to Cloud Trace.

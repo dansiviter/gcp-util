@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>uk.dansiviter.gcp</groupId>
 		<artifactId>gcp</artifactId>
-		<version>0.1.0-SNAPSHOT</version>
+		<version>0.2.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>gcp-opentelemetry</artifactId>
 
@@ -20,12 +20,12 @@
 		</dependency>
 
 		<dependency>
-			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>juli</artifactId>
+			<groupId>uk.dansiviter.jule</groupId>
+			<artifactId>jule</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>uk.dansiviter.juli</groupId>
-			<artifactId>juli-processor</artifactId>
+			<groupId>uk.dansiviter.jule</groupId>
+			<artifactId>jule-processor</artifactId>
 		</dependency>
 
 		<dependency>
@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-semconv</artifactId>
-			<version>1.5.0-alpha</version>
+			<version>1.16.0-alpha</version>
 		</dependency>
 
 		<dependency>

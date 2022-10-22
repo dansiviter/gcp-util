@@ -15,12 +15,12 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics.jaxrs;
 
-import static javax.ws.rs.RuntimeType.SERVER;
+import static jakarta.ws.rs.RuntimeType.SERVER;
 
-import javax.ws.rs.ConstrainedTo;
-import javax.ws.rs.core.Feature;
-import javax.ws.rs.core.FeatureContext;
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.ConstrainedTo;
+import jakarta.ws.rs.core.Feature;
+import jakarta.ws.rs.core.FeatureContext;
+import jakarta.ws.rs.ext.Provider;
 
 /**
  * @author Daniel Siviter
