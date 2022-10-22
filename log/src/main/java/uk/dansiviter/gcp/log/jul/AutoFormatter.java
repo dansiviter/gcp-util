@@ -1,5 +1,6 @@
 package uk.dansiviter.gcp.log.jul;
 
+import static java.lang.Thread.currentThread;
 import static java.net.http.HttpResponse.BodyHandlers.discarding;
 import static java.util.logging.LogManager.getLogManager;
 import static uk.dansiviter.jule.JulUtil.property;
@@ -69,6 +70,7 @@ public class AutoFormatter extends Formatter {
 			// nothing to see here
 		} catch (InterruptedException e) {
 			errorManager.error("Error detecting GCP!", e, ErrorManager.OPEN_FAILURE);
+			currentThread().interrupt();
 		}
 		return false;
 	}

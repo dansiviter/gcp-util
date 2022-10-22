@@ -116,24 +116,23 @@ public enum Util { ;
 	 * void doSomething() {
 	 *   try (var scope = sync(semaphore)) {
 	 *     // do something not thread-safe
+	 *   } throws (InterruptedException e) {
+	 *     ...
 	 *   }
 	 * }
 	 * </pre>
 	 *
-	 * @param semaphore the semaphone to use as
+	 * @param semaphore the semaphore to use as
 	 * @return a closable which
-	 * @throws IllegalStateException if semaphore permits is not equal to 1.
+	 * @throws IllegalStateException if semaphore permits is not equal to 1
+	 * @throws InterruptedException if the current thread is interrupted
 	 */
-	public static AutoCloseable sync(Semaphore semaphore) {
+	public static AutoCloseable sync(Semaphore semaphore) throws InterruptedException {
 		if (semaphore.availablePermits() != 1) {
 			throw new IllegalStateException("Not a suitable replacement for 'synchronized'!");
 		}
 
-		try {
-			semaphore.acquire();
-			return semaphore::release;
-		} catch (InterruptedException e) {
-			throw new IllegalStateException(e);
-		}
+		semaphore.acquire();
+		return semaphore::release;
 	}
 }
