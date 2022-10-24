@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.cloud.logging.ContextHandler;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.LoggingEnhancer;
 import com.google.cloud.logging.Payload.JsonPayload;
@@ -60,10 +61,13 @@ public enum Factory { ;
 	 */
 	public static LogEntry logEntry(Entry entry, List<EntryDecorator> decorators) {
 		var timestamp = entry.timestamp();
+		var context = new ContextHandler().getCurrentContext();
 		var b = BUILDER.get()
 				.setTimestamp(timestamp)
 				.setSeverity(entry.severity());
-
+		if (context != null) {
+			b.setHttpRequest(context.getHttpRequest());
+		}
 		entry.logName().ifPresent(t -> b.addLabel("logName", t.toString()));
 		entry.threadName().ifPresent(t -> b.addLabel("thread", t.toString()));
 
