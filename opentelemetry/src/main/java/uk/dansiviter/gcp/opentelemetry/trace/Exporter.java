@@ -17,10 +17,12 @@ package uk.dansiviter.gcp.opentelemetry.trace;
 
 import static uk.dansiviter.gcp.ResourceType.Label.PROJECT_ID;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.trace.v2.TraceServiceClient;
@@ -44,21 +46,28 @@ public class Exporter implements SpanExporter {
 
 	private final MonitoredResource resource;
 	private final ProjectName projectName;
-	private final TraceServiceClient client;
+	private final Supplier<TraceServiceClient> client;
+	private final Closeable clientClosable;
 	private final Factory factory;
 
 	Exporter(Builder builder) {
 		this.resource = builder.resource.orElseGet(MonitoredResourceProvider::monitoredResource);
 		var projectId = builder.projectId.or(() -> PROJECT_ID.get(this.resource));
 		this.projectName = ProjectName.of(projectId.orElseThrow());
-		this.client = builder.client.orElseGet(Exporter::defaultTraceServiceClient);
+		if (builder.client.isPresent()) {
+			this.client = () -> builder.client.get();
+			this.clientClosable = () -> {};
+		} else {
+			this.client = Exporter::defaultTraceServiceClient;
+			this.clientClosable = () -> GaxUtil.close(this.client.get());
+		}
 		this.factory = new Factory(this.resource, this.projectName);
 	}
 
 	@Override
 	public CompletableResultCode export(Collection<SpanData> spans) {
 		LOG.export(spans::size);
-		this.client.batchWriteSpans(projectName, factory.toSpans(spans));
+		client().batchWriteSpans(projectName, factory.toSpans(spans));
 		return CompletableResultCode.ofSuccess();
 	}
 
@@ -71,8 +80,17 @@ public class Exporter implements SpanExporter {
 	@Override
 	public CompletableResultCode shutdown() {
 		LOG.shutdown();
-		GaxUtil.close(this.client);
+		try {
+			clientClosable.close();
+		} catch (IOException e) {
+			LOG.shutdownFail(e);
+			return CompletableResultCode.ofFailure();
+		}
 		return CompletableResultCode.ofSuccess();
+	}
+
+	private TraceServiceClient client() {
+		return client.get();
 	}
 
 

@@ -15,13 +15,17 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
+import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static uk.dansiviter.gcp.microprofile.metrics.ReflectionUtil.set;
 
 import java.lang.annotation.Annotation;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,7 +39,9 @@ import jakarta.enterprise.util.TypeLiteral;
 import com.google.api.MetricDescriptor;
 import com.google.cloud.MonitoredResource;
 import com.google.cloud.monitoring.v3.MetricServiceClient;
+import com.google.cloud.monitoring.v3.stub.MetricServiceStub;
 
+import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +58,15 @@ class ExporterTest {
 	private final MonitoredResource resource = MonitoredResource.of("global", Map.of("project_id", "my_project"));
 
 	@Mock
-	private ScheduledExecutorService executor;
+	Logger log;
+	@Mock
+	ScheduledExecutorService executor;
+	@Mock
+	MetricRegistry baseRegistry;
+	@Mock
+	MetricRegistry vendorRegistry;
+	@Mock
+	MetricRegistry appRegistry;
 
 	private Exporter exporter;
 
@@ -62,6 +76,10 @@ class ExporterTest {
 		set(this.exporter, "executor", executor);
 		set(this.exporter, "enabled", true);
 		set(this.exporter, "samplingRate", SamplingRate.STANDARD);
+		set(this.exporter, "log", this.log);
+		set(this.exporter, "baseRegistry", this.baseRegistry);
+		set(this.exporter, "vendorRegistry", this.vendorRegistry);
+		set(this.exporter, "appRegistry", this.appRegistry);
 	}
 
 	@Test
@@ -93,12 +111,29 @@ class ExporterTest {
 	}
 
 	@Test
-	void destroy(@Mock ScheduledFuture<?> future) {
+	void flush(@Mock MetricServiceStub clientStub) {
+		set(this.exporter, "client", new TestInstance<>(MetricServiceClient.create(clientStub)));
+		set(this.exporter, "startInstant", Instant.now().minus(1L, SECONDS));
+		set(this.exporter, "resource", resource);
+
+		this.exporter.flush();
+
+		verify(this.log, never()).collectionFail(any());
+	}
+
+	@Test
+	void destroy(@Mock MetricServiceStub clientStub, @Mock ScheduledFuture<?> future) {
+		set(this.exporter, "client", new TestInstance<>(MetricServiceClient.create(clientStub)));
 		set(this.exporter, "future", future);
+		var startInstant = Instant.now().minus(1L, SECONDS);
+		set(this.exporter, "startInstant",startInstant);
+		set(this.exporter, "previousInstant", startInstant.plus(500, MILLIS));
+		set(this.exporter, "resource", resource);
 
 		this.exporter.destroy();
 
 		verify(future).cancel(false);
+		verify(clientStub).close();
 	}
 
 

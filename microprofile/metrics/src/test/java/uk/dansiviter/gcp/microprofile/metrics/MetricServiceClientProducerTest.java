@@ -17,9 +17,7 @@ package uk.dansiviter.gcp.microprofile.metrics;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Mockito.verify;
 import static uk.dansiviter.gcp.microprofile.metrics.HasFieldWithValue.hasField;
-import static uk.dansiviter.gcp.microprofile.metrics.ReflectionUtil.set;
 
 import com.google.cloud.monitoring.v3.MetricServiceClient;
 import com.google.cloud.monitoring.v3.stub.MetricServiceStub;
@@ -55,14 +53,5 @@ class MetricServiceClientProducerTest {
 		producer.init();
 
 		assertThat(producer, hasField("client", notNullValue()));
-	}
-
-	@Test
-	void destroy() {
-		set(producer, "client", MetricServiceClient.create(stub));
-
-		producer.destroy();
-
-		verify(stub).close();
 	}
 }

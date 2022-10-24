@@ -15,20 +15,26 @@
  */
 package uk.dansiviter.gcp.opentelemetry.trace;
 
+import static uk.dansiviter.jule.annotations.Message.Level.DEBUG;
+import static uk.dansiviter.jule.annotations.Message.Level.WARN;
+
+import java.io.IOException;
 import java.util.function.IntSupplier;
 
 import uk.dansiviter.jule.annotations.Log;
 import uk.dansiviter.jule.annotations.Message;
-import uk.dansiviter.jule.annotations.Message.Level;
 
 /**
  * Defines the logger.
  */
 @Log
 interface Logger {
-	@Message(value = "Exporting traces. [size={0}]", level = Level.DEBUG)
+	@Message(value = "Exporting traces. [size={0}]", level = DEBUG)
 	void export(IntSupplier size);
 
 	@Message("Shutting down.")
 	void shutdown();
+
+	@Message(value = "Error shutting down.", level = WARN)
+	void shutdownFail(IOException e);
 }

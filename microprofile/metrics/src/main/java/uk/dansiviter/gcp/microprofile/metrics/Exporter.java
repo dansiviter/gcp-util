@@ -61,6 +61,7 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.MetricRegistry.Type;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
+import uk.dansiviter.gcp.GaxUtil;
 import uk.dansiviter.gcp.MonitoredResourceProvider;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Context;
 import uk.dansiviter.gcp.microprofile.metrics.Factory.Snapshot;
@@ -138,15 +139,16 @@ public class Exporter {
 		this.future = this.executor.scheduleAtFixedRate(this::flush, 10, samplingRate.duration.getSeconds(), SECONDS);
 	}
 
-	private void flush() {
+	// visible for testing
+	void flush() {
 		try {
-			doFlush();
+			doFlush(this.client.get());
 		} catch (RuntimeException e) {
 			this.log.collectionFail(e);
 		}
 	}
 
-	private void doFlush() {
+	private void doFlush(MetricServiceClient client) {
 		var start = this.previousInstant == null ? this.startInstant : this.previousInstant;
 		var end = Instant.now();
 		this.log.startCollection(start, end);
@@ -161,9 +163,9 @@ public class Exporter {
 		// convert to time-series
 		var ctx = new Context(this.config, this.resource, toTimestamp(this.startInstant), interval);
 		var timeSeries = new ArrayList<TimeSeries>();
-		convert(ctx, this.baseRegistry, BASE, snapshots, timeSeries);
-		convert(ctx, this.vendorRegistry, VENDOR, snapshots, timeSeries);
-		convert(ctx, this.appRegistry, APPLICATION, snapshots, timeSeries);
+		convert(client, ctx, this.baseRegistry, BASE, snapshots, timeSeries);
+		convert(client, ctx, this.vendorRegistry, VENDOR, snapshots, timeSeries);
+		convert(client, ctx, this.appRegistry, APPLICATION, snapshots, timeSeries);
 
 		// persist
 		// limit to 200: https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/create
@@ -173,12 +175,13 @@ public class Exporter {
 					.setName(this.projectName.toString())
 					.addAllTimeSeries(chunk)
 					.build();
-			client().createTimeSeries(request);
+			client.createTimeSeries(request);
 		}
 		this.previousInstant = end;
 	}
 
 	private void convert(
+		MetricServiceClient client,
 		Context ctx,
 		MetricRegistry registry,
 		Type type,
@@ -186,7 +189,7 @@ public class Exporter {
 		List<TimeSeries> timeSeries)
 	{
 		registry.getMetrics().forEach((k, v) ->
-			timeSeries(ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
+			timeSeries(client, ctx, registry, type, snapshots, k).ifPresent(ts -> add(timeSeries, ts))
 		);
 	}
 
@@ -211,10 +214,6 @@ public class Exporter {
 		}
 	}
 
-	private MetricServiceClient client() {
-		return this.client.get();
-	}
-
 	/**
 	 * Destroy this exporter.
 	 */
@@ -224,28 +223,32 @@ public class Exporter {
 			this.future.cancel(false);
 		}
 		if (this.previousInstant != null) {
-			flush();
+			var client = this.client.get();
+			doFlush(client);
+			GaxUtil.close(client);
 		}
 	}
 
 	private Optional<TimeSeries> timeSeries(
-			Context ctx,
-			MetricRegistry registry,
-			MetricRegistry.Type type,
-			Map<MetricID, Snapshot> snapshots,
-			MetricID id)
+		MetricServiceClient client,
+		Context ctx,
+		MetricRegistry registry,
+		MetricRegistry.Type type,
+		Map<MetricID, Snapshot> snapshots,
+		MetricID id)
 	{
 		var snapshot = snapshots.get(id);
 		if (snapshot == null) {
 			return Optional.empty();  // we either couldn't snapshot or don't know how
 		}
 
-		var descriptor = this.descriptors.computeIfAbsent(id, k -> metricDescriptor(registry, type, snapshot, id));
+		var descriptor = this.descriptors.computeIfAbsent(id, k -> metricDescriptor(client, registry, type, snapshot, id));
 
 		return Optional.of(snapshot.timeseries(ctx, id, descriptor).build());
 	}
 
 	private MetricDescriptor metricDescriptor(
+		MetricServiceClient client,
 		MetricRegistry registry,
 		MetricRegistry.Type type,
 		Snapshot snapshot,
@@ -256,13 +259,13 @@ public class Exporter {
 		var name = Factory.toDescriptorName(this.resource, type, id);
 		MetricDescriptor found;
 		try {
-			found = client().getMetricDescriptor(name);
+			found = client.getMetricDescriptor(name);
 		} catch (NotFoundException e) {
 			found = null;
 		}
 		var created = Factory.toDescriptor(this.resource, this.config, registry, type, id, snapshot);
 		if (!like(found, created)) {
-			return client().createMetricDescriptor(this.projectName, created);
+			return client.createMetricDescriptor(this.projectName, created);
 		}
 		return found;
 	}
