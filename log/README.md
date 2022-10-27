@@ -4,9 +4,10 @@
 
 ### `java.util` Logger (JUL) ###
 
-This has two options:
+This has three options:
 * `uk.dansiviter.gcp.log.jul.JulHandler`: This will communicate directly with the APIs. This means a service account must be present in the VM or Pod with sufficient permissions,
 * `uk.dansiviter.gcp.log.jul.JsonFormatter`: This will format log messages as required by [Structured Logging](https://cloud.google.com/logging/docs/structured-logging). This is often simpler than direct API access.
+* `uk.dansiviter.gcp.log.jul.AutoFormatter`: This is similar to the `JsonFormatter` except it will detect what environment the application is running in and adapt the format between simple logging or structured logging. i.e. on a developer machine or in GKE.
 
 Both of these were inspired by `com.google.cloud.logging.LoggingHandler` but written to address it's limitation on the use of `com.google.cloud.logging.Payload.StringPayload` which heavily reduces the data that can be utilised by GCP for elements such as `serviceContext`.
 

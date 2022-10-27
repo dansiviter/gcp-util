@@ -1,6 +1,6 @@
 # Cloud Operations Utils. - OpenTelemetry #
 
-An implementation of OpenTelemetry that sends it's data to Cloud Trace or Cloud Monitoring.
+An implementation of OpenTelemetry that sends it's data to Cloud Trace.
 
 Limitations:
 * No performance testing,
@@ -9,9 +9,9 @@ Limitations:
 ## Usage ##
 
 ```java
-  Exporter exporter = Exporter.builder()
+  var exporter = Exporter.builder()
           .build();
-  SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
+  var tracerProvider = SdkTracerProvider.builder()
           .addSpanProcessor(BatchSpanProcessor.builder(exporter).build())
           .build();
   OpenTelemetrySdk.builder()
