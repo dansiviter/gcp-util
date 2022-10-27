@@ -201,7 +201,7 @@ public class Exporter {
 	}
 
 	private void collect(Map<MetricID, Snapshot> snapshots, MetricID id, Metric metric) {
-		for (Predicate<MetricID> p : this.filters) {
+		for (var p : this.filters) {
 			if (!p.test(id)) {
 				return;
 			}

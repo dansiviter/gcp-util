@@ -15,10 +15,12 @@
  */
 package uk.dansiviter.gcp.jdbccommenter;
 
+import static java.lang.String.format;
+import static java.lang.reflect.Proxy.newProxyInstance;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -114,7 +116,7 @@ public class DriverImpl implements java.sql.Driver {
 
 	@SuppressWarnings("unchecked")
 	private static <T> T proxy(T o, InvocationHandler h) {
-		return (T) Proxy.newProxyInstance(o.getClass().getClassLoader(), o.getClass().getInterfaces(), h);
+		return (T) newProxyInstance(o.getClass().getClassLoader(), o.getClass().getInterfaces(), h);
 	}
 
 	private static String comment(String sql) {
@@ -131,7 +133,7 @@ public class DriverImpl implements java.sql.Driver {
 	}
 
 	private static void appendParent(StringBuilder builder, SpanContext spanCtx) {
-		builder.append("traceparent=").append(String.format(
+		builder.append("traceparent=").append(format(
 			"'00-%s-%s-%02X'",
 			spanCtx.getTraceId(),
 			spanCtx.getSpanId(),

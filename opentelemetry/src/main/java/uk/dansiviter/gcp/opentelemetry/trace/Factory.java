@@ -60,7 +60,7 @@ import io.opentelemetry.sdk.trace.data.StatusData;
  * @author Daniel Siviter
  * @since v1.0 [20 Feb 2020]
  */
-public class Factory {
+class Factory {
 	private static final String AGENT_LABEL_KEY = "/agent";
 	private static final Map<String, String> HTTP_ATTRIBUTE_MAPPING = Map.of(
 		HTTP_HOST.getKey(), "/http/host",
