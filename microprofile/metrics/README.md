@@ -18,7 +18,6 @@ Limitations:
 * Missing `org.eclipse.microprofile.metrics.Meter`,
 * Performance testing - No idea of the runtime impact of this library underload.
 
-
 > :information_source: Repeat quick start/stop of instances may result in a `INVALID_ARGUMENT: ... One or more points were written more frequently than the maximum sampling period configured for the metric.` error. This is especially true for local development as it will tend to use the `global` monitored resource type. This will not appear when running in GKE or GCE as the hostname has sufficient entropy to avoid conflicts.
 
 
@@ -45,6 +44,10 @@ To enable these use the following classes:
 * `uk.dansiviter.gcp.microprofile.metrics.jaxrs.ContainerMetricsFeature`,
 * `uk.dansiviter.gcp.microprofile.metrics.jaxrs.ClientMetricsFeature`.
 
+
+## Filtering ##
+
+In some circumstances you may not want the metrics to be pushed to Cloud Monitoring. See `uk.dansiviter.gcp.microprofile.metrics.Filter` for more information.
 
 ## Dashboard ##
 

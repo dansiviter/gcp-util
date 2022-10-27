@@ -4,11 +4,12 @@
 
 A collection of utilities and experiments for integrating into Google Cloud Platform:
 
-* [`core`](/core) - Core classes common to multiple projects,
-* [`log`](/log) - A slightly more modern Cloud Logging integration implementation,
-* [`microprofile/config`](/microprofile/config) - Integration for Google Secrets Manager within config,
-* [`microprofile/metrics`](/microprofile/metrics) - Extracts and sends Microprofile Metrics to Cloud Monitoring,
-* [`opentelemetry`](/opentelemetry) - [OpenTelemetry](https://opentelemetry.io) implementation that sends trace and metrics informtaion to Cloud Tracing.
+* [`Core`](/core) - Core classes common to multiple projects,
+* [`JDBC Commenter`](/jdbccommenter) - [SQL Commenter](https://google.github.io/sqlcommenter/) implementation for JDBC,
+* [`Log`](/log) - A slightly more advanced Cloud Logging integration implementation,
+* [`Microprofile Config`](/microprofile/config) - Integration for Google Secrets Manager within config,
+* [`Microprofile Metrics`](/microprofile/metrics) - Extracts and sends Microprofile Metrics to Cloud Monitoring,
+* [`OpenTelemetry`](/opentelemetry) - [OpenTelemetry](https://opentelemetry.io) implementation that sends trace and metrics information to Cloud Tracing.
 
 > :information_source: OpenTracing implementation has been replaced by a combination of the [OpenTelemetry tracer](/opentelemetry) exporter and [OpenTracing shim](https://github.com/open-telemetry/opentelemetry-java/tree/main/opentracing-shim).
 
