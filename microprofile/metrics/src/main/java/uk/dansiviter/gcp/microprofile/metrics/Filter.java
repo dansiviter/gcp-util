@@ -33,8 +33,8 @@ import jakarta.inject.Qualifier;
  * <pre>
  * &#064;Filter
  * &#064;Produces
- * public Predicate<MetricID> filter() {
- *   return id -> id.getName().startsWith("foo");
+ * public Predicate&lt;MetricID&gt; filter() {
+ *   return id -&gt; id.getName().startsWith("foo");
  * }
  * </pre>
  */

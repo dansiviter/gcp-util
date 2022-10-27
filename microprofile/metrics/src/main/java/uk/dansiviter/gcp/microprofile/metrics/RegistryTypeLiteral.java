@@ -50,7 +50,7 @@ public final class RegistryTypeLiteral extends AnnotationLiteral<RegistryType> i
 	 * Returns metric registry type annotation literal.
 	 *
 	 * @param type the type to get.
-	 * @return
+	 * @return the matching annotation literal.
 	 */
 	public static RegistryType registryType(Type type) {
 		switch (type) {
