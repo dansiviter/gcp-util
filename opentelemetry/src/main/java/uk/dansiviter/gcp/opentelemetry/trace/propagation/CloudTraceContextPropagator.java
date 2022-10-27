@@ -30,10 +30,11 @@ import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
 
 /**
- * TRACE_ID/SPAN_ID;o=TRACE_TRUE
+ * This implements Google's Trace Context header.
  *
  * @author Daniel Siviter
  * @since v1.0 [13 Feb 2021]
+ * @see <a href="https://cloud.google.com/trace/docs/setup">Google Cloud Trace</a>
  */
 public class CloudTraceContextPropagator implements TextMapPropagator {
 	private static final CloudTraceContextPropagator INSTANCE = new CloudTraceContextPropagator();

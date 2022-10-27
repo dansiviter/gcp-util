@@ -27,6 +27,17 @@ import java.lang.annotation.Target;
 import jakarta.enterprise.util.AnnotationLiteral;
 import jakarta.inject.Qualifier;
 
+/**
+ * Used for annotating {@link java.util.function.Predicate} to filter out metrics to be sent to Cloud Monitoring. For
+ * example, to not send metrics starting with 'foo':
+ * <pre>
+ * &#064;Filter
+ * &#064;Produces
+ * public Predicate<MetricID> filter() {
+ *   return id -> id.getName().startsWith("foo");
+ * }
+ * </pre>
+ */
 @Qualifier
 @Retention(RUNTIME)
 @Target({ METHOD, FIELD, PARAMETER, TYPE})
