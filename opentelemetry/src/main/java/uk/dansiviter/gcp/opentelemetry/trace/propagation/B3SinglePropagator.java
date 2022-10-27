@@ -30,8 +30,11 @@ import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
 
 /**
+ * This propagator implements B3 using a single header.
+ *
  * @author Daniel Siviter
  * @since v1.0 [13 Feb 2021]
+ * @see <a href="https://github.com/openzipkin/b3-propagation">B3 Propagation</a>
  */
 public class B3SinglePropagator implements TextMapPropagator {
 	private static final B3SinglePropagator INSTANCE = new B3SinglePropagator();
