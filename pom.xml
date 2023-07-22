@@ -35,7 +35,7 @@
 
 		<module.name>${project.groupId}.${project.artifactId}</module.name>
 
-		<jule.version>0.7.0-SNAPSHOT</jule.version>
+		<jule.version>0.7.0</jule.version>
 	</properties>
 
 	<distributionManagement>
@@ -75,11 +75,6 @@
 			</dependency>
 			<dependency>
 				<groupId>uk.dansiviter.jule</groupId>
-				<artifactId>jule-cdi</artifactId>
-				<version>${jule.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>uk.dansiviter.jule</groupId>
 				<artifactId>jule-processor</artifactId>
 				<version>${jule.version}</version>
 				<scope>provided</scope>
@@ -88,14 +83,14 @@
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
-				<version>26.1.3</version>
+				<version>26.19.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
 			<dependency>
 				<groupId>io.opentelemetry</groupId>
 				<artifactId>opentelemetry-bom</artifactId>
-				<version>1.19.0</version>
+				<version>1.28.0</version>
 
 				<type>pom</type>
 				<scope>import</scope>
@@ -162,7 +157,7 @@
 			<plugins>
 				<plugin>
 					<artifactId>maven-jar-plugin</artifactId>
-					<version>3.2.0</version>
+					<version>3.3.0</version>
 					<configuration>
 						<archive>
 							<manifest>
@@ -176,25 +171,25 @@
 				</plugin>
 				<plugin>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.0.0-M5</version>
+					<version>3.1.2</version>
 				</plugin>
 				<plugin>
 					<artifactId>maven-failsafe-plugin</artifactId>
-					<version>3.0.0-M5</version>
+					<version>3.1.2</version>
 				</plugin>
 				<plugin>
 					<artifactId>maven-release-plugin</artifactId>
-					<version>3.0.0-M4</version>
+					<version>3.0.1</version>
 				</plugin>
 				<plugin>
 					<groupId>org.jboss.jandex</groupId>
 					<artifactId>jandex-maven-plugin</artifactId>
-					<version>1.2.1</version>
+					<version>1.2.3</version>
 				</plugin>
 				<plugin>
 					<groupId>org.jacoco</groupId>
 					<artifactId>jacoco-maven-plugin</artifactId>
-					<version>0.8.7</version>
+					<version>0.8.10</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
