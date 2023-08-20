@@ -35,7 +35,7 @@
 
 		<module.name>${project.groupId}.${project.artifactId}</module.name>
 
-		<jule.version>0.7.0</jule.version>
+		<jule.version>0.7.1</jule.version>
 	</properties>
 
 	<distributionManagement>
