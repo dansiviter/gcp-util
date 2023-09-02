@@ -15,19 +15,20 @@
  */
 package uk.dansiviter.gcp.microprofile.metrics;
 
+import static uk.dansiviter.jule.annotations.Logger.Lifecycle.CDI;
 import static uk.dansiviter.jule.annotations.Message.Level.DEBUG;
 import static uk.dansiviter.jule.annotations.Message.Level.WARN;
 
 import java.time.Instant;
 
-import uk.dansiviter.jule.annotations.Log;
+import uk.dansiviter.jule.annotations.Logger;
 import uk.dansiviter.jule.annotations.Message;
 
 /**
  * Defines the logger.
  */
-@Log
-interface Logger {
+@Logger(lifecycle = CDI)
+interface Log {
   @Message(value = "Starting metrics collection... [start={0},end={1}]", level = DEBUG)
   void startCollection(Instant start, Instant end);
 

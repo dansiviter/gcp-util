@@ -58,7 +58,7 @@ class ExporterTest {
 	private final MonitoredResource resource = MonitoredResource.of("global", Map.of("project_id", "my_project"));
 
 	@Mock
-	Logger log;
+	Log log;
 	@Mock
 	ScheduledExecutorService executor;
 	@Mock

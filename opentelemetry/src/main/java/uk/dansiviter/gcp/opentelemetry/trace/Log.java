@@ -21,14 +21,14 @@ import static uk.dansiviter.jule.annotations.Message.Level.WARN;
 import java.io.IOException;
 import java.util.function.IntSupplier;
 
-import uk.dansiviter.jule.annotations.Log;
+import uk.dansiviter.jule.annotations.Logger;
 import uk.dansiviter.jule.annotations.Message;
 
 /**
  * Defines the logger.
  */
-@Log
-interface Logger {
+@Logger
+interface Log {
 	@Message(value = "Exporting traces. [size={0}]", level = DEBUG)
 	void export(IntSupplier size);
 

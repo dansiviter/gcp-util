@@ -46,7 +46,7 @@ public class AutoFormatter extends Formatter {
 		return this.delegate.format(record);
 	}
 
-	private Boolean detect() {
+	private static Boolean detect() {
 		if (Boolean.getBoolean("log.isGcp")) {
 			return true;
 		}
