@@ -35,7 +35,7 @@ import com.google.cloud.monitoring.v3.MetricServiceClient;
 @ApplicationScoped
 public class MetricServiceClientProducer {
 	@Inject
-	private Logger log;
+	private Log log;
 
 	@Produces
 	private MetricServiceClient client;

@@ -33,7 +33,7 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import uk.dansiviter.gcp.GaxUtil;
 import uk.dansiviter.gcp.MonitoredResourceProvider;
-import uk.dansiviter.jule.LogProducer;
+import uk.dansiviter.jule.LoggerFactory;
 
 /**
  * A OpenTelemetry {@link SpanExporter exporter} that pushes the traces to Cloud Trace.
@@ -42,7 +42,7 @@ import uk.dansiviter.jule.LogProducer;
  * @since v1.0 [13 Feb 2021]
  */
 public class Exporter implements SpanExporter {
-	private static final Logger LOG = LogProducer.log(Logger.class);
+	private static final Log LOG = LoggerFactory.log(Log.class);
 
 	private final MonitoredResource resource;
 	private final ProjectName projectName;

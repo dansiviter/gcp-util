@@ -78,7 +78,7 @@ public class Exporter {
 	private final Supplier<MonitoredResource> resourceSupplier;
 
 	@Inject
-	private Logger log;
+	private Log log;
 	@Inject
 	@ConfigProperty(name = "cloudMonitoring.enabled", defaultValue = "true")
 	private boolean enabled;
